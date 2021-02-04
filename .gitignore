@@ -1,3 +1,7 @@
+# Workspace
+.vs/
+.vscode/
+
 # Logs
 logs
 *.log
