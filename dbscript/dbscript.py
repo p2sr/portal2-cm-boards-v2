@@ -32,7 +32,8 @@ def main():
         host="localhost",
         user="root",
         password=mysql_password,
-        database="testdb"
+        database="testdb",
+        autocommit=True
     )
     mycursor = mydb.cursor()
     testquery = "SELECT * FROM changelog WHERE"
@@ -63,7 +64,14 @@ def main():
                 # String to insert new coopbundled
                 #newinsert = f"INSERT INTO coopbundled (time_gained, profile_number1, profile_number2, score, map_id, wr_gain, has_demo1, has_demo2, banned, youtube_id1, youtube_id2, previous_id1, previous_id2, changelogid1, changelogid2, id, post_rank1, post_rank2, pre_rank1, pre_rank2, submission1, submission2, note1, note2) VALUES ('{value.time_gained}', '{temp.profile_number}', '{temp2.profile_number}', {value.score}, '{value.map_id}', {value.wr_gain}, {temp.has_demo}, {temp2.has_demo}, {value.banned}, '{temp.youtube_id}', '{temp2.youtube_id}', {temp.previous_id}, {temp2.previous_id},{temp.id}, {temp2.id}, {temp.previous_id}, {temp2.previous_id}, {count}, {temp.post_rank}, {temp2.post_rank}, {temp.pre_rank}, {temp2.pre_rank}, {temp.submission}, {temp2.submission}, '{temp.note}', {temp2.note})"
                 #TODO Fix this dumb shit
-                mycursor.execute("INSERT INTO coopbundled (time_gained, profile_number1, profile_number2, score, map_id, wr_gain, has_demo1, has_demo2, banned, youtube_id1, youtube_id2, previous_id1, previous_id2, changelogid1, changelogid2, id, post_rank1, post_rank2, pre_rank1, pre_rank2, submission1, submission2, note1, note2) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (value.time_gained, temp.profile_number, temp2.profile_number, value.score, value.map_id, value.wr_gain, temp.has_demo, temp2.has_demo, value.banned, temp.youtube_id, temp2.youtube_id, temp.previous_id, temp2.previous_id, temp.id, temp2.id, temp.previous_id, temp2.previous_id, count, temp.post_rank, temp2.post_rank, temp.pre_rank, temp2.pre_rank, temp.submission, temp2.submission, temp.note, temp2.note,))
+                mycursor.execute("""INSERT INTO coopbundled (time_gained, profile_number1, profile_number2, score, 
+                map_id, wr_gain, has_demo1, has_demo2, banned, youtube_id1, youtube_id2, previous_id1, previous_id2,
+                changelogid1, changelogid2, post_rank1, post_rank2, pre_rank1, pre_rank2, submission1, submission2, 
+                note1, note2) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                (value.time_gained, temp.profile_number, temp2.profile_number, value.score, value.map_id, value.wr_gain, temp.has_demo, 
+                temp2.has_demo, value.banned, temp.youtube_id, temp2.youtube_id, temp.previous_id, temp2.previous_id, temp.id, temp2.id, 
+                temp.post_rank, temp2.post_rank, temp.pre_rank, temp2.pre_rank, temp.submission, 
+                temp2.submission, temp.note, temp2.note,))
                 # Update the coopids for both changelog entities
                 update1 = f"UPDATE changelog SET coopid={count} WHERE id={temp.id}"
                 update2 = f"UPDATE changelog SET coopid={count} WHERE id={temp2.id}"
@@ -80,21 +88,26 @@ def main():
                 blankcl = f"INSERT INTO changelog (time_gained, score, map_id, wr_gain, banned, submission, note) VALUES ('{temp.time_gained}', {temp.score}, '{temp.map_id}', {temp.wr_gain}, {temp.banned}, 1, 'TMP_COOP_PLACEHOLDER')"
                 mycursor.execute(blankcl)
                 newid = mycursor.lastrowid
-                print(newid)
+                #sprint(newid)
                 #newinsert = f"INSERT INTO coopbundled (time_gained, profile_number1, score, map_id, wr_gain, has_demo1, banned, youtube_id1, previous_id1, changelogid1, changelogid2, id, post_rank1,  pre_rank1, submission1, note1) VALUES ('{value.time_gained}', '{value.profile_number}', {value.score}, '{value.map_id}', {value.wr_gain}, {value.has_demo}, {value.banned}, '{value.youtube_id}', {temp.previous_id}, {value.id}, {newid}, {count}, {value.post_rank}, {value.pre_rank}, {value.submission}, '{value.note}')"
                 #mycursor.execute("INSERT INTO coopbundled (time_gained, profile_number1, score, map_id, wr_gain, has_demo1, banned, youtube_id1, previous_id1, changelogid1, changelogid2, id, post_rank1, pre_rank1, submission1, note1) VALUES ('%s', '%s', %s, '%s', %s, %s, %s, '%s', %s, %s, %s, %s, %s, %s, %s, '%s')", (value.time_gained, value.profile_number, value.score, value.map_id, value.wr_gain, value.has_demo, value.banned, value.youtube_id, temp.previous_id, value.id, newid, count, value.post_rank, value.pre_rank, value.submission, value.note,))
-                mycursor.execute("INSERT INTO coopbundled (time_gained, profile_number1, score, map_id, wr_gain, has_demo1, banned, youtube_id1, previous_id1, changelogid1, changelogid2, id, post_rank1, pre_rank1, submission1, note1) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (value.time_gained, value.profile_number, value.score, value.map_id, value.wr_gain, value.has_demo, value.banned, value.youtube_id, temp.previous_id, value.id, newid, count, value.post_rank, value.pre_rank, value.submission, value.note))
+                mycursor.execute("INSERT INTO coopbundled (time_gained, profile_number1, score, map_id, wr_gain, has_demo1, banned, youtube_id1, previous_id1, changelogid1, changelogid2, post_rank1, pre_rank1, submission1, note1) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", (value.time_gained, value.profile_number, value.score, value.map_id, value.wr_gain, value.has_demo, value.banned, value.youtube_id, temp.previous_id, value.id, newid, value.post_rank, value.pre_rank, value.submission, value.note))
                 update1 = f"UPDATE changelog SET coopid={count} WHERE id={value.id}"
                 update2 = f"UPDATE changelog SET coopid={count} WHERE id={newid}"
                 mycursor.execute(update1)
                 mycursor.execute(update2)
-                changelogIDs.remove(temp1.id)
+                try:
+                    changelogIDs.remove(temp1.id)
+                except:
+                    print(f"Failed to remove {temp1.id}, size = {len(changelogIDs)}")
                 count = count + 1
         #TODO handle None timestamps
         else:
-            print("Ignoring NULL time")
+            changelogIDs.remove(value.id)
+            #print("Ignoring NULL time")
 
     print("Finished coupling")
+
     #for ind in coopdict:
     #    if coopdict[ind].note != None and "fuck" in coopdict[ind].note:
     #        print(coopdict[ind].note)
