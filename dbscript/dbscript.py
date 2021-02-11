@@ -51,7 +51,10 @@ def main():
     while len(changelogIDs) != 0:
         value = coopdict[changelogIDs[len(changelogIDs)-1]]
         #print(value.time_gained)
-        if value.time_gained != None:
+        if value.banned == 1:
+            changelogIDs.remove(value.id)
+
+        if value.time_gained != None and value.banned != 1:
             #value will be the most current object
             querystring = f"SELECT * FROM changelog WHERE time_gained=\"{value.time_gained}\" AND score={value.score} AND map_id={value.map_id}"
             #print(querystring)
@@ -102,7 +105,7 @@ def main():
                     print(f"Failed to remove {temp1.id}, size = {len(changelogIDs)}")
                 count = count + 1
         #TODO handle None timestamps
-        else:
+        elif value.banned != 1:
             changelogIDs.remove(value.id)
             #print("Ignoring NULL time")
 
