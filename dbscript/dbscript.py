@@ -118,7 +118,9 @@ def main():
     #    print(y.note)
     #print(i)
 main()
-#TODO Fix key structure on coopbundled
+
+# Step 1, Add a new column to changelog that holds the coop time.
+# Step 2, Keep a dictionary of all coop times (key=ID)
 # Step 3, Go through dictionary, grab the ID, Datestamp, score and map
 # Step 4, Query based on those attributes, find any matches
 # IF TWO MATCHES
@@ -128,10 +130,6 @@ main()
 # IF ONLY THE ONE TIME
     # Step 8, Create new changelog for a blank, matching time.
 # RETURN TO STEP 5
-'''done'''
-# Step 1, Add a new column to changelog that holds the coop time.
-# Step 2, Keep a dictionary of all coop times (key=ID)
-
 '''
 individual coop time 1 cooptableID
 individual coop time 1 cooptableID
