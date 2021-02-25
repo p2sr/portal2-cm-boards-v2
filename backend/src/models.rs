@@ -1,4 +1,3 @@
-use diesel
+use diesel;
 use diesel::prelude::*;
-use diesel::pg::PgConnection;
-
+use diesel::mysql::MysqlConnection;
