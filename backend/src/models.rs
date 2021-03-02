@@ -8,11 +8,13 @@ use chrono::NaiveDateTime;
 // http://diesel.rs/guides/schema-in-depth/
 
 use crate::schema::changelog;
+use crate::schema::changelog::dsl::changelog as all_changelogs;
 //use crate::schema::dsl::*;
 
 #[derive(Queryable)]
 pub struct Changelog {
-    pub time_gained: Timestamp,
+    //pub time_gained: Option<Timestamp>,
+    pub time_gained: Option<NaiveDateTime>,
     pub profile_number: String,
     pub score: i32,
     pub map_id: String,
@@ -48,4 +50,22 @@ pub struct NewChangelog{
     pub submission: i32,
     pub note: Option<String>, // NULLABLE
     pub category: Option<String>, // NULLABLE
+}
+
+impl Changelog{
+    pub fn show(id: i32, conn: &MysqlConnection) -> Vec<Changelog> {
+        all_changelogs
+            .find(id)
+            .load::<Changelog>(conn)
+            .expect("Error Loading Changelog")
+    }
+    pub fn all(conn: &MysqlConnection) -> Vec<Changelog> {
+        all_changelogs
+            .order(changelog::id.desc())
+            .load::<Changelog>(conn)
+            .expect("Error loading all changelog")
+    }
+    pub fn update_by_id(id: i32, conn: &MysqlConnection, changelog: NewChangelog) -> bool{
+        use crate::schema::changelog::dsl::*;
+    }
 }

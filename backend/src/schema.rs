@@ -1,4 +1,4 @@
-use diesel::sql_types::*;
+//use diesel::sql_types::*;
 
 table! {
     changelog (id) {
