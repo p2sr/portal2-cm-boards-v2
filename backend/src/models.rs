@@ -8,7 +8,7 @@ use chrono::NaiveDateTime;
 // http://diesel.rs/guides/schema-in-depth/
 
 use crate::schema::changelog;
-use crate::schema::dsl::changelog;
+//use crate::schema::dsl::*;
 
 #[derive(Queryable)]
 pub struct Changelog {

@@ -1,22 +1,18 @@
-// NO RUST CODE IS TESTED AND WORKING
-use actix_web::{App, Error, HttpResponse, HttpServer, web};
-use actix_web::http::{StatusCode};
+use actix_web::{web, App, HttpRequest, HttpServer, Responder};
 
-async fn home() -> Result<HttpResponse, Error> {
-    Ok(
-        HttpResponse::build(StatusCode::OK)
-            .content_type("text/html; charset=utf-8")
-            .body(include_str!("../templates/index.html"))
-    )
+async fn greet(req: HttpRequest) -> impl Responder {
+    let name = req.match_info().get("name").unwrap_or("World");
+    format!("Hello {}!", &name)
 }
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(move || {
+    HttpServer::new(|| {
         App::new()
-            .route("/", web::get().to(home))
+            .route("/", web::get().to(greet))
+            .route("/{name}", web::get().to(greet))
     })
-    .bind("127.0.0.1:8888")?
+    .bind(("127.0.0.1", 8080))?
     .run()
     .await
 }
