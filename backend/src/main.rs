@@ -13,5 +13,8 @@ mod schema;
 mod models;
 
 fn main() {
-    println!("Hello, world!");
+    dotenv().ok();
+
+    let database_url = env::var("DATABASE_URL").expect("set the DATABASE_URL in ../.env");
+    let conn = MysqlConnection::establish(&database_url).unwrap();
 }

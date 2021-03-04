@@ -1,7 +1,7 @@
 use diesel;
 use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
-use diesel::sql_types::Timestamp;
+//use diesel::sql_types::Timestamp;
 use chrono::NaiveDateTime;
 //use diesel::deserialize::FromSql;
 
@@ -65,7 +65,82 @@ impl Changelog{
             .load::<Changelog>(conn)
             .expect("Error loading all changelog")
     }
+    // I think having this handle updating the entire struct makes more senese.
+    // This way, we grab the existing struct before updating, change the struct how we want,
+    // Then re-pass the entire struct to update (all but ID).
     pub fn update_by_id(id: i32, conn: &MysqlConnection, changelog: NewChangelog) -> bool{
-        use crate::schema::changelog::dsl::*;
+        use crate::schema::changelog::dsl::
+            {time_gained as tg,
+            profile_number as pn,
+            score as s,
+            map_id as mid,
+            wr_gain as wr,
+            has_demo as hd,
+            banned as b,
+            youtube_id as yid,
+            previous_id as pid,
+            coopid as cid,
+            post_rank as por,
+            pre_rank as prr,
+            submission as sb,
+            note as n,
+            category as c};
+        
+        let NewChangelog{
+            time_gained,
+            profile_number,
+            score,
+            map_id,
+            wr_gain,
+            has_demo,
+            banned,
+            youtube_id,
+            previous_id,
+            coopid,
+            post_rank,
+            pre_rank,
+            submission,
+            note,
+            category,
+        } = changelog;
+        
+        diesel::update(all_changelogs.find(id))
+            .set((tg.eq(time_gained), 
+            pn.eq(profile_number),
+            s.eq(score),
+            mid.eq(map_id),
+            wr.eq(wr_gain),
+            hd.eq(has_demo),
+            b.eq(banned),
+            yid.eq(youtube_id),
+            pid.eq(previous_id),
+            cid.eq(coopid),
+            por.eq(post_rank),
+            prr.eq(pre_rank),
+            sb.eq(submission),
+            n.eq(note),
+            c.eq(category)))
+            .execute(conn)
+            .is_ok()
+    }
+    pub fn insert(changelog: NewChangelog, conn: &MysqlConnection) -> bool{
+        diesel::insert_into(changelog::table)
+            .values(&changelog)
+            .execute(conn)
+            .is_ok()
+    }
+    // Do we need a deletion function???
+    // Probably not, but for the sake of testing
+    pub fn delete_by_id(id: i32, conn: &MysqlConnection) -> bool{
+        if Changelog::show(id, conn).is_empty(){
+            return false;
+        };
+        diesel::delete(all_changelogs.find(id)).execute(conn).is_ok()
+    }
+    pub fn all_by_profile_num(pnum: String, conn: &MysqlConnection) -> Vec<Changelog>{
+        all_changelogs 
+            .filter(changelog::profile_number.eq(pnum))
+            .load::<Changelog>(conn)
+            .expect("Error loading changelog by profile number")
     }
 }
