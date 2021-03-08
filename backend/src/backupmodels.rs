@@ -1,17 +1,51 @@
+/*
+
+JESUS CHRIST I'M STUPID
+
 use diesel;
 use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
 //use diesel::sql_types::Timestamp;
 use chrono::NaiveDateTime;
-//use serde::{Serialize, Serializer, Deserialize, Deserializer};
+use serde::{Serialize, Serializer, Deserialize, Deserializer};
+//use diesel::deserialize::FromSql;
 
+// http://diesel.rs/guides/schema-in-depth/
 use crate::schema::changelog;
 use crate::schema::changelog::dsl::changelog as all_changelogs;
-//use chrono::{DateTime, Utc};
+//use crate::schema::dsl::*;
+use chrono::{DateTime, Utc};
+
+// https://github.com/serde-rs/serde/issues/1151
+// https://serde.rs/custom-date-format.html 
+// Implementing custom date format
+
+#[derive(Debug, Clone)]
+struct TmWrap{
+    pub time: Option<NaiveDateTime>,
+}
+impl Serialize for TmWrap{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
+    {
+        // match &self.time {
+        //     Some(res) => Ok(res.serialize(serializer)),
+        //     None => Ok("None"),
+        // }
+        match &self.time{
+            Some(ref res) => serializer.serialize_some(res),
+            None => serializer.serialize_none(),
+        }
+    }
+}
+
 
 #[derive(Serialize, Queryable, Debug, Clone)]
 pub struct Changelog {
-    pub time_gained: Option<NaiveDateTime>,
+    pub time_gained: TmWrap,
+    //#[serde(with = "my_date_format")]
+    // TODO: Fix date struct
+    //pub time_gained: DateTime<Utc>, // NULLABLE
     pub profile_number: String,
     pub score: i32,
     pub map_id: String,
@@ -33,7 +67,7 @@ pub struct Changelog {
 #[table_name = "changelog"]
 pub struct NewChangelog{
     // TODO: Fix date struct
-    pub time_gained: Option<NaiveDateTime>,// NULLABLE
+    pub time_gained: DateTime<Utc>,// NULLABLE
     pub profile_number: String,
     pub score: i32,
     pub map_id: String,
@@ -142,3 +176,4 @@ impl Changelog{
             .expect("Error loading changelog by profile number")
     }
 }
+*/
