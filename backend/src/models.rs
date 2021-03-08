@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
 //use diesel::sql_types::Timestamp;
 use chrono::NaiveDateTime;
+use serde::{Serialize, Serializer, Deserialize, Deserializer};
 //use diesel::deserialize::FromSql;
 
 // http://diesel.rs/guides/schema-in-depth/
@@ -14,54 +15,33 @@ use chrono::{DateTime, Utc};
 // https://github.com/serde-rs/serde/issues/1151
 // https://serde.rs/custom-date-format.html 
 // Implementing custom date format
-mod my_date_format {
-    use chrono::{DateTime, Utc, TimeZone};
-    use serde::{self, Deserialize, Serializer, Deserializer};
 
-    const FORMAT: &'static str = "%Y-%m-%d %H:%M:%S";
-
-    // The signature of a serialize_with function must follow the pattern:
-    //
-    //    fn serialize<S>(&T, S) -> Result<S::Ok, S::Error>
-    //    where
-    //        S: Serializer
-    //
-    // although it may also be generic over the input types T.
-    pub fn serialize<S>(
-        date: &DateTime<Utc>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
+#[derive(Debug, Clone)]
+struct TmWrap{
+    pub time: Option<NaiveDateTime>,
+}
+impl Serialize for TmWrap{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where S: Serializer
     {
-        let s = format!("{}", date.format(FORMAT));
-        serializer.serialize_str(&s)
-    }
-
-    // The signature of a deserialize_with function must follow the pattern:
-    //
-    //    fn deserialize<'de, D>(D) -> Result<T, D::Error>
-    //    where
-    //        D: Deserializer<'de>
-    //
-    // although it may also be generic over the output types T.
-    pub fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<DateTime<Utc>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        Utc.datetime_from_str(&s, FORMAT).map_err(serde::de::Error::custom)
+        // match &self.time {
+        //     Some(res) => Ok(res.serialize(serializer)),
+        //     None => Ok("None"),
+        // }
+        match &self.time{
+            Some(ref res) => serializer.serialize_some(res),
+            None => serializer.serialize_none(),
+        }
     }
 }
 
+
 #[derive(Serialize, Queryable, Debug, Clone)]
 pub struct Changelog {
-    //pub time_gained: Option<Timestamp>,
-    #[serde(with = "my_date_format")]
+    pub time_gained: TmWrap,
+    //#[serde(with = "my_date_format")]
     // TODO: Fix date struct
-    pub time_gained: DateTime<Utc>, // NULLABLE
+    //pub time_gained: DateTime<Utc>, // NULLABLE
     pub profile_number: String,
     pub score: i32,
     pub map_id: String,
