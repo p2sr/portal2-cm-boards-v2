@@ -1,6 +1,8 @@
-import React, { useState } from "react";
-import Home from "./components/Home";
-import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
+import React, { useState } from "react"
+import Footer from "./components/Footer/Footer"
+import Header from "./components/Header/Header"
+import Body from "./components/Body/Body"
+import { Grid } from "@material-ui/core"
 
 /**
  * @name -
@@ -14,16 +16,11 @@ import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 function App() {
   return (
     <div>
-      <Router>
-        <Switch>
-          {/* Insert the routes to other pages here as: 
-                  <Route path='/(page name) component={(component name)}*/}
-          <Route exact path='/' component={Home} />
-          <Route component={Error} />
-        </Switch>
-      </Router>
+      <Header />
+      <Body />
+      <Footer />
     </div>
-  );
+  )
 }
 
-export default App;
+export default App

@@ -1,0 +1,38 @@
+.header {
+  height: 13vh;
+  width: 100vw;
+  background-color: rgb(235, 236, 255);
+  display: flex;
+  align-items: top;
+  z-index: 2;
+}
+.title {
+  font-size: 45px;
+  font-family: Arial;
+  font-weight: bold;
+  color: rgb(101, 101, 101);
+  height: 50px;
+}
+.nav {
+  display: flex;
+  align-items: center;
+  bottom: auto;
+  justify-content: space-between;
+  height: 25px;
+  width: 85%;
+}
+.nav-links {
+  padding: 2em;
+  padding-bottom: 2.5em;
+  align-items: center;
+  justify-content: space-between;
+  display: flex;
+}
+
+.steam {
+  display: flex;
+  font-size: 30px;
+  font-family: Arial;
+  font-weight: bold;
+  color: rgb(101, 101, 101);
+}
