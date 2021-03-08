@@ -16,16 +16,20 @@
 .nav {
   display: flex;
   align-items: center;
-  bottom: auto;
   justify-content: space-between;
-  height: 25px;
-  width: 85%;
+  bottom: 0px;
+  width: 100%;
 }
 .nav-links {
-  padding: 2em;
-  padding-bottom: 2.5em;
-  align-items: center;
+  font-size: 22;
+  font-family: arial;
+  font-weight: 600;
+  color: rgb(101, 101, 101);
+  padding-top: 2em;
+  padding-left: 2em;
+  padding-right: 2em;
   justify-content: space-between;
+  align-items: center;
   display: flex;
 }
 
@@ -35,4 +39,10 @@
   font-family: Arial;
   font-weight: bold;
   color: rgb(101, 101, 101);
+  justify-content: center;
+  align-items: center;
+  width: 300px;
+}
+.steam-text {
+  padding: 0.5em;
 }
