@@ -1,13 +1,35 @@
+#![allow(dead_code)]
+#![allow(unused)]
+#![allow(clippy::all)]
 use diesel;
 use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
-//use diesel::sql_types::Timestamp;
 use chrono::NaiveDateTime;
-//use serde::{Serialize, Serializer, Deserialize, Deserializer};
 
 use crate::schema::changelog;
 use crate::schema::changelog::dsl::changelog as all_changelogs;
-//use chrono::{DateTime, Utc};
+use crate::schema::maps;
+use crate::schema::maps::dsl::maps as all_maps;
+
+use crate::schema::chapters;
+use crate::schema::coopbundled;
+use crate::schema::scores;
+use crate::schema::usersnew;
+
+/*NOTES:
+    The Option<> wrapper is used to handle NULL values, NULL is not present
+    in rust, therefore Option<> is a built-in enum wrapper for to handle
+    NULL in Rust. Any NULLABLE column should be Option<> wrapped.
+
+    Derives for structs below: 
+    Serialize allows seralization of this struct
+    Queryable allows for us to query based off this structure
+    Debug allows for debug output
+    Clone allows us to clone the struct*/
+
+/*`pub struct Changelog`
+        handle pulling of Changelog information
+        from the database. It exists to be able to save MySQL data in Rust. */
 
 #[derive(Serialize, Queryable, Debug, Clone)]
 pub struct Changelog {
@@ -16,38 +38,119 @@ pub struct Changelog {
     pub score: i32,
     pub map_id: String,
     pub wr_gain: i32,
-    pub has_demo: Option<i32>, // NULLABLE
+    pub has_demo: Option<i32>,
     pub banned: i32,
-    pub youtube_id: Option<String>, // NULLABLE
-    pub previous_id: Option<i32>, // NULLABLE
+    pub youtube_id: Option<String>,
+    pub previous_id: Option<i32>,
     pub id: i32,
-    pub coopid: Option<i32>, // NULLABLE
-    pub post_rank: Option<i32>, // NULLABLE
-    pub pre_rank: Option<i32>, // NULLABLE
+    pub coopid: Option<i32>,
+    pub post_rank: Option<i32>,
+    pub pre_rank: Option<i32>,
     pub submission: i32,
-    pub note: Option<String>, // NULLABLE
-    pub category: Option<String>, // NULLABLE
+    pub note: Option<String>,
+    pub category: Option<String>,
 }
+
+#[derive(Queryable, Debug, Identifiable)]
+pub struct Chapter {
+    pub id: u32,
+    pub chapter_name: Option<String>,
+    pub is_multiplayer: i32,
+}
+
+#[derive(Queryable, Debug)]
+pub struct Coopbundled {
+    pub time_gained: Option<NaiveDateTime>,
+    pub profile_number1: String,
+    pub profile_number2: String,
+    pub score: i32,
+    pub map_id: String,
+    pub wr_gain: i32,
+    pub is_blue: Option<i32>,
+    pub has_demo1: Option<i32>,
+    pub has_demo2: Option<i32>,
+    pub banned: i32,
+    pub youtube_id1: Option<String>,
+    pub youtube_id2: Option<String>,
+    pub previous_id1: Option<i32>,
+    pub previous_id2: Option<i32>,
+    pub changelogid1: i32,
+    pub changelogid2: i32,
+    pub id: i32,
+    pub post_rank1: Option<i32>,
+    pub post_rank2: Option<i32>,
+    pub pre_rank1: Option<i32>,
+    pub pre_rank2: Option<i32>,
+    pub submission1: i32,
+    pub submission2: i32,
+    pub note1: Option<String>,
+    pub note2: Option<String>,
+    pub category: Option<String>,
+}
+
+#[derive(Queryable, Debug, Identifiable)]
+pub struct Map {
+    pub id: i32,
+    pub steam_id: String,
+    pub lp_id: String,
+    pub name: Option<String>,
+    pub type_: String,
+    pub chapter_id: Option<u32>,
+    pub is_coop: i32,
+    pub is_public: i32,
+}
+
+#[derive(Queryable, Debug, Identifiable)]
+#[primary_key(changelog_id)]
+pub struct Score {
+    pub profile_number: String,
+    pub map_id: String,
+    pub changelog_id: i32,
+}
+
+#[derive(Queryable, Debug)]
+pub struct Usersnew {
+    pub profile_number: String,
+    pub boardname: Option<String>,
+    pub steamname: Option<String>,
+    pub banned: i32,
+    pub registered: i32,
+    pub avatar: Option<String>,
+    pub twitch: Option<String>,
+    pub youtube: Option<String>,
+    pub title: Option<String>,
+    pub admin: i32,
+    pub donation_amount: Option<String>,
+}
+
+
+/*Derives for the structs below:
+    Deserialize allows us to read in from JSON
+    Insertable allows us to insert into MySQL
+    `table_name` references the corresponding !table in schema.rs*/
+
+/*`pub struct NewChangelog`:i32
+    exists to allow us to construct a new changelog entity to insert into 
+    our database. The ID is not present, as it is auto-incremented in the db.*/
 
 #[derive(Serialize, Deserialize, Insertable)]
 #[table_name = "changelog"]
 pub struct NewChangelog{
-    // TODO: Fix date struct
-    pub time_gained: Option<NaiveDateTime>,// NULLABLE
+    pub time_gained: Option<NaiveDateTime>,
     pub profile_number: String,
     pub score: i32,
     pub map_id: String,
     pub wr_gain: i32,
-    pub has_demo: Option<i32>, // NULLABLE
+    pub has_demo: Option<i32>,
     pub banned: i32,
-    pub youtube_id: Option<String>, // NULLABLE
-    pub previous_id: Option<i32>, // NULLABLE
-    pub coopid: Option<i32>, // NULLABLE
-    pub post_rank: Option<i32>, // NULLABLE
-    pub pre_rank: Option<i32>, // NULLABLE
+    pub youtube_id: Option<String>,
+    pub previous_id: Option<i32>,
+    pub coopid: Option<i32>,
+    pub post_rank: Option<i32>,
+    pub pre_rank: Option<i32>,
     pub submission: i32,
-    pub note: Option<String>, // NULLABLE
-    pub category: Option<String>, // NULLABLE
+    pub note: Option<String>,
+    pub category: Option<String>,
 }
 
 impl Changelog{
@@ -63,9 +166,9 @@ impl Changelog{
             .load::<Changelog>(conn)
             .expect("Error loading all changelog")
     }
-    // I think having this handle updating the entire struct makes more senese.
-    // This way, we grab the existing struct before updating, change the struct how we want,
-    // Then re-pass the entire struct to update (all but ID).
+    /*  I think having this handle updating the entire struct makes more senese.
+        This way, we grab the existing struct before updating, change the struct how we want,
+        Then re-pass the entire struct to update (all but ID).*/
     pub fn update_by_id(id: i32, conn: &MysqlConnection, changelog: NewChangelog) -> bool{
         use crate::schema::changelog::dsl::
             {time_gained as tg,
@@ -127,8 +230,7 @@ impl Changelog{
             .execute(conn)
             .is_ok()
     }
-    // Do we need a deletion function???
-    // Probably not, but for the sake of testing
+    // Do we need a deletion function??? Probably not, but for the sake of testing
     pub fn delete_by_id(id: i32, conn: &MysqlConnection) -> bool{
         if Changelog::show(id, conn).is_empty(){
             return false;
@@ -141,4 +243,30 @@ impl Changelog{
             .load::<Changelog>(conn)
             .expect("Error loading changelog by profile number")
     }
+    pub fn all_by_map_id(mapid: String, conn: &MysqlConnection) -> Vec<Changelog>{
+        all_changelogs
+        .filter(changelog::map_id.eq(mapid))
+        .filter(changelog::banned.eq(0))
+        .limit(200)
+        .order(changelog::score.asc())
+        .load::<Changelog>(conn)
+        .expect("Error loading all changelog")       
+    }
+}
+impl Map{
+    pub fn show(id: String, conn: &MysqlConnection) -> Vec<Map> {
+        all_maps
+            .filter(maps::steam_id.eq(id))
+            .load::<Map>(conn)
+            .expect("Error Loading Maps")
+    }
+    pub fn all(conn: &MysqlConnection) -> Vec<Map> {
+        all_maps
+            .order(maps::id.desc())
+            .load::<Map>(conn)
+            .expect("Error loading all maps")
+    }
+    /*  We shouldn't need any update methods for maps. 
+        Map changes should probably not be handled through the boards.*/
+    
 }

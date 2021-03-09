@@ -1,4 +1,6 @@
-#[allow(dead_code)]
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 #[macro_use]
 extern crate diesel;
 #[macro_use]
@@ -21,7 +23,7 @@ fn main() {
 
     let database_url = env::var("DATABASE_URL").expect("set the DATABASE_URL in ../.env");
     let conn = MysqlConnection::establish(&database_url).unwrap();
-
-    let changelog_entries = models::Changelog::all_by_profile_num("76561198039230536".to_string(), &conn);
-    println!("{:?}", changelog_entries);
+    let changelog_entries = models::Changelog::all_by_map_id("47748".to_string(), &conn);
+    //let changelog_entries = models::Changelog::all_by_profile_num("76561198039230536".to_string(), &conn);
+    println!("{:#?}", changelog_entries);
 }

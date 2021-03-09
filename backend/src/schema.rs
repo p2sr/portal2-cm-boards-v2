@@ -89,7 +89,6 @@ table! {
         lp_id -> Varchar,
         name -> Nullable<Varchar>,
         #[sql_name = "type"]
-        //type_ -> Set,
         type_ -> Varchar,
         chapter_id -> Nullable<Unsigned<Integer>>,
         is_coop -> Integer,
