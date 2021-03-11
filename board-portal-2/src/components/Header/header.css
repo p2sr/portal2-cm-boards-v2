@@ -1,16 +1,16 @@
 .header {
   height: 13vh;
-  width: 100vw;
+  width: 100%;
   background-color: rgb(235, 236, 255);
   display: flex;
-  align-items: top;
-  z-index: 2;
+  align-items: center;
 }
 .title {
   font-size: 45px;
   font-family: Arial;
   font-weight: bold;
   color: rgb(101, 101, 101);
+  padding-left: 32px;
   height: 50px;
 }
 .nav-header {
@@ -21,7 +21,7 @@
   width: 100%;
 }
 .nav-links-header {
-  font-size: 22;
+  font-size: 16;
   font-family: arial;
   font-weight: 600;
   color: rgb(101, 101, 101);
@@ -31,6 +31,7 @@
   justify-content: space-between;
   align-items: center;
   display: flex;
+  text-decoration: none;
 }
 
 .steam {
@@ -45,4 +46,10 @@
 }
 .steam-text {
   padding: 0.5em;
+}
+
+.img-header {
+  height: 25px;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
 }

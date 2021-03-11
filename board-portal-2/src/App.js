@@ -2,7 +2,6 @@ import React, { useState } from "react"
 import Footer from "./components/Footer/Footer"
 import Header from "./components/Header/Header"
 import Body from "./components/Body/Body"
-import { Grid } from "@material-ui/core"
 
 /**
  * @name -

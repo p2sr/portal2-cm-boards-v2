@@ -6,7 +6,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: fixed;
 }
 .Footer {
   margin: 5%;
@@ -18,10 +17,17 @@
   width: 100%;
 }
 .nav-links-footer {
-  font-size: 22;
+  font-size: 16;
   font-family: arial;
   font-weight: 600;
   color: rgb(101, 101, 101);
   padding: 2em;
   display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+.img-footer {
+  height: 35px;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
 }

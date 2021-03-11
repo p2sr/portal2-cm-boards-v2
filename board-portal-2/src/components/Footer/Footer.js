@@ -12,60 +12,25 @@ const Footer = () => {
       <Grid className='Footer' container>
         <Grid item className='nav-footer'>
           <div to='/home' className='nav-links-footer'>
-            <img
-              src={donatorsIcon}
-              style={{
-                height: "22px",
-                paddingLeft: ".5em",
-                paddingRight: ".5em"
-              }}
-            />
+            <img src={donatorsIcon} className='img-footer' />
             Donators
           </div>
           <div to='/home' className='nav-links-footer'>
-            <img
-              src={githubIcon}
-              style={{
-                height: "22px",
-                paddingLeft: ".5em",
-                paddingRight: ".5em"
-              }}
-            />
+            <img src={githubIcon} className='img-footer' />
             GitHub
           </div>
           <div to='/home' className='nav-links-footer'>
-            <img
-              src={discordIcon}
-              style={{
-                height: "22px",
-                paddingLeft: ".5em",
-                paddingRight: ".5em"
-              }}
-            />
+            <img src={discordIcon} className='img-footer' />
             Discord
           </div>
           <div to='/home' className='nav-links-footer'>
-            <img
-              src={wallOfShameIcon}
-              style={{
-                height: "22px",
-                paddingLeft: ".5em",
-                paddingRight: ".5em"
-              }}
-            />
+            <img src={wallOfShameIcon} className='img-footer' />
             Wall of Shame
           </div>
-          <div to='/home' className='nav-links-footer'>
-            <img
-              src={aboutIcon}
-              style={{
-                height: "22px",
-                paddingLeft: ".5em",
-                paddingRight: ".5em"
-              }}
-            />
+          <a href='/about' className='nav-links-footer'>
+            <img src={aboutIcon} className='img-footer' />
             About
-          </div>
+          </a>
         </Grid>
       </Grid>
     </div>

@@ -13,7 +13,7 @@ import "./home.css"
  */
 function Home() {
   return (
-    <div id='Home'>
+    <div id='Home' className='body-page'>
       <h1>Welcome to the home page for Portal 2 Leaderboards </h1>
     </div>
   )

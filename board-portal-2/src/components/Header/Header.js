@@ -17,38 +17,24 @@ const Header = () => {
             Portal 2 Leaderboards
           </Grid>
           <Grid item className='nav-header'>
-            <div to='/home' className='nav-links-header'>
-              <img src={scoreUpdates} style={{ height: "25px" }} />
+            <a href='/' className='nav-links-header'>
+              <img src={scoreUpdates} className='img-header' />
               Score Updates
-            </div>
+            </a>
             <div to='/home' className='nav-links-header'>
-              <img src={singlplayerIcon} style={{ height: "25px" }} />
+              <img src={singlplayerIcon} className='img-header' />
               Single Player
             </div>
             <div to='/home' className='nav-links-header'>
-              <img src={coopIcon} style={{ height: "25px" }} />
+              <img src={coopIcon} className='img-header' />
               Cooperative
             </div>
             <div to='/home' className='nav-links-header'>
-              <img
-                src={aggregatedIcon}
-                style={{
-                  height: "25px",
-                  paddingLeft: ".5em",
-                  paddingRight: ".5em"
-                }}
-              />
+              <img src={aggregatedIcon} className='img-header' />
               Aggregated
             </div>
             <div to='/home' className='nav-links-header'>
-              <img
-                src={fullGameRunsIcon}
-                style={{
-                  height: "25px",
-                  paddingLeft: ".5em",
-                  paddingRight: ".5em"
-                }}
-              />
+              <img src={fullGameRunsIcon} className='img-header' />
               Full Game Runs
             </div>
           </Grid>
