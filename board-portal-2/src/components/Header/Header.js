@@ -11,25 +11,25 @@ import coopIcon from "./img/Co-op.png"
 const Header = () => {
   return (
     <div className='header'>
-      <Grid container direction>
+      <Grid container>
         <Grid container direction='column'>
           <Grid item className='title'>
             Portal 2 Leaderboards
           </Grid>
-          <Grid item className='nav'>
-            <div to='/home' className='nav-links'>
+          <Grid item className='nav-header'>
+            <div to='/home' className='nav-links-header'>
               <img src={scoreUpdates} style={{ height: "25px" }} />
               Score Updates
             </div>
-            <div to='/home' className='nav-links'>
+            <div to='/home' className='nav-links-header'>
               <img src={singlplayerIcon} style={{ height: "25px" }} />
               Single Player
             </div>
-            <div to='/home' className='nav-links'>
+            <div to='/home' className='nav-links-header'>
               <img src={coopIcon} style={{ height: "25px" }} />
               Cooperative
             </div>
-            <div to='/home' className='nav-links'>
+            <div to='/home' className='nav-links-header'>
               <img
                 src={aggregatedIcon}
                 style={{
@@ -40,7 +40,7 @@ const Header = () => {
               />
               Aggregated
             </div>
-            <div to='/home' className='nav-links'>
+            <div to='/home' className='nav-links-header'>
               <img
                 src={fullGameRunsIcon}
                 style={{

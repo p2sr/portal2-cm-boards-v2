@@ -1,11 +1,27 @@
 .footer {
   height: 8vh;
-  width: 100vw;
+  width: 100%;
   background-color: rgb(255, 216, 177);
   bottom: 0px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   position: fixed;
-  z-index: 2;
+}
+.Footer {
+  margin: 5%;
+}
+.nav-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.nav-links-footer {
+  font-size: 22;
+  font-family: arial;
+  font-weight: 600;
+  color: rgb(101, 101, 101);
+  padding: 2em;
+  display: flex;
 }

@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react"
 import { HashLink as Link } from "react-router-hash-link"
-import "./Home.css"
+import "./home.css"
 
 /**
  * @name -

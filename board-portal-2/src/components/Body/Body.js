@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom"
 import Home from "./Home/Home"
-import "./Body.css"
+import "./body.css"
 
 const Body = () => {
   return (

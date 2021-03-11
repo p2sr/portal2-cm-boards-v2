@@ -13,14 +13,14 @@
   color: rgb(101, 101, 101);
   height: 50px;
 }
-.nav {
+.nav-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   bottom: 0px;
   width: 100%;
 }
-.nav-links {
+.nav-links-header {
   font-size: 22;
   font-family: arial;
   font-weight: 600;
