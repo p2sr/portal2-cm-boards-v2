@@ -16,13 +16,13 @@ const About = () => {
       </div>
       <table className='fraction'>
         <tr>
-          <td rowspan='2' nowrap='nowrap'>
+          <td rowSpan='2' nowrap='nowrap'>
             max[1,&nbsp;
           </td>
           <td nowrap='nowrap'>
             (200 - (rank - 1))<sup>2</sup>
           </td>
-          <td rowspan='2' nowrap='nowrap'>
+          <td rowSpan='2' nowrap='nowrap'>
             ]
           </td>
         </tr>

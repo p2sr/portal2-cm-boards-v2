@@ -1,9 +1,12 @@
 .header {
-  height: 13vh;
+  height: 12vh;
   width: 100%;
   background-color: rgb(235, 236, 255);
   display: flex;
   align-items: center;
+  border-style: none none solid none;
+  border-color: #656565;
+  border-width: 2px;
 }
 .title {
   font-size: 45px;
@@ -24,10 +27,11 @@
   font-size: 16;
   font-family: arial;
   font-weight: 600;
-  color: rgb(101, 101, 101);
+  color: #656565;
   padding-top: 2em;
   padding-left: 2em;
   padding-right: 2em;
+  padding-bottom: 0.67em;
   justify-content: space-between;
   align-items: center;
   display: flex;
@@ -47,7 +51,13 @@
 .steam-text {
   padding: 0.5em;
 }
-
+.sepper {
+  height: 56px;
+  width: 2px;
+  background: #656565;
+  float: left;
+  margin-top: -3px;
+}
 .img-header {
   height: 25px;
   padding-left: 0.5em;

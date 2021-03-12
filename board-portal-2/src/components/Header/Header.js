@@ -41,6 +41,7 @@ const Header = () => {
         </Grid>
       </Grid>
       <Grid item className='steam'>
+        <div className='sepper'></div>
         <div className='steam-text'>Steam</div>
         <img src={steamIcon} style={{ height: "45px" }} />
       </Grid>
