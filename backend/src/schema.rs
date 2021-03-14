@@ -129,6 +129,9 @@ table! {
 }
 
 joinable!(maps -> chapters (chapter_id));
+// Testing
+joinable!(changelog -> usersnew (profile_number));
+
 
 allow_tables_to_appear_in_same_query!(
     changelog,

@@ -15,6 +15,7 @@ use crate::schema::chapters;
 use crate::schema::coopbundled;
 use crate::schema::scores;
 use crate::schema::usersnew;
+use crate::schema::usersnew::dsl::usersnew as all_users;
 
 /*NOTES:
     The Option<> wrapper is used to handle NULL values, NULL is not present
@@ -50,14 +51,12 @@ pub struct Changelog {
     pub note: Option<String>,
     pub category: Option<String>,
 }
-
 #[derive(Queryable, Debug, Identifiable)]
 pub struct Chapter {
     pub id: u32,
     pub chapter_name: Option<String>,
     pub is_multiplayer: i32,
 }
-
 #[derive(Queryable, Debug)]
 pub struct Coopbundled {
     pub time_gained: Option<NaiveDateTime>,
@@ -87,7 +86,6 @@ pub struct Coopbundled {
     pub note2: Option<String>,
     pub category: Option<String>,
 }
-
 #[derive(Queryable, Debug, Identifiable)]
 pub struct Map {
     pub id: i32,
@@ -99,7 +97,6 @@ pub struct Map {
     pub is_coop: i32,
     pub is_public: i32,
 }
-
 #[derive(Queryable, Debug, Identifiable)]
 #[primary_key(changelog_id)]
 pub struct Score {
@@ -107,8 +104,7 @@ pub struct Score {
     pub map_id: String,
     pub changelog_id: i32,
 }
-
-#[derive(Queryable, Debug)]
+#[derive(Queryable, Debug, Serialize, Clone)]
 pub struct Usersnew {
     pub profile_number: String,
     pub boardname: Option<String>,
@@ -123,6 +119,12 @@ pub struct Usersnew {
     pub donation_amount: Option<String>,
 }
 
+// Should handle the join clause I think...
+#[derive(Queryable, Serialize, Debug, Clone)]
+pub struct MapPage {
+    pub score_data: Changelog,
+    pub user_data: Usersnew,
+}
 
 /*Derives for the structs below:
     Deserialize allows us to read in from JSON
@@ -253,12 +255,20 @@ impl Changelog{
         .expect("Error loading all changelog")       
     }
 }
+
 impl Map{
     pub fn show(id: String, conn: &MysqlConnection) -> Vec<Map> {
         all_maps
             .filter(maps::steam_id.eq(id))
             .load::<Map>(conn)
             .expect("Error Loading Maps")
+    }
+    pub fn all_sp_mapids(conn: &MysqlConnection) -> Vec<String> {
+        all_maps
+            .select(maps::steam_id)
+            .filter(maps::is_coop.eq(0))
+            .load::<String>(conn)
+            .expect("Error loading SP maps")
     }
     pub fn all(conn: &MysqlConnection) -> Vec<Map> {
         all_maps
@@ -268,5 +278,18 @@ impl Map{
     }
     /*  We shouldn't need any update methods for maps. 
         Map changes should probably not be handled through the boards.*/
-    
+}
+
+impl MapPage{
+    pub fn show(mapid: String, conn: &MysqlConnection) -> Vec<MapPage> {
+        all_changelogs
+            .inner_join(all_users)
+            .filter(changelog::map_id.eq(mapid))
+            .filter(changelog::banned.eq(0))
+            .filter(usersnew::banned.eq(0))
+            //.limit(200)
+            .order(changelog::score.asc())
+            .load::<MapPage>(conn)
+            .expect("Error loading all map pages.")
+    }
 }

@@ -22,3 +22,7 @@ ORDER BY coopbundled.score ASC;
 
 
 INSERT INTO usersnew
+
+,
+  FOREIGN KEY (`profile_number`) REFERENCES usersnew(`profile_number`),
+  FOREIGN KEY (`map_id`) REFERENCES maps(`map_id`)
