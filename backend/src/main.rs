@@ -14,17 +14,13 @@ use dotenv::dotenv;
 use std::env;
 use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
-use serde_json::value::Value;
-use std::fs;
-use std::io;
 use std::fs::File;
-use std::io::prelude::*;
 use std::path::Path;
 use std::collections::HashMap;
 
 mod schema;
 mod models;
-use models::MapPage;
+use models::SpMapPage;
 
 fn main() {
     dotenv().ok();
@@ -50,7 +46,7 @@ fn output_sp_maps(conn: &MysqlConnection){
         let path = Path::new(&map_str);
         
         // We get a vector of all the non-banned times on a given map, as a bundled changelog and usersnew
-        let changelog_entries = models::MapPage::show(map_id.to_string(), &conn);
+        let changelog_entries = models::SpMapPage::show(map_id.to_string(), &conn);
         
         // Filter out runners with multiple times
         let mut changelog_entries_filtered = Vec::new();
@@ -67,4 +63,8 @@ fn output_sp_maps(conn: &MysqlConnection){
         changelog_entries_filtered.truncate(200);
         serde_json::to_writer_pretty(file, &changelog_entries_filtered).unwrap();
     }
+}
+// Will need to be worked on, aliased queries not currently supported native by diesel.
+#[allow(unused_variables)]
+fn output_coop_maps(conn: &MysqlConnection){
 }
