@@ -7,6 +7,7 @@ import coopIcon from "./img/Co-op.png"
 import { Grid, AppBar, Toolbar, Typography, Button } from "@material-ui/core"
 import { BrowserRouter, Link } from "react-router-dom"
 import { useStyles, CustomButton } from "./style.js"
+import Dropdown from "./Dropdown"
 
 const Header = () => {
   const classes = useStyles()
@@ -37,10 +38,11 @@ const Header = () => {
                 <img src={coopIcon} className={classes.icon} />
                 Cooperative
               </CustomButton>
-              <CustomButton variant='text'>
+              {/* <CustomButton variant='text'>
                 <img src={aggregatedIcon} className={classes.icon} />
                 Aggregated
-              </CustomButton>
+              </CustomButton> */}
+              <Dropdown />
               <CustomButton variant='text'>
                 <img src={fullGameRunsIcon} className={classes.icon} />
                 Full Game Runs
@@ -48,7 +50,7 @@ const Header = () => {
             </Grid>
           </Grid>
           <CustomButton className={classes.steam}>
-            Steam
+            <div>Steam</div>
             <img src={steamIcon} style={{ height: "45px" }} />
           </CustomButton>
         </Toolbar>

@@ -34,11 +34,18 @@ export const useStyles = makeStyles(theme => ({
   steam: {
     justifyContent: "space-around",
     alignSelf: "center",
-    width: "10%"
+    width: "15%",
+    "& div": {
+      fontSize: 20,
+      padding: ".5em"
+    }
   },
   icon: {
     height: "25px",
     paddingLeft: "0.5em",
     paddingRight: "0.5em"
+  },
+  dropdown: {
+    width: "131px"
   }
 }))
