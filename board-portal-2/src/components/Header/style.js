@@ -32,12 +32,12 @@ export const useStyles = makeStyles(theme => ({
     paddingBottom: "1em"
   },
   headerLinks: {
-    width: "100%"
+    // width: "100%"
   },
   steam: {
-    justifyContent: "space-around",
+    justifyContent: "flex-end",
     alignSelf: "center",
-    width: "15%",
+    width: "20%",
     "& div": {
       fontSize: 20,
       padding: ".5em"
@@ -52,8 +52,5 @@ export const useStyles = makeStyles(theme => ({
     height: "25px",
     width: "25px"
   },
-  dropdown: {
-    width: "131px",
-    margin: 0
-  }
+  dropdown: {}
 }))

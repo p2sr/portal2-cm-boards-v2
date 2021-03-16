@@ -12,7 +12,7 @@ import Dropdown from "./Dropdown"
 const Header = () => {
   const classes = useStyles()
   return (
-    <div id='container-header' className={classes.root}>
+    <div id='container' className={classes.root}>
       <AppBar position='static'>
         <Toolbar className={classes.toolbar}>
           <Grid
@@ -50,7 +50,7 @@ const Header = () => {
             </Grid>
           </Grid>
           <CustomButton className={classes.steam}>
-            <div>Steam</div>
+            <div>Sign In</div>
             <img src={steamIcon} style={{ height: "45px" }} />
           </CustomButton>
         </Toolbar>

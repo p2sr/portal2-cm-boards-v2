@@ -1,6 +1,7 @@
 import { useStyles, CustomButton } from "./style.js"
 import { Menu, MenuItem } from "@material-ui/core"
 import sgIcon from "./img/Singleplayer.png"
+import spIcon from "./img/Singleplayer.png"
 import React from "react"
 import { Link } from "react-router-dom"
 
@@ -18,35 +19,32 @@ const DropdownSP = () => {
 
   return (
     <div id='container' className={classes.dropdown}>
-      <CustomButton
-        aria-controls='menu'
-        aria-haspopup='true'
-        onClick={handleClick}>
-        <img src={aggregatedIcon} className={classes.icon} />
+      <div aria-controls='menu' aria-haspopup='true' onClick={handleClick}>
+        <img src={spIcon} className={classes.iconMenu} />
         Single Player
-      </CustomButton>
+      </div>
       <Menu
         id='menu'
         getContentAnchorEl={null}
         anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "center"
+          vertical: "top",
+          horizontal: "right"
         }}
         transformOrigin={{
           vertical: "top",
-          horizontal: "center"
+          horizontal: "right + 250px"
         }}
         anchorEl={anchorEl}
         keepMounted
         open={Boolean(anchorEl)}
         onClose={handleClose}>
-        <MenuItem onClick={handleClose} component={Link} to='/error'>
+        <MenuItem onClose={handleClose} component={Link} to='/'>
           PH 1
         </MenuItem>
-        <MenuItem onClose={handleClose} component={Link} to='/error'>
+        <MenuItem onClose={handleClose} component={Link} to='/'>
           PH 2
         </MenuItem>
-        <MenuItem onClose={handleClose} component={Link} to={error}>
+        <MenuItem onClose={handleClose} component={Link} to='/'>
           PH 3
         </MenuItem>
       </Menu>
