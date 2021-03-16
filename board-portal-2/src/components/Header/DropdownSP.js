@@ -1,13 +1,10 @@
 import { useStyles, CustomButton } from "./style.js"
 import { Menu, MenuItem } from "@material-ui/core"
-import aggregatedIcon from "./img/aggregated.png"
-import overallIcon from "./img/cup_noborder.jpg"
-import spIcon from "./img/Singleplayer.png"
-import coopIcon from "./img/Co-op.png"
+import sgIcon from "./img/Singleplayer.png"
 import React from "react"
 import { Link } from "react-router-dom"
 
-const Dropdown = () => {
+const DropdownSP = () => {
   const classes = useStyles()
   const [anchorEl, setAnchorEl] = React.useState(null)
 
@@ -26,7 +23,7 @@ const Dropdown = () => {
         aria-haspopup='true'
         onClick={handleClick}>
         <img src={aggregatedIcon} className={classes.icon} />
-        Aggregated
+        Single Player
       </CustomButton>
       <Menu
         id='menu'
@@ -43,30 +40,18 @@ const Dropdown = () => {
         keepMounted
         open={Boolean(anchorEl)}
         onClose={handleClose}>
-        <MenuItem
-          onClick={handleClose}
-          component={Link}
-          to='/aggregated-overall'>
-          <img src={overallIcon} className={classes.iconMenu} />
-          Overall
+        <MenuItem onClick={handleClose} component={Link} to='/error'>
+          PH 1
         </MenuItem>
-        <MenuItem
-          onClose={handleClose}
-          component={Link}
-          to='/aggregated-singleplayer'>
-          <img src={spIcon} className={classes.iconMenu} />
-          Single Player
+        <MenuItem onClose={handleClose} component={Link} to='/error'>
+          PH 2
         </MenuItem>
-        <MenuItem
-          onClose={handleClose}
-          component={Link}
-          to='/aggregated-cooperative'>
-          <img src={coopIcon} className={classes.iconMenu} />
-          Cooperative
+        <MenuItem onClose={handleClose} component={Link} to={error}>
+          PH 3
         </MenuItem>
       </Menu>
     </div>
   )
 }
 
-export default Dropdown
+export default DropdownSP

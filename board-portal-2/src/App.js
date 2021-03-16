@@ -4,6 +4,7 @@ import Header from "./components/Header/Header"
 import Home from "./components/Body/Home/Home"
 import About from "./components/Body/About/About"
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom"
+import Error from "./components/Error"
 
 /**
  * @name -

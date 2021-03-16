@@ -31,6 +31,9 @@ export const useStyles = makeStyles(theme => ({
     alignSelf: "auto",
     paddingBottom: "1em"
   },
+  headerLinks: {
+    width: "100%"
+  },
   steam: {
     justifyContent: "space-around",
     alignSelf: "center",
@@ -45,7 +48,12 @@ export const useStyles = makeStyles(theme => ({
     paddingLeft: "0.5em",
     paddingRight: "0.5em"
   },
+  iconMenu: {
+    height: "25px",
+    width: "25px"
+  },
   dropdown: {
-    width: "131px"
+    width: "131px",
+    margin: 0
   }
 }))

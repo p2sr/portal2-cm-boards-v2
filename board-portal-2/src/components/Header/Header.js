@@ -12,7 +12,7 @@ import Dropdown from "./Dropdown"
 const Header = () => {
   const classes = useStyles()
   return (
-    <div id='container' className={classes.root}>
+    <div id='container-header' className={classes.root}>
       <AppBar position='static'>
         <Toolbar className={classes.toolbar}>
           <Grid
@@ -25,7 +25,7 @@ const Header = () => {
                 Portal 2 Leaderboards
               </Typography>
             </Grid>
-            <Grid item>
+            <Grid item className={classes.headerLinks}>
               <CustomButton variant='text' href='/'>
                 <img src={scoreUpdates} className={classes.icon} />
                 Score Updates
