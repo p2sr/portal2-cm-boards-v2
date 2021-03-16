@@ -131,7 +131,7 @@ table! {
 joinable!(maps -> chapters (chapter_id));
 // Testing
 joinable!(changelog -> usersnew (profile_number));
-// joinable!(coopbundled -> usersnew (profile_number1));
+joinable!(coopbundled -> usersnew (profile_number1));
 // joinable!(coopbundled -> usersnew (profile_number2));
 
 allow_tables_to_appear_in_same_query!(

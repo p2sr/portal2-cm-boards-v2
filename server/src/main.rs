@@ -5,6 +5,12 @@ async fn greet(req: HttpRequest) -> impl Responder {
     format!("Hello {}!", &name)
 }
 
+
+// Load in file as json
+// serde read in file as json
+// Specify you're returning that json
+
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
@@ -15,6 +21,11 @@ async fn main() -> std::io::Result<()> {
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
-    // /api/{map}
-    // Vault Entrance is 52740
+    // GET /api/chambers/sp/{map}
+    // GET /api/chambers/coop/{map}
+    // POST /api/users/{id}
 }
+
+/*
+    PUT REQUEST front-end team: {steamid: 1239842y5628347652, boardname: "Kevin"}
+*/

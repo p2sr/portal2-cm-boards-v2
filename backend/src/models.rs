@@ -13,6 +13,7 @@ use crate::schema::maps::dsl::maps as all_maps;
 
 use crate::schema::chapters;
 use crate::schema::coopbundled;
+use crate::schema::coopbundled::dsl::coopbundled as all_coopbundled;
 use crate::schema::scores;
 use crate::schema::usersnew;
 use crate::schema::usersnew::dsl::usersnew as all_users;
@@ -126,6 +127,13 @@ pub struct SpMapPage {
     pub score_data: Changelog,
     pub user_data: Usersnew,
 }
+
+#[derive(Queryable, Serialize, Debug, Clone)]
+pub struct CoopMapPagePrelude {
+    pub score_data: Coopbundled,
+    pub user1_data: Usersnew,
+}
+
 /*`pub struct CoopMapPage`
     Allows for the joining of the coopbundled and usersnew tables to be able
     to bundle both in a unified query. NOT CURRENTLY SUPPORTED IN DIESEL*/
@@ -308,6 +316,54 @@ impl SpMapPage{
             .load::<SpMapPage>(conn)
             .expect("Error loading all map pages.")
     }
+}
+
+impl Coopbundled{
+    pub fn show(mapid: String, conn: &MysqlConnection) -> Vec<Coopbundled>{
+        all_coopbundled
+            .filter(coopbundled::map_id.eq(mapid))
+            .filter(coopbundled::banned.eq(0))
+            .order(coopbundled::score.asc())
+            .load::<Coopbundled>(conn)
+            .expect("Error loading coopbundled")
+    }
+}
+
+impl Usersnew{
+    pub fn show(userid: String, conn: &MysqlConnection) -> Usersnew{
+        all_users
+            .find(userid)
+            .load::Usersnew(conn)
+            .expect("Error loading user.")
+    }
+}
+
+impl CoopMapPagePrelude{
+    pub fn show(mapid: String, conn: &MysqlConnection) -> Vec<CoopMapPagePrelude>{
+        all_coopbundled
+            .inner_join(all_users)
+            .filter(coopbundled::map_id.eq(mapid))
+            .filter(coopbundled::banned.eq(0))
+            .filter(usersnew::banned.eq(0))
+            .order(coopbundled::score.asc())
+            .load::<CoopMapPagePrelude>(conn)
+            .expect("Error loading coopbundled prelude")
+    }
+}
+
+impl CoopMapPage{
+    pub fn show(mapid: String, conn: &MysqlConnection) -> Vec<CoopMapPage> {
+        let mut vecFinal = Vec::new();
+        let cb = CoopMapPagePrelude::show(mapid, &conn);
+        for pre in cb.iter(){
+            let tempstr = &pre.score_data.profile_number2;
+            let user_two = Usersnew::show(tempstr.to_string(), &conn);
+            let tempstruct = CoopMapPage {score_data: pre.score_data, user1_data: pre.user1_data, user2_data: user_two} 
+            vecFinal.push();
+        }
+        vecFinal
+    }
+
 }
 
 // Need support for aliased queries. https://github.com/diesel-rs/diesel/pull/2254

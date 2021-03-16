@@ -68,3 +68,4 @@ fn output_sp_maps(conn: &MysqlConnection){
 #[allow(unused_variables)]
 fn output_coop_maps(conn: &MysqlConnection){
 }
+
