@@ -1,4 +1,4 @@
-use actix_web::{web, App, HttpRequest, HttpServer, Responder};
+use actix_web::{get, body::Body, http::header, web, App, HttpRequest, HttpServer,HttpResponse, Responder, Error};
 
 async fn greet(req: HttpRequest) -> impl Responder {
     let name = req.match_info().get("name").unwrap_or("World");
@@ -9,7 +9,15 @@ async fn greet(req: HttpRequest) -> impl Responder {
 // Load in file as json
 // serde read in file as json
 // Specify you're returning that json
+#[get("api/maps/sp/{mapid}")]
+async fn levels_json(mapid: web::Path<u64>) -> Result<HttpResponse, Error> {
+    let file  = format!("./api/maps/sp/{}.json", mapid.into_inner());
 
+    // serde readfromfile(filepath);
+    Ok(HttpResponse::Ok()
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(std::fs::read_to_string(file)?)))
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -17,6 +25,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .route("/", web::get().to(greet))
             .route("/{name}", web::get().to(greet))
+            //.route("api/maps/sp/{mapid}", web::get().to(levels_json))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
