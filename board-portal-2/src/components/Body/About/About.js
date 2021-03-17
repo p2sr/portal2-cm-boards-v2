@@ -1,6 +1,17 @@
 import { div } from "@material-ui/core"
 import "./about.css"
 
+/**
+ * @name - About
+ * @desc - Page for the "about" section. Contains formula for calculating
+ *         top 200 times and a table containing an example top 200 times.
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
+ * @param -
+ * @return -
+ */
+
 const About = () => {
   return (
     <div className='about-body'>

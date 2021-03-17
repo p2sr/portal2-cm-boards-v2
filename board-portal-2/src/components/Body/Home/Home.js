@@ -3,11 +3,15 @@ import { HashLink as Link } from "react-router-hash-link"
 import "./home.css"
 
 /**
- * @name -
- * @desc -
- * @author -
- * @date -
- * @version -
+ * @name - Home
+ * @desc - Home page for the website.
+ *          TODO:
+ *                - Add graph of upload activity
+ *                - Display list of upload activity
+ *                - Display options for filter
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
  * @param -
  * @return -
  */

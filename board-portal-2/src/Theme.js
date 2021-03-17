@@ -1,5 +1,15 @@
 import { createMuiTheme, getContrastRatio } from "@material-ui/core/styles"
 
+/**
+ * @name - Theme
+ * @desc - Sets the theme for Material UI to use in Material UI components
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
+ * @param -
+ * @return -
+ */
+
 const theme = createMuiTheme({
   palette: {
     primary: {

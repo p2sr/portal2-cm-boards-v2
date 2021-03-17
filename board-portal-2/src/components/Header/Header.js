@@ -8,7 +8,17 @@ import { Grid, AppBar, Toolbar, Typography, Button } from "@material-ui/core"
 import { BrowserRouter, Link } from "react-router-dom"
 import { useStyles, CustomButton } from "./style.js"
 import Dropdown from "./Dropdown"
-
+/**
+ * @name - Header
+ * @desc - Contains the toolbar for header. Displays the website title. Shows links for home page,
+ *         single player scores, cooperative scores, aggregated (overall, single player, and cooperative),
+ *         full game runs website, and a steam sign in for the website.
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
+ * @param -
+ * @return -
+ */
 const Header = () => {
   const classes = useStyles()
   return (
@@ -30,7 +40,7 @@ const Header = () => {
                 <img src={scoreUpdates} className={classes.icon} />
                 Score Updates
               </CustomButton>
-              <CustomButton variant='text'>
+              <CustomButton variant='text' href='/sp'>
                 <img src={singlplayerIcon} className={classes.icon} />
                 Single Player
               </CustomButton>

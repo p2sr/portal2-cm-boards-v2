@@ -7,13 +7,14 @@ import WallOfShame from "./components/Body/Wall_of_Shame/WallOfShame"
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom"
 import Error from "./components/Error"
 import Donators from "./components/Body/Donators/Donators"
+import SinglePlayer from "./components/Body/SinglePlayer/SinglePlayer"
 
 /**
- * @name -
- * @desc -
- * @author -
- * @date -
- * @version -
+ * @name - App
+ * @desc - React Component that holds the Header, Body(Routes), and Footer components
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
  * @param -
  * @return -
  */
@@ -29,6 +30,7 @@ function App() {
           <Route path='/about' component={About} />
           <Route path='/donators' component={Donators} />
           <Route path='/wall_of_shame' component={WallOfShame} />
+          <Route path='/sp' component={SinglePlayer} />
           <Route component={Error} />
         </Switch>
         <Footer />

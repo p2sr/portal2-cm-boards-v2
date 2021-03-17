@@ -6,11 +6,11 @@ import CssBaseline from "@material-ui/core/CssBaseline"
 import theme from "./Theme"
 
 /**
- * @name -
- * @desc -
- * @author -
- * @date -
- * @version -
+ * @name - index
+ * @desc - Sets the base theme for Material UI and the html and body tag
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
  * @param -
  * @return -
  */
