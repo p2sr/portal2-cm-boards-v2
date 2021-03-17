@@ -9,11 +9,11 @@ import Error from "./components/Error"
 import Donators from "./components/Body/Donators/Donators"
 
 /**
- * @name -
- * @desc -
- * @author -
- * @date -
- * @version -
+ * @name - App
+ * @desc - React Component that holds the Header, Body(Routes), and Footer components
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
  * @param -
  * @return -
  */

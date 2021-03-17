@@ -7,6 +7,17 @@ import { Grid, AppBar, Toolbar, Typography, Button } from "@material-ui/core"
 import { BrowserRouter, Link } from "react-router-dom"
 import { useStyles, CustomButton } from "./style.js"
 
+/**
+ * @name - Footer
+ * @desc - Footer toolbar that contains links to the community Discord,
+ *         site GitHub, Wall of Shame, Donators, and About page.
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
+ * @param -
+ * @return -
+ */
+
 const Footer = () => {
   const classes = useStyles()
   return (

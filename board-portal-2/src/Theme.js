@@ -1,5 +1,15 @@
 import { createMuiTheme, getContrastRatio } from "@material-ui/core/styles"
 
+/**
+ * @name -
+ * @desc -
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
+ * @param -
+ * @return -
+ */
+
 const theme = createMuiTheme({
   palette: {
     primary: {

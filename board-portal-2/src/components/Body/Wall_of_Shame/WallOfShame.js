@@ -3,6 +3,16 @@ import { useStyles, CustomButton } from "./style.js"
 import React from "react"
 import Data from "./example.json"
 
+/**
+ * @name - WallOfShame
+ * @desc - Contains the page displaying the banned players from the sight.
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
+ * @param -
+ * @return -
+ */
+
 const Donators = () => {
   const classes = useStyles()
 

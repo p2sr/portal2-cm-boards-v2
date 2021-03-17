@@ -4,6 +4,16 @@ import donatorImg from "./img/portal_2_birthday_by_curtisru-d47w3js.png"
 import Data from "./example.json"
 import React from "react"
 
+/**
+ * @name -
+ * @desc -
+ * @author - Mitchell Baker
+ * @date - 3/17/21
+ * @version - 1.0
+ * @param -
+ * @return -
+ */
+
 const Donators = () => {
   const classes = useStyles()
 
