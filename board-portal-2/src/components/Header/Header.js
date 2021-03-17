@@ -38,12 +38,14 @@ const Header = () => {
                 <img src={coopIcon} className={classes.icon} />
                 Cooperative
               </CustomButton>
-              {/* <CustomButton variant='text'>
+              <CustomButton variant='text'>
                 <img src={aggregatedIcon} className={classes.icon} />
                 Aggregated
-              </CustomButton> */}
-              <Dropdown />
-              <CustomButton variant='text'>
+              </CustomButton>
+              {/* <Dropdown /> */}
+              <CustomButton
+                variant='text'
+                href='https://www.speedrun.com/Portal_2'>
                 <img src={fullGameRunsIcon} className={classes.icon} />
                 Full Game Runs
               </CustomButton>

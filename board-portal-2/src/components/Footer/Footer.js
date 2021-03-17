@@ -15,15 +15,19 @@ const Footer = () => {
         <Toolbar className={classes.toolbar}>
           <Grid container justify='space-around' alignContent='center'>
             <BrowserRouter>
-              <CustomButton to='/home'>
+              <CustomButton href='/donators'>
                 <img src={donatorsIcon} className={classes.icon} />
                 Donators
               </CustomButton>
-              <CustomButton to='/home'>
+              <CustomButton
+                href='https://github.com/DanielBatesJ/portal-2-boards-capstone'
+                target='_blank'>
                 <img src={githubIcon} className={classes.icon} />
                 GitHub
               </CustomButton>
-              <CustomButton to='/home'>
+              <CustomButton
+                href='https://discordapp.com/invite/hRwE4Zr'
+                target='_blank'>
                 <img src={discordIcon} className={classes.icon} />
                 Discord
               </CustomButton>

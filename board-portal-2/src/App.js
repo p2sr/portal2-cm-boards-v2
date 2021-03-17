@@ -5,6 +5,7 @@ import Home from "./components/Body/Home/Home"
 import About from "./components/Body/About/About"
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom"
 import Error from "./components/Error"
+import Donators from "./components/Body/Donators/Donators"
 
 /**
  * @name -
@@ -25,6 +26,7 @@ function App() {
               <Route path='/(page name) component={(component name)}*/}
           <Route exact path='/' component={Home} />
           <Route path='/about' component={About} />
+          <Route path='/donators' component={Donators} />
           <Route component={Error} />
         </Switch>
         <Footer />
