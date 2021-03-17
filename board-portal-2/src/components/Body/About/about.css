@@ -1,0 +1,66 @@
+.about-body {
+  background: rgb(246,246,246);
+  margin: 5%;
+  padding-top: 0.5em;
+  padding-left: 2em;
+  padding-bottom: 56px;
+}
+.about-header {
+  font-family: "arial";
+  font-size: 40px;
+  color: #3e88b3;
+  text-transform: uppercase;
+}
+
+.about-sub-header {
+  font-family: "arial";
+  font-size: 22px;
+  color: #3e88b3;
+  text-transform: uppercase;
+}
+.about-text {
+  font-family: "arial";
+  text-transform: none;
+  margin-bottom: 30px;
+  font-size: 16px;
+  color: #444;
+  width: calc(100% - 45px);
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.fraction {
+  text-transform: none;
+  color: black;
+  font-size: 15px;
+  color: inherit;
+  margin: 15px;
+  text-align: center;
+  vertical-align: middle;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.6em;
+}
+
+.upper-line {
+  color: black;
+  font-size: 15px;
+  color: inherit;
+  margin: 15px;
+  border-top: solid 1px #555555;
+}
+
+.pointTable th {
+  font-family: Arial;
+  color: #555;
+}
+.pointTable td,
+.pointTable th {
+  text-align: center;
+  font-family: Arial;
+  border-top: 1px solid #dddd;
+}
+.pointTable th:first-child,
+.pointTable td:first-child {
+  border-right: 1px solid #ddd;
+}

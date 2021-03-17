@@ -1,6 +1,12 @@
-import React, { useState } from "react";
-import Home from "./components/Home";
-import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
+import React, { useState } from "react"
+import Footer from "./components/Footer/Footer"
+import Header from "./components/Header/Header"
+import Home from "./components/Body/Home/Home"
+import About from "./components/Body/About/About"
+import WallOfShame from "./components/Body/Wall_of_Shame/WallOfShame"
+import { BrowserRouter as Router, Switch, Route } from "react-router-dom"
+import Error from "./components/Error"
+import Donators from "./components/Body/Donators/Donators"
 
 /**
  * @name -
@@ -13,17 +19,22 @@ import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
  */
 function App() {
   return (
-    <div>
+    <div style={{ backgroundColor: "rgb(154, 166, 187)" }}>
       <Router>
+        <Header />
         <Switch>
           {/* Insert the routes to other pages here as: 
-                  <Route path='/(page name) component={(component name)}*/}
+              <Route path='/(page name) component={(component name)}*/}
           <Route exact path='/' component={Home} />
+          <Route path='/about' component={About} />
+          <Route path='/donators' component={Donators} />
+          <Route path='/wall_of_shame' component={WallOfShame} />
           <Route component={Error} />
         </Switch>
+        <Footer />
       </Router>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
