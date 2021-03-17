@@ -40,7 +40,7 @@ const Header = () => {
                 <img src={scoreUpdates} className={classes.icon} />
                 Score Updates
               </CustomButton>
-              <CustomButton variant='text'>
+              <CustomButton variant='text' href='/sp'>
                 <img src={singlplayerIcon} className={classes.icon} />
                 Single Player
               </CustomButton>
