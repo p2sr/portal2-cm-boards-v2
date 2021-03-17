@@ -3,6 +3,7 @@ import Footer from "./components/Footer/Footer"
 import Header from "./components/Header/Header"
 import Home from "./components/Body/Home/Home"
 import About from "./components/Body/About/About"
+import WallOfShame from "./components/Body/Wall_of_Shame/WallOfShame"
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom"
 import Error from "./components/Error"
 import Donators from "./components/Body/Donators/Donators"
@@ -27,6 +28,7 @@ function App() {
           <Route exact path='/' component={Home} />
           <Route path='/about' component={About} />
           <Route path='/donators' component={Donators} />
+          <Route path='/wall_of_shame' component={WallOfShame} />
           <Route component={Error} />
         </Switch>
         <Footer />

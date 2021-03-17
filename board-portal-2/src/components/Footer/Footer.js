@@ -31,7 +31,7 @@ const Footer = () => {
                 <img src={discordIcon} className={classes.icon} />
                 Discord
               </CustomButton>
-              <CustomButton to='/home'>
+              <CustomButton href='/wall_of_shame'>
                 <img src={wallOfShameIcon} className={classes.icon} />
                 Wall of Shame
               </CustomButton>

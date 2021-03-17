@@ -37,7 +37,7 @@ export const useStyles = makeStyles(theme => ({
   steam: {
     justifyContent: "flex-end",
     alignSelf: "center",
-    width: "20%",
+    width: "13%",
     "& div": {
       fontSize: 20,
       padding: ".5em"
