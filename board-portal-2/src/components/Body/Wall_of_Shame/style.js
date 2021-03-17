@@ -10,7 +10,7 @@ export const useStyles = makeStyles(theme => ({
   },
   titleWallOfShame: {
     textTransform: "uppercase",
-    fontSize: "40px",
+    fontSize: "2.5rem",
     fontFamily: "Arial",
     fontWeight: "600"
   },

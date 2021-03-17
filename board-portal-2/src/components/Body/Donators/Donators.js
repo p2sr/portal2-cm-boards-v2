@@ -5,8 +5,8 @@ import Data from "./example.json"
 import React from "react"
 
 /**
- * @name -
- * @desc -
+ * @name - Donators
+ * @desc - List of all of those who donated to the community in descending order.
  * @author - Mitchell Baker
  * @date - 3/17/21
  * @version - 1.0
@@ -37,7 +37,7 @@ const Donators = () => {
         display='flex'
         alignItems='flex-start'
         justify='space-between'>
-        <Grid item style={{ width: "30%" }}>
+        <Grid item style={{ width: "40%" }}>
           <List>
             <ListItem className={classes.listItem}>
               <Avatar alt='' />

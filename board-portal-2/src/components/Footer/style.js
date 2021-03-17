@@ -26,7 +26,7 @@ export const useStyles = makeStyles(theme => ({
     paddingBottom: theme.spacing(2)
   },
   icon: {
-    height: "25px",
+    height: "1.568em",
     paddingLeft: "0.5em",
     paddingRight: "0.5em"
   }
