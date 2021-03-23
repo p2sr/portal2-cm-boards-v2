@@ -27,7 +27,8 @@ fn main() {
 
     let database_url = env::var("DATABASE_URL").expect("set the DATABASE_URL in ../.env");
     let conn = MysqlConnection::establish(&database_url).unwrap();
-    output_sp_maps(&conn);
+    //output_sp_maps(&conn);
+    output_coop_maps(&conn);
 }
 
 fn output_sp_maps(conn: &MysqlConnection){
@@ -41,7 +42,7 @@ fn output_sp_maps(conn: &MysqlConnection){
        changelog and all user data included, just specific parts.), implement a variable
        in the database to track if a time is outdated to reduce compute time in Rust*/
   
-       for map_id in all_sp_maps.iter(){
+    for map_id in all_sp_maps.iter(){
         let map_str = format!("../server/api/maps/sp/{}.json", map_id.to_string());
         let path = Path::new(&map_str);
         
@@ -67,5 +68,52 @@ fn output_sp_maps(conn: &MysqlConnection){
 // Will need to be worked on, aliased queries not currently supported native by diesel.
 #[allow(unused_variables)]
 fn output_coop_maps(conn: &MysqlConnection){
+    let all_coop_maps = models::Map::all_coop_mapids(&conn);
+
+    for map_id in all_coop_maps.iter(){
+        let map_str = format!("../server/api/maps/coop/{}.json", map_id.to_string());
+        let path = Path::new(&map_str);
+
+        let coopbundled_entries = models::CoopMapPage::show(all_coop_maps[0].to_string(), &conn);   
+        
+        let mut coopbundled_entries_filtered = Vec::new();
+        let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(500);
+        remove_dups.insert("".to_string(), 1);
+        for entry in coopbundled_entries{
+            match remove_dups.insert(entry.score_data.profile_number1.clone(), 1){
+                // If player 1 has a better time, check to see if player 2 doesn't.
+                Some(_) => match remove_dups.insert(entry.score_data.profile_number2.clone(), 1){
+                    Some(_) => (),
+                    _ => coopbundled_entries_filtered.push(entry.clone()),
+                }
+                // This case handles if player 1 doesn't have a better time, and it tries to add player 2 in as well, if two has a better time or not, this is included.
+                _ => match remove_dups.insert(entry.score_data.profile_number2.clone(), 1){
+                    Some(_) => coopbundled_entries_filtered.push(entry.clone()),
+                    _ => coopbundled_entries_filtered.push(entry.clone()),
+                }
+            }
+        }
+        let file = File::create(path).unwrap();
+        // Limits to 200 results.
+        coopbundled_entries_filtered.truncate(200);
+        serde_json::to_writer_pretty(file, &coopbundled_entries_filtered).unwrap();
+    }
 }
 
+/*
+        for entry in coopbundled_entries{
+            match remove_dups.insert(entry.score_data.profile_number1.clone(), 1){
+                Some(_) => match remove_dups.insert(entry.score_data.profile_number2.clone(), 1){
+                    Some(_) => (),
+                    _ => {
+                        coopbundled_entries_filtered.push(entry.clone());
+                        match remove_dups.insert(entry.score_data.profile_number2.clone(), 1){
+                            Some(_) => (),
+                            _ => (),
+                        }
+                    }
+                }
+                _ => coopbundled_entries_filtered.push(entry.clone()),
+            }
+        }
+*/

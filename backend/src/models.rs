@@ -330,10 +330,10 @@ impl Coopbundled{
 }
 
 impl Usersnew{
-    pub fn show(userid: String, conn: &MysqlConnection) -> Usersnew{
+    pub fn show(userid: String, conn: &MysqlConnection) -> Usersnew {
         all_users
             .find(userid)
-            .load::Usersnew(conn)
+            .first(conn)
             .expect("Error loading user.")
     }
 }
@@ -353,15 +353,22 @@ impl CoopMapPagePrelude{
 
 impl CoopMapPage{
     pub fn show(mapid: String, conn: &MysqlConnection) -> Vec<CoopMapPage> {
-        let mut vecFinal = Vec::new();
+        let nouser = Usersnew {profile_number: "".to_string(), boardname: None, steamname: None, banned: 0, registered: 0, avatar: None, twitch: None, youtube: None, title: None, admin: 0, donation_amount: None};
+        let mut vecfinal = Vec::new();
         let cb = CoopMapPagePrelude::show(mapid, &conn);
         for pre in cb.iter(){
             let tempstr = &pre.score_data.profile_number2;
-            let user_two = Usersnew::show(tempstr.to_string(), &conn);
-            let tempstruct = CoopMapPage {score_data: pre.score_data, user1_data: pre.user1_data, user2_data: user_two} 
-            vecFinal.push();
+            if(tempstr != ""){
+                let user_two = Usersnew::show(tempstr.to_string(), &conn);
+                let tempstruct = CoopMapPage {score_data: pre.score_data.clone(), user1_data: pre.user1_data.clone(), user2_data: user_two.clone()}; 
+                vecfinal.push(tempstruct);
+            }
+            else{
+                let tempstruct = CoopMapPage {score_data: pre.score_data.clone(), user1_data: pre.user1_data.clone(), user2_data: nouser.clone()};
+                vecfinal.push(tempstruct);
+            }
         }
-        vecFinal
+        return vecfinal;
     }
 
 }
