@@ -27,7 +27,9 @@ fn main() {
 
     let database_url = env::var("DATABASE_URL").expect("set the DATABASE_URL in ../.env");
     let conn = MysqlConnection::establish(&database_url).unwrap();
-    //output_sp_maps(&conn);
+    println!("Caching all SP maps");
+    output_sp_maps(&conn);
+    println!("Caching all Coop maps");
     output_coop_maps(&conn);
 }
 
@@ -99,21 +101,3 @@ fn output_coop_maps(conn: &MysqlConnection){
         serde_json::to_writer_pretty(file, &coopbundled_entries_filtered).unwrap();
     }
 }
-
-/*
-        for entry in coopbundled_entries{
-            match remove_dups.insert(entry.score_data.profile_number1.clone(), 1){
-                Some(_) => match remove_dups.insert(entry.score_data.profile_number2.clone(), 1){
-                    Some(_) => (),
-                    _ => {
-                        coopbundled_entries_filtered.push(entry.clone());
-                        match remove_dups.insert(entry.score_data.profile_number2.clone(), 1){
-                            Some(_) => (),
-                            _ => (),
-                        }
-                    }
-                }
-                _ => coopbundled_entries_filtered.push(entry.clone()),
-            }
-        }
-*/
