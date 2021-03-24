@@ -76,7 +76,7 @@ fn output_coop_maps(conn: &MysqlConnection){
         let map_str = format!("../server/api/maps/coop/{}.json", map_id.to_string());
         let path = Path::new(&map_str);
 
-        let coopbundled_entries = models::CoopMapPage::show(all_coop_maps[0].to_string(), &conn);   
+        let coopbundled_entries = models::CoopMapPage::show(map_id.to_string(), &conn);   
         
         let mut coopbundled_entries_filtered = Vec::new();
         let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(500);
@@ -95,6 +95,12 @@ fn output_coop_maps(conn: &MysqlConnection){
                 }
             }
         }
+        // Quick test to see output in a more visual and friendly way
+        // if map_id == "47741"{ 
+        //     for entry in coopbundled_entries_filtered.iter(){
+        //         println!("Score - {:?} \tPlayer 1 - {:?} \t\tPlayer 2 - {:?}", entry.score_data.score, entry.user1_data.steamname, entry.user2_data.steamname);
+        //     }
+        // }
         let file = File::create(path).unwrap();
         // Limits to 200 results.
         coopbundled_entries_filtered.truncate(200);
