@@ -8,6 +8,8 @@ import { BrowserRouter as Router, Switch, Route } from "react-router-dom"
 import Error from "./components/Error"
 import Donators from "./components/Body/Donators/Donators"
 import SinglePlayer from "./components/Body/SinglePlayer/SinglePlayer"
+import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles"
+// import { theme } from "./Theme"
 
 /**
  * @name - App
@@ -19,22 +21,49 @@ import SinglePlayer from "./components/Body/SinglePlayer/SinglePlayer"
  * @return -
  */
 function App() {
+  const [state, setState] = React.useState(true)
+
+  console.log("current state =", state)
+
+  const handleChange = event => {
+    setState(event.target.checked)
+  }
+  const theme = createMuiTheme({
+    palette: {
+      type: state ? "light" : "dark",
+      primary: {
+        // light: "#9bc0ff",
+        main: "#82b1ff",
+        // dark: "#344666",
+        contrastText: "rgb(101, 101, 101);"
+      },
+      secondary: {
+        // light: "#ffbb66",
+        main: "#ffab40",
+        // dark: "#b2772c",
+        contrastText: "rgb(246, 246, 246)"
+      }
+    }
+  })
+
   return (
     <div style={{ backgroundColor: "rgb(154, 166, 187)" }}>
-      <Router>
-        <Header />
-        <Switch>
-          {/* Insert the routes to other pages here as: 
+      <ThemeProvider theme={theme}>
+        <Router>
+          <Header handleChange={handleChange} state={state} />
+          <Switch>
+            {/* Insert the routes to other pages here as: 
               <Route path='/(page name) component={(component name)}*/}
-          <Route exact path='/' component={Home} />
-          <Route path='/about' component={About} />
-          <Route path='/donators' component={Donators} />
-          <Route path='/wall_of_shame' component={WallOfShame} />
-          <Route path='/sp' component={SinglePlayer} />
-          <Route component={Error} />
-        </Switch>
-        <Footer />
-      </Router>
+            <Route exact path='/' component={Home} />
+            <Route path='/about' component={About} />
+            <Route path='/donators' component={Donators} />
+            <Route path='/wall_of_shame' component={WallOfShame} />
+            <Route path='/sp' component={SinglePlayer} />
+            <Route component={Error} />
+          </Switch>
+          <Footer />
+        </Router>
+      </ThemeProvider>
     </div>
   )
 }

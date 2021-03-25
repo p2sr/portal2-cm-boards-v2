@@ -4,10 +4,18 @@ import singlplayerIcon from "./img/Singleplayer.png"
 import fullGameRunsIcon from "./img/running_large.png"
 import aggregatedIcon from "./img/aggregated.png"
 import coopIcon from "./img/Co-op.png"
-import { Grid, AppBar, Toolbar, Typography, Button } from "@material-ui/core"
+import {
+  Grid,
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Switch
+} from "@material-ui/core"
 import { BrowserRouter, Link } from "react-router-dom"
 import { useStyles, CustomButton } from "./style.js"
 import Dropdown from "./Dropdown"
+import React from "react"
 /**
  * @name - Header
  * @desc - Contains the toolbar for header. Displays the website title. Shows links for home page,
@@ -19,8 +27,9 @@ import Dropdown from "./Dropdown"
  * @param -
  * @return -
  */
-const Header = () => {
+const Header = ({ themeStatus, handleChange, state }) => {
   const classes = useStyles()
+
   return (
     <div id='container' className={classes.root}>
       <AppBar position='static'>
@@ -61,13 +70,27 @@ const Header = () => {
               </CustomButton>
             </Grid>
           </Grid>
-          <CustomButton
-            className={classes.steam}
-            href='https://steamcommunity.com/openid/login?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&openid.mode=checkid_setup&openid.return_to=http%3A%2F%2Fboard.iverb.me%2Flogin&openid.realm=http%3A%2F%2Fboard.iverb.me&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select'
-            id='steam-login'>
-            <div>Sign In</div>
-            <img src={steamIcon} style={{ height: "45px" }} />
-          </CustomButton>
+          <Grid
+            container
+            direction='column'
+            justify='center'
+            alignItems='flex-end'
+            xs='2'>
+            <Grid item container justify='flex-end'>
+              <CustomButton
+                className={classes.steam}
+                href='https://steamcommunity.com/openid/login?openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&openid.mode=checkid_setup&openid.return_to=http%3A%2F%2Fboard.iverb.me%2Flogin&openid.realm=http%3A%2F%2Fboard.iverb.me&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select'
+                id='steam-login'>
+                <div>Sign In</div>
+                <img src={steamIcon} style={{ height: "45px" }} />
+              </CustomButton>
+            </Grid>
+            <Grid item container justify='flex-end' alignItems='center'>
+              <Grid item>Dark</Grid>
+              <Switch color='default' checked={state} onChange={handleChange} />
+              <Grid item>Light</Grid>
+            </Grid>
+          </Grid>
         </Toolbar>
       </AppBar>
     </div>
