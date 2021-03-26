@@ -20,6 +20,7 @@ export const CustomButton = withStyles({
 
 export const useStyles = makeStyles(theme => ({
   root: {},
+  appBar: {},
   toolbar: {
     minHeight: "8.033em",
     alignItems: "flex-start",

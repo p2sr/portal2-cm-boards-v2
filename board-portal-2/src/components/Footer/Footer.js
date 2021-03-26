@@ -22,7 +22,7 @@ const Footer = () => {
   const classes = useStyles()
   return (
     <div id='container-footer' className='container' className={classes.root}>
-      <AppBar color='secondary' position='static'>
+      <AppBar color='inherit' position='static'>
         <Toolbar className={classes.toolbar}>
           <Grid container justify='space-around' alignContent='center'>
             <BrowserRouter>

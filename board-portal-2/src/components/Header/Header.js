@@ -27,12 +27,12 @@ import React from "react"
  * @param -
  * @return -
  */
-const Header = ({ themeStatus, handleChange, state }) => {
+const Header = ({ handleChange, themeStatus }) => {
   const classes = useStyles()
 
   return (
     <div id='container' className={classes.root}>
-      <AppBar position='static'>
+      <AppBar className={classes.appBar} position='static'>
         <Toolbar className={classes.toolbar}>
           <Grid
             container
@@ -40,7 +40,11 @@ const Header = ({ themeStatus, handleChange, state }) => {
             alignItems='flex-start'
             direction='column'>
             <Grid item>
-              <Typography className={classes.title} noWrap variant='h5'>
+              <Typography
+                color='textPrimary'
+                className={classes.title}
+                noWrap
+                variant='h5'>
                 Portal 2 Leaderboards
               </Typography>
             </Grid>
@@ -86,9 +90,17 @@ const Header = ({ themeStatus, handleChange, state }) => {
               </CustomButton>
             </Grid>
             <Grid item container justify='flex-end' alignItems='center'>
-              <Grid item>Dark</Grid>
-              <Switch color='default' checked={state} onChange={handleChange} />
-              <Grid item>Light</Grid>
+              <Grid item>
+                <Typography color='textPrimary'>Dark</Typography>
+              </Grid>
+              <Switch
+                color='default'
+                checked={themeStatus}
+                onChange={handleChange}
+              />
+              <Grid>
+                <Typography color='textPrimary'>Light</Typography>
+              </Grid>
             </Grid>
           </Grid>
         </Toolbar>
