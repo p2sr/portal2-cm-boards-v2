@@ -21,7 +21,9 @@ export const useStyles = makeStyles(theme => ({
     marginTop: -2
   },
   chapter_container: {
-    marginLeft: 20,
+    maxWidth: "100%",
+    maxHeight: "100%",
+    paddingLeft: "1.675em",
     paddingBottom: ".675em",
     marginBottom: "2%"
   },

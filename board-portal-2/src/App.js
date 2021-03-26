@@ -11,7 +11,7 @@ import WallOfShame from "./components/Body/Wall_of_Shame/WallOfShame"
 import Error from "./components/Error"
 import Donators from "./components/Body/Donators/Donators"
 import SinglePlayer from "./components/Body/SinglePlayer/SinglePlayer"
-import { light } from "@material-ui/core/styles/createPalette"
+import { useStyles } from "./style.js"
 
 /**
  * @name - App
@@ -26,6 +26,7 @@ import { light } from "@material-ui/core/styles/createPalette"
  * @return -
  */
 function App() {
+  const classes = useStyles()
   const [themeStatus, setThemeStatus] = React.useState(
     !useMediaQuery("(prefers-color-scheme: dark)")
   )
@@ -50,7 +51,7 @@ function App() {
         main: "#303030"
       },
       secondary: {
-        main: "#82b1ff"
+        main: "#303030"
       }
     }
   })
@@ -62,7 +63,7 @@ function App() {
   }
 
   return (
-    <Box bgcolor='rgb(101,101,101)'>
+    <Box bgcolor={themeStatus ? "rgb(154, 166, 187)" : "rgb(41, 49, 62)"}>
       <ThemeProvider theme={theme}>
         <Router>
           <Header handleChange={handleChange} themeStatus={themeStatus} />

@@ -32,7 +32,7 @@ const Header = ({ handleChange, themeStatus }) => {
 
   return (
     <div id='container' className={classes.root}>
-      <AppBar className={classes.appBar} position='static'>
+      <AppBar color='primary' position='static'>
         <Toolbar className={classes.toolbar}>
           <Grid
             container
