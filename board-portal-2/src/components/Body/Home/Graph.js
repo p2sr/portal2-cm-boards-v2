@@ -1,3 +1,4 @@
+import { colors } from "@material-ui/core"
 import React from "react"
 import Chart from "react-apexcharts"
 import { useStyles } from "./style"
@@ -15,18 +16,21 @@ const chartOptions = {
   },
   stroke: {
     show: true,
-    width: 2,
-    colors: ["transparent"]
+    width: 2
+  },
+  fill: {
+    opacity: 1
   }
 }
-const Graph = ({ data, themeStatus }) => {
+const Graph = ({ data }) => {
   const classes = useStyles()
 
   const state = {
     options: {
       ...chartOptions,
       chart: {
-        id: "basic-bar"
+        id: "basic-bar",
+        foreColor: "text.primary"
       },
       xaxis: {
         categories: [1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999],
@@ -37,7 +41,7 @@ const Graph = ({ data, themeStatus }) => {
     },
     series: [
       {
-        name: "submissions",
+        name: "Submissions",
         data: [30, 40, 45, 50, 49, 60, 70, 91]
       }
     ]
