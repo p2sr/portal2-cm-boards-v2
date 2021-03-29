@@ -96,11 +96,11 @@ fn output_coop_maps(conn: &MysqlConnection){
             }
         }
         // Quick test to see output in a more visual and friendly way
-        // if map_id == "47741"{ 
-        //     for entry in coopbundled_entries_filtered.iter(){
-        //         println!("Score - {:?} \tPlayer 1 - {:?} \t\tPlayer 2 - {:?}", entry.score_data.score, entry.user1_data.steamname, entry.user2_data.steamname);
-        //     }
-        // }
+        /*if map_id == "47741"{ 
+             for entry in coopbundled_entries_filtered.iter(){
+                 println!("Score - {:?} \tPlayer 1 - {:?} \t\tPlayer 2 - {:?}", entry.score_data.score, entry.user1_data.steamname, entry.user2_data.steamname);
+             }
+        }*/
         let file = File::create(path).unwrap();
         // Limits to 200 results.
         coopbundled_entries_filtered.truncate(200);
