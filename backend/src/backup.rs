@@ -202,3 +202,112 @@ impl Maps{
         Map changes should probably not be handled through the boards.*/
     
 }
+
+//server/db.rs
+// use diesel::mysql::MysqlConnection;
+// use diesel::r2d2::{ Pool, PooledConnection, ConnectionManager, PoolError };
+
+// pub type MySqlPool = Pool<ConnectionManager<MysqlConnection>>;
+// pub type MySqlPooledConnection = PooledConnection<ConnectionManager<MysqlConnection>>;
+
+// fn init_pool(database_url: &str) -> Result<MySqlPool, PoolError> {
+//     let manager = ConnectionManager::<MysqlConnection>::new(database_url);
+//     Pool::builder().build(manager)
+// }
+
+// pub fn establish_connection(database_url: &String) -> MySqlPool{
+//     init_pool(&database_url).expect("Failed to create pool.")
+// }
+
+// use diesel::mysql::MysqlConnection;
+// use diesel::r2d2::{ConnectionManager, Pool, PoolError};
+// use std::env;
+
+// use r2d2;
+// use actix_web::{dev, guard, Result, Error, HttpRequest, FromRequest};
+// use futures_util::future::{ok, err, Ready};
+// use actix_web::error::ErrorBadRequest;
+// use std::ops::Deref;
+
+// use crate::config::*;
+
+// pub type MysqlPool = Pool<ConnectionManager<MysqlConnection>>;
+
+// fn init_pool(database_url: &str) -> Result<MysqlPool, PoolError>{
+//     let manager = ConnectionManager::<MysqlConnection>::new(database_url);
+//     Pool::builder().build(manager)
+// }
+
+// pub fn establish_connection(database_url: &String) -> MysqlPool{
+//     init_pool(&database_url).expect("Failed to create pool.")
+// }
+
+// pub struct Conn(pub r2d2::PooledConnection<ConnectionManager<MysqlConnection>>);
+
+// pub struct AppState {
+//     pub pool: Conn,    
+// }
+
+// impl FromRequest for Conn{
+//     type Error = Error;
+//     type Future = Ready<Result<Conn, Error>>;
+//     type Config = ();
+
+//     fn from_request(req: &HttpRequest, payload: &mut dev::Payload) -> Self::Future{
+//         match req.app_data() {
+//             Some(conn) => ok(Conn(conn)),
+//             _ => err(ErrorBadRequest("DB Connection Pool FromRequest Error"))
+//         }
+//     }
+// }
+
+// impl Deref for Conn{
+//     type Target = MysqlConnection;
+//     #[inline(always)]
+//     fn deref(&self) -> &Self::Target{
+//         &self.0
+//     }
+// }
+
+// use diesel::mysql::MysqlConnection;
+// use r2d2;
+// use r2d2_diesel::ConnectionManager;
+// use std::ops::Deref;
+// use actix_web::{dev, guard, Result, Error, HttpRequest, FromRequest};
+// use actix_web::error::ErrorBadRequest;
+// use futures_util::future::{ok, err, Ready};
+// pub type Pool = r2d2::Pool<ConnectionManager<MysqlConnection>>;
+// use std::sync::Arc;
+
+// struct AppState{
+//     app_name: String,
+//     pool: Arc<Pool<MysqlConnection>>,
+// }
+
+// // pub fn init_pool(db_url: String) -> Pool{
+// //     let manager = ConnectionManager::<MysqlConnection>::new(db_url);
+// //     r2d2::Pool::new(manager).expect("db pool failure");
+// // }
+
+// pub fn init_pool(db_url: String) -> Option<Arc<Pool<MysqlConnection>>>{
+//     let manager = ConnectionManager::<MysqlConnection>::new(db_url);
+//     let pool = Arc::new(r2d2::Pool::new(manager).unwrap());
+//     return Option::Some(pool);
+// }
+
+// pub struct Conn(pub r2d2::PooledConnection<ConnectionManager<MysqlConnection>>);
+
+// impl FromRequest for Conn{
+//     type Error = Error;
+//     type Future = Ready<Result<Conn, Error>>;
+//     type Config = ();
+
+//     fn from_request(req: &HttpRequest, payload: &mut dev::Payload) -> Self::Future{
+//         let pool = req;
+//         match pool.get() {
+//             Ok(conn) => ok(Conn(conn)),
+//             Err(_) => err(ErrorBadRequest("DB Connection Pool FromRequest Error"))
+//         }
+//     }
+// }
+//https://turreta.com/2020/02/29/actix-web-with-mysql-using-r2d2-for-connection-pool/

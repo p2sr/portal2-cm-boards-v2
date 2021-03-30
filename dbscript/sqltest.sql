@@ -46,7 +46,12 @@ FOREIGN KEY (`map_id`) REFERENCES maps(`steam_id`),
 FOREIGN KEY (`profile_number`) REFERENCES usersnew(`profile_number`),
 FOREIGN KEY (`changelog_id`) REFERENCES changelog(`id`);
 
-/*scores acts as a container for joins for the changelog entities.*/
+/*scores acts as a container for joins for the changelog entities.
+
+
+ALTER TABLE scores ADD CONSTRAINT `scores_ibfk_3` FOREIGN KEY (`changelog_id`) REFERENCES `changelog` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+*/
 
 /*
 mysql> use p2boards;
