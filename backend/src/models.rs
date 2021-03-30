@@ -410,7 +410,6 @@ impl CoopMapPage{
         }
         return vecfinal;
     }
-
 }
 
 // Need support for aliased queries. https://github.com/diesel-rs/diesel/pull/2254
