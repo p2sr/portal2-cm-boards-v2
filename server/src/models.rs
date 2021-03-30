@@ -8,6 +8,7 @@ use chrono::NaiveDateTime;
 
 use crate::schema::{changelog, chapters, coopbundled, maps, scores, usersnew};
 use crate::schema::changelog::dsl::changelog as all_changelogs;
+use crate::schema::usersnew::dsl::usersnew as all_users;
 
 use crate::db::DbPool;
 // Structs are generated off the database (using deisel_ext) and modified to be used to store query data.
@@ -110,6 +111,58 @@ pub struct Usersnew {
     pub donation_amount: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Insertable, Debug, Clone)]
+#[table_name = "changelog"]
+pub struct MapChangeLog{
+    pub time_gained: Option<NaiveDateTime>,
+    pub profile_number: String,
+    pub score: i32,
+    pub has_demo: Option<i32>,
+    pub youtube_id: Option<String>,
+    pub submission: i32,
+    pub note: Option<String>,
+    pub category: Option<String>, 
+}
+
+#[derive(Serialize, Deserialize, Insertable, Debug, Clone)]
+#[table_name = "usersnew"]
+pub struct MapUsersnew{
+    pub boardname: Option<String>,
+    pub steamname: Option<String>,
+    pub avatar: Option<String>,
+}
+
+#[derive(Queryable, Serialize, Debug, Clone)]
+pub struct ShortSPMap{
+    pub score_data: MapChangeLog,
+    pub user_data: MapUsersnew,
+}
+
+impl ShortSPMap{
+    pub fn show(conn: &MysqlConnection, mapid: String) -> Result<Option<Vec<ShortSPMap>>, diesel::result::Error>{
+        let map = all_changelogs            
+            .inner_join(all_users)
+            .select((changelog::time_gained.nullable(), changelog::profile_number, changelog::score, 
+            changelog::has_demo.nullable(), changelog::youtube_id.nullable(), 
+            changelog::submission, changelog::note.nullable(), 
+            changelog::category.nullable(), usersnew::boardname.nullable(), usersnew::steamname.nullable(), usersnew::avatar.nullable()))
+            .filter(changelog::map_id.eq(mapid))
+            .filter(changelog::banned.eq(0))
+            .filter(usersnew::banned.eq(0))
+            .order(changelog::score.asc())
+            .load::<ShortSPMap>(conn)?;
+        Ok(Some(map))
+    }
+}
+/*
+let names_and_titles = join.select((users::name, posts::title.nullable()))
+    .load::<(String, Option<String>)>(&connection)?;
+let expected_data = vec![
+    (String::from("Sean"), Some(String::from("Sean's Post"))),
+    (String::from("Tess"), None),
+];
+assert_eq!(expected_data, names_and_titles);
+*/
 // Test function to grab 50 most recent changelog entries
 impl Changelog{
     pub fn all(conn: &MysqlConnection) -> Result<Option<Vec<Changelog>>, diesel::result::Error> {
