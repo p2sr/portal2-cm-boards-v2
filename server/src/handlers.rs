@@ -26,6 +26,15 @@ async fn dbpool_test(pool: web::Data<DbPool>) -> Result<HttpResponse, Error> {
     }
 }
 
+// #[derive(Serialize)]
+// pub struct spwithrank{
+//     pub map_data: SPMap,
+//     // Handle this
+//     pub rank: i32,
+//     // Handle this
+//     pub score: f32,
+// }
+
 // Calls models::SPMap to grab the entries for a particular mapid, returns a vector of the top 200 times, in a slimmed down fashion (only essential data)
 // Handles filtering out obsolete times (1 time per runner)
 #[get("/maps/sp/{mapid}")]
