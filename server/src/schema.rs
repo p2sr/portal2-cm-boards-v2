@@ -1,3 +1,5 @@
+// Auto generated based off the database information
+
 table! {
     changelog (id) {
         time_gained -> Nullable<Timestamp>,

@@ -12,6 +12,8 @@ async fn levels_json(mapid: web::Path<u64>) -> Result<HttpResponse, Error> {
         .body(Body::from(std::fs::read_to_string(file)?)))
 }
 
+// Calls models::Changelog::all with a connection from the pool tog grab the test
+// The web::block() moves the function outside of a blocking context onto another worker thread
 #[get("/test/sp/")]
 async fn dbpool_test(pool: web::Data<DbPool>) -> Result<HttpResponse, Error> {
     let conn = pool.get().expect("Could not get a DB connection from pool.");
@@ -30,6 +32,7 @@ async fn dbpool_test(pool: web::Data<DbPool>) -> Result<HttpResponse, Error> {
     }
 }
 
+// Mounts the routes to /api/..
 pub fn init(cfg: &mut web::ServiceConfig){
     cfg.service(
         web::scope("/api")
