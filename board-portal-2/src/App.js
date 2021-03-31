@@ -13,6 +13,7 @@ import Donators from "./components/Body/Donators/Donators"
 import SinglePlayer from "./components/Body/SinglePlayer/SinglePlayer"
 import { useStyles } from "./style.js"
 import AggregatedSelector from "./components/Body/Aggregated_Selector/AggregatedSelector"
+import AggregatedOverall from "./components/Body/Aggregated_Overall/AggregatedOverall"
 
 /**
  * @name - App
@@ -74,6 +75,7 @@ function App() {
             <Route exact path='/' component={Home} />
             <Route path='/about' component={About} />
             <Route path='/agg-selector' component={AggregatedSelector} />
+            <Route path='/agg-overall' component={AggregatedOverall} />
             <Route path='/donators' component={Donators} />
             <Route path='/wall_of_shame' component={WallOfShame} />
             <Route path='/sp' component={SinglePlayer} />

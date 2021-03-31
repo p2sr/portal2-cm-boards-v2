@@ -1,8 +1,7 @@
 import { makeStyles, withStyles } from "@material-ui/core/styles"
 
 export const useStyles = makeStyles(theme => ({
-  root: {},
-  bodyPage: {
+  root: {
     margin: "4%",
     paddingTop: "0.5em",
     paddingLeft: "2em",
@@ -61,6 +60,8 @@ export const useStyles = makeStyles(theme => ({
     position: "relative",
     padding: `${theme.spacing(2)}px ${theme.spacing(4)}px ${
       theme.spacing(1) + 6
-    }px`
+    }px`,
+    fontSize: "2.75em",
+    textTransform: "uppercase"
   }
 }))

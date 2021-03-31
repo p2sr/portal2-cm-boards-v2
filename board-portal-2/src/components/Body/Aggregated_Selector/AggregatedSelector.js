@@ -10,14 +10,14 @@ import img62759 from "./img/62759.jpg"
 const AggregatedSelector = () => {
   const classes = useStyles()
   return (
-    <Paper className={classes.bodyPage}>
+    <Paper className={classes.root}>
       <Grid
         container
         direction='column'
         justify='space-around'
         alignItems='center'>
         <Grid item className={classes.cards}>
-          <ButtonBase focusRipple className={classes.image}>
+          <ButtonBase focusRipple className={classes.image} href='/agg-overall'>
             <span
               className={classes.imageSrc}
               style={{
@@ -28,7 +28,7 @@ const AggregatedSelector = () => {
             <span className={classes.imageButton}>
               <Typography
                 component='span'
-                variant='subtitle1'
+                variant='button'
                 color='inherit'
                 className={classes.imageTitle}>
                 Overall
@@ -48,7 +48,7 @@ const AggregatedSelector = () => {
             <span className={classes.imageButton}>
               <Typography
                 component='span'
-                variant='subtitle1'
+                variant='button'
                 color='inherit'
                 className={classes.imageTitle}>
                 Single Player
@@ -68,7 +68,7 @@ const AggregatedSelector = () => {
             <span className={classes.imageButton}>
               <Typography
                 component='span'
-                variant='subtitle1'
+                variant='button'
                 color='inherit'
                 className={classes.imageTitle}>
                 Cooperative
