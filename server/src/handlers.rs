@@ -1,5 +1,7 @@
 use actix_web::{get, body::Body, http::header, web, HttpResponse, Error};
 use std::collections::HashMap;
+use std::cmp::max;
+use num::pow;
 
 use crate::db::DbPool;
 use crate::models::Changelog;
@@ -25,15 +27,30 @@ async fn dbpool_test(pool: web::Data<DbPool>) -> Result<HttpResponse, Error> {
         Ok(res)
     }
 }
-
-// #[derive(Serialize)]
-// pub struct spwithrank{
-//     pub map_data: SPMap,
-//     // Handle this
-//     pub rank: i32,
-//     // Handle this
-//     pub score: f32,
-// }
+// Wrapper for the sp map data and the rank/score
+#[derive(Serialize)]
+pub struct SPRanked{
+    pub map_data: SPMap,
+    pub rank: i32,
+    pub score: f32,
+}
+// Wrapper for the coop map data and the rank/score
+#[derive(Serialize)]
+pub struct CoopRanked{
+    pub map_data: CoopMap,
+    pub rank: i32,
+    pub score: f32,
+}
+// Calcultes the score as a 32bit float from the rank (i)
+pub fn score(i: i32) -> f32{
+    let i = i as f32;
+    let res: f32 = pow(200.0-(i-1.0), 2)/200.0;
+    if 1.0 > res{
+        return 1.0;
+    } else{
+        return res;
+    }
+}
 
 // Calls models::SPMap to grab the entries for a particular mapid, returns a vector of the top 200 times, in a slimmed down fashion (only essential data)
 // Handles filtering out obsolete times (1 time per runner)
@@ -53,11 +70,15 @@ async fn singleplayer_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Re
         // Filters out all obsolete times from the result, then truncates to 200 entries.
         let mut changelog_entries_filtered = Vec::new();
         let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(200);
+        let mut i = 1;
         for entry in changelog_entries.iter(){
             match remove_dups.insert(entry.profile_number.clone(), 1){
                 // If this returns, the profile_number has a better time, remove the time from the vector
                 Some(_) => (),
-                _ => changelog_entries_filtered.push(entry.clone()),
+                _ => {
+                    changelog_entries_filtered.push( SPRanked {map_data: entry.clone(), rank: i, score: score(i)});
+                    i += 1;
+                }
             }
         }
         changelog_entries_filtered.truncate(200);
@@ -86,19 +107,29 @@ async fn coop_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<Htt
         // Filters out all obsolete times from the result, then truncates to 200 entries.
         let mut coopbundled_entries_filtered = Vec::new();
         let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(500);
+        let mut i = 1;
         remove_dups.insert("".to_string(), 1);
         for entry in coopbundled_entries{
             match remove_dups.insert(entry.profile_number1.clone(), 1){
                 // If player 1 has a better time, check to see if player 2 doesn't.
                 Some(_) => match remove_dups.insert(entry.profile_number2.clone(), 1){
                     Some(_) => (),
-                    _ => coopbundled_entries_filtered.push(entry.clone()),
+                    _ => {
+                        coopbundled_entries_filtered.push(CoopRanked {map_data: entry.clone(), rank: i, score: score(i)});
+                        i += 1;
+                    }
                 }
                 // This case handles if player 1 doesn't have a better time, and it tries to add player 2 in as well, if two has a better time or not, this is included.
                 _ => match remove_dups.insert(entry.profile_number2.clone(), 1){
-                    Some(_) => coopbundled_entries_filtered.push(entry.clone()),
-                    _ => coopbundled_entries_filtered.push(entry.clone()),
-                }
+                    Some(_) =>{
+                         coopbundled_entries_filtered.push( CoopRanked {map_data: entry.clone(), rank: i, score: score(i)});
+                         i += 1;
+                    }
+                    _ => {
+                        coopbundled_entries_filtered.push(CoopRanked {map_data: entry.clone(), rank: i, score: score(i)});
+                        i += 1;
+                    }
+                }    
             }
         }
         coopbundled_entries_filtered.truncate(200);
