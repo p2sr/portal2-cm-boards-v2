@@ -12,6 +12,7 @@ import Error from "./components/Error"
 import Donators from "./components/Body/Donators/Donators"
 import SinglePlayer from "./components/Body/SinglePlayer/SinglePlayer"
 import { useStyles } from "./style.js"
+import AggregatedSelector from "./components/Body/Aggregated_Selector/AggregatedSelector"
 
 /**
  * @name - App
@@ -72,6 +73,7 @@ function App() {
               <Route path='/(page name) component={(component name)}*/}
             <Route exact path='/' component={Home} />
             <Route path='/about' component={About} />
+            <Route path='/agg-selector' component={AggregatedSelector} />
             <Route path='/donators' component={Donators} />
             <Route path='/wall_of_shame' component={WallOfShame} />
             <Route path='/sp' component={SinglePlayer} />

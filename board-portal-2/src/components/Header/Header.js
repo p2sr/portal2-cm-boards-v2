@@ -61,7 +61,7 @@ const Header = ({ handleChange, themeStatus }) => {
                 <img src={coopIcon} className={classes.icon} />
                 Cooperative
               </CustomButton>
-              <CustomButton variant='text'>
+              <CustomButton variant='text' href='/agg-selector'>
                 <img src={aggregatedIcon} className={classes.icon} />
                 Aggregated
               </CustomButton>
