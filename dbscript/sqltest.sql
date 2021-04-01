@@ -23,6 +23,63 @@ ORDER BY coopbundled.score ASC;
 
 INSERT INTO usersnew
 
-,
-  FOREIGN KEY (`profile_number`) REFERENCES usersnew(`profile_number`),
-  FOREIGN KEY (`map_id`) REFERENCES maps(`map_id`)
+
+/*Changelog*/
+FOREIGN KEY (`profile_number`) REFERENCES usersnew(`profile_number`),
+FOREIGN KEY (`map_id`) REFERENCES maps(`steam_id`),
+FOREIGN KEY (`coopid`) REFERENCES coopbundled(`id`);
+
+/*Coopbundled*/
+FOREIGN KEY (`changelogid1`) REFERENCES changelog(`id`),
+FOREIGN KEY (`changelogid2`) REFERENCES changelog(`id`),
+FOREIGN KEY (`profile_number1`) REFERENCES usersnew(`profile_number`),
+FOREIGN KEY (`profile_number2`) REFERENCES usersnew(`profile_number`),
+FOREIGN KEY (`map_id`) REFERENCES maps(`steam_id`),
+FOREIGN KEY (`previous_id1`) REFERENCES changelog(`previous_id`),
+FOREIGN KEY (`previous_id2`) REFERENCES changelog(`previous_id`);
+
+/*Maps*/
+FOREIGN KEY (`chapter_id`) REFERENCES chapters(`id`);   
+
+/*scores*/
+FOREIGN KEY (`map_id`) REFERENCES maps(`steam_id`),
+FOREIGN KEY (`profile_number`) REFERENCES usersnew(`profile_number`),
+FOREIGN KEY (`changelog_id`) REFERENCES changelog(`id`);
+
+/*scores acts as a container for joins for the changelog entities.
+
+
+ALTER TABLE scores ADD CONSTRAINT `scores_ibfk_3` FOREIGN KEY (`changelog_id`) REFERENCES `changelog` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+*/
+
+/*
+mysql> use p2boards;
+Database changed
+mysql> ALTER TABLE changelog
+    -> ADD CONSTRAINT `changelog_ibfk_1` FOREIGN KEY (`profile_number`) REFERENCES `usersnew` (`profile_number`) ON DELETE CASCADE ON UPDATE CASCADE;
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`p2boards`.`#sql-107_19`, CONSTRAINT `changelog_ibfk_1` FOREIGN KEY (`profile_number`) REFERENCES `usersnew` (`profile_number`) ON DELETE CASCADE ON UPDATE CASCADE)
+mysql> INSERT INTO `usersnew` VALUES ('', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, 0, NULL);
+Query OK, 1 row affected (0.22 sec)
+
+mysql> ALTER TABLE changelog ADD CONSTRAINT `changelog_ibfk_1` FOREIGN KEY (`profile_number`) REFERENCES `usersnew` (`profile_number`) ON DELETE CASCADE ON UPDATE CASCADE;
+ERROR 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`p2boards`.`#sql-107_19`, CONSTRAINT `changelog_ibfk_1` FOREIGN KEY (`profile_number`) REFERENCES `usersnew` (`profile_number`) ON DELETE CASCADE ON UPDATE CASCADE)
+mysql> SELECT profile_number FROM changelog WHERE profile_number NOT IN (SELECT profile_number FROM usersnew);
++-------------------+
+| profile_number    |
++-------------------+
+| 76561197972048348 |
++-------------------+
+1 row in set (0.53 sec)
+
+mysql> INSERT INTO `usersnew` VALUES ('76561197972048348', NULL, NULL, 0, 0, NULL, NULL, NULL, NULL, 0, NULL);
+Query OK, 1 row affected (0.23 sec)
+
+mysql> ALTER TABLE changelog ADD CONSTRAINT `changelog_ibfk_1` FOREIGN KEY (`profile_number`) REFERENCES `usersnew` (`profile_number`) ON DELETE CASCADE ON UPDATE CASCADE;
+Query OK, 96793 rows affected (46.48 sec)
+Records: 96793  Duplicates: 0  Warnings: 0
+
+mysql> ALTER TABLE changelog ADD CONSTRAINT `changelog_ibfk_2` FOREIGN KEY (`map_id`) REFERENCES `maps` (`steam_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+mysql> ALTER TABLE changelog ADD CONSTRAINT `changelog_ibfk_3` FOREIGN KEY (`coopid`) REFERENCES `coopbundled` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+mysql>*/

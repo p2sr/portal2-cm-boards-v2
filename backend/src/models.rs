@@ -172,6 +172,46 @@ pub struct NewChangelog{
     pub category: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Insertable, Debug, Clone)]
+#[table_name = "changelog"]
+pub struct MapChangeLog{
+    pub time_gained: Option<NaiveDateTime>,
+    pub profile_number: String,
+    pub score: i32,
+    pub has_demo: Option<i32>,
+    pub youtube_id: Option<String>,
+    pub submission: i32,
+    pub note: Option<String>,
+    pub category: Option<String>, 
+}
+
+#[derive(Serialize, Deserialize, Insertable, Debug, Clone)]
+#[table_name = "usersnew"]
+pub struct MapUsersnew{
+    pub boardname: Option<String>,
+    pub steamname: Option<String>,
+    pub avatar: Option<String>,
+}
+// #[derive(Queryable, Serialize, Debug, Clone)]
+// pub struct ShortSPMap{
+//     pub score_data: MapChangeLog,
+//     pub user_data: MapUsersnew,
+// }
+
+// impl ShortSPMap{
+//     pub fn show(mapid: String, conn: &MysqlConnection) -> Vec<ShortSPMap>{
+//         all_changelogs
+//             .inner_join(all_users)
+//             .select((changelog::time_gained, changelog::profile_number, changelog::score, changelog::has_demo, changelog::youtube_id, changelog::submission, changelog::note, changelog::category, usersnew::boardname, usersnew::steamname, usersnew::avatar))
+//             .filter(changelog::map_id.eq(mapid))
+//             .filter(changelog::banned.eq(0))
+//             .filter(usersnew::banned.eq(0))
+//             .order(changelog::score.asc())
+//             .load::<ShortSPMap>(conn)
+//             .expect("error loading SP maps short")
+//     }
+// }
+
 impl Changelog{
     pub fn show(id: i32, conn: &MysqlConnection) -> Vec<Changelog> {
         all_changelogs
@@ -370,7 +410,6 @@ impl CoopMapPage{
         }
         return vecfinal;
     }
-
 }
 
 // Need support for aliased queries. https://github.com/diesel-rs/diesel/pull/2254
