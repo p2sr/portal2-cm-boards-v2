@@ -9,9 +9,8 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-extern crate env_logger;
-
-use actix_web::{get, middleware, body::Body, http::header, web, App, HttpRequest, HttpServer,HttpResponse, Responder, Error};
+use actix_web::{get, body::Body, http::header, web, App, HttpRequest, HttpServer,HttpResponse, Responder, Error, middleware::Logger};
+use env_logger::Env;
 use dotenv::dotenv;
 use diesel::r2d2::{self, ConnectionManager};
 use diesel::mysql::MysqlConnection;
@@ -35,12 +34,18 @@ async fn main() -> std::io::Result<()> {
     // Generic env_logger
     env_logger::init();
 
+    // Initializes Logger with "default" format:  %a %t "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T
+    // Remote-IP, Time, First line of request, Response status, Size of response in bytes, Referer, User-Agent, Time to serve
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+
+    println!("Server starting at http://{}:{}/", config.server.host, config.server.port);
+      
     // Start our web server, mount and set up routes, data, wrapping, middleware and loggers
     HttpServer::new(move || {
         App::new()
-            .wrap(middleware::Logger::default())
-            .data(pool.clone())
-            .configure(handlers::init)
+        	.wrap(Logger::default())
+          .data(pool.clone())
+          .configure(handlers::init)
     })
     .bind(format!("{}:{}", config.server.host, config.server.port))?
     .run()
