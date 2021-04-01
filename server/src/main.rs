@@ -31,11 +31,9 @@ async fn main() -> std::io::Result<()> {
     let manager = ConnectionManager::<MysqlConnection>::new(config.database.database_url);
     let pool = r2d2::Pool::builder().build(manager).expect("Failed to create pool.");
 
-    // Generic env_logger
-    env_logger::init();
-
     // Initializes Logger with "default" format:  %a %t "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T
     // Remote-IP, Time, First line of request, Response status, Size of response in bytes, Referer, User-Agent, Time to serve
+    std::env::set_var("RUST_LOG", "actix-web=info");
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     println!("Server starting at http://{}:{}/", config.server.host, config.server.port);
@@ -43,9 +41,9 @@ async fn main() -> std::io::Result<()> {
     // Start our web server, mount and set up routes, data, wrapping, middleware and loggers
     HttpServer::new(move || {
         App::new()
-        	.wrap(Logger::default())
-          .data(pool.clone())
-          .configure(handlers::init)
+            .wrap(Logger::default())
+            .data(pool.clone())
+            .configure(handlers::init)
     })
     .bind(format!("{}:{}", config.server.host, config.server.port))?
     .run()
