@@ -1,11 +1,11 @@
 # portal-2-boards-capstone-CSCE4901
 
 ## Group Memebers
-* Daniel Bates
-* Mitchell Baker
-* Josh Bednarz
-* Michael Murphy
-* John Fiedler
+* Daniel Bates   -> @DanielBatesJ
+* Mitchell Baker -> @MitchellBaker65
+* Josh Bednarz   -> @Pixel-Knight
+* Michael Murphy -> @MurphyMichael
+* John Fiedler   -> @JFiedler23
 
 ## Building
 
