@@ -33,7 +33,6 @@ async fn main() -> std::io::Result<()> {
 
     // Initializes Logger with "default" format:  %a %t "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T
     // Remote-IP, Time, First line of request, Response status, Size of response in bytes, Referer, User-Agent, Time to serve
-    std::env::set_var("RUST_LOG", "actix-web=info");
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     println!("Server starting at http://{}:{}/", config.server.host, config.server.port);
