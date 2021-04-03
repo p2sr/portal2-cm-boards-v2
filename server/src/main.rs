@@ -20,6 +20,7 @@ mod handlers;
 mod schema;
 mod models;
 mod db;
+mod structs;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

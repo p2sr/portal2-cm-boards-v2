@@ -4,11 +4,11 @@ use std::cmp::max;
 use num::pow;
 
 use crate::db::DbPool;
-use crate::models::Changelog;
-use crate::models::SPMap;
-use crate::models::CoopMap;
-use crate::models::SpPreviews;
-use crate::models::CoopPreviews;
+use crate::structs::Changelog;
+use crate::structs::SPMap;
+use crate::structs::CoopMap;
+use crate::structs::SpPreviews;
+use crate::structs::CoopPreviews;
 
 // Calls models::Changelog::all with a connection from the pool tog grab the test
 // The web::block() moves the function outside of a blocking context onto another worker thread
