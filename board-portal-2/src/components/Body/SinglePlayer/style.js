@@ -10,7 +10,7 @@ export const useStyles = makeStyles(theme => ({
     "&:last-child": {
       paddingBottom: 2
     },
-    backgroundColor: "#e8e8e8"
+    backgroundColor: theme.palette.background.paper
   },
   chapter_number: {
     color: "white",
@@ -66,7 +66,7 @@ export const useStyles = makeStyles(theme => ({
     borderLeft: "30px solid transparent"
   },
   first_place: {
-    backgroundColor: "#dbdbdb",
+    backgroundColor: theme.palette.background.default,
     width: "100%"
   }
 }))

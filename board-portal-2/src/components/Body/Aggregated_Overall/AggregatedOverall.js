@@ -7,14 +7,16 @@ import {
   Typography
 } from "@material-ui/core"
 import { ArrowBackIos, ArrowForwardIos } from "@material-ui/icons"
-import React from "react"
+import React, { useContext } from "react"
 import { CustomIconButton, useStyles } from "./style"
 import imgOverall from "./img/overall.jpg"
 import ScoreList from "./ScoreList"
 import TimeList from "./TimeList"
+import { ThemeContext } from "../../../App.js"
 
 const AggregatedOverall = () => {
   const classes = useStyles()
+  const themeContext = useContext(ThemeContext)
   return (
     <Paper className={classes.root}>
       <Grid container direction='row' className={classes.image}>
@@ -73,10 +75,10 @@ const AggregatedOverall = () => {
       </Grid>
       <Grid container>
         <Grid container className={classes.lists} style={{ width: "50%" }}>
-          <ScoreList />
+          <ScoreList themeStatus={themeContext.themeStatus} />
         </Grid>
         <Grid container className={classes.lists} style={{ width: "50%" }}>
-          <TimeList />
+          <TimeList themeStatus={themeContext.themeStatus} />
         </Grid>
       </Grid>
     </Paper>

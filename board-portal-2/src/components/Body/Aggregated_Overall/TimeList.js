@@ -15,7 +15,7 @@ const TimeList = props => {
   return (
     <List dense={true} style={{ width: "100%" }}>
       {/* this is where props.(whatever).map(element =>{}) surrounds the following*/}
-      <Divider />
+      {/* <Divider /> */}
       <ListItem>
         <ListItemAvatar>
           <Avatar></Avatar>
@@ -37,8 +37,13 @@ const TimeList = props => {
       </ListItem>
 
       {/* sepp here */}
-      <Divider />
-      <ListItem>
+      {/* <Divider /> */}
+      <ListItem
+        style={{
+          backgroundColor: props.themeStatus
+            ? "rgb(154, 166, 187)"
+            : "rgb(41, 49, 62)"
+        }}>
         <ListItemAvatar>
           <Avatar></Avatar>
         </ListItemAvatar>

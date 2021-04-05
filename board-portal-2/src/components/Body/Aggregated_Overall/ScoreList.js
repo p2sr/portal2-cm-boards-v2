@@ -12,10 +12,10 @@ import { YouTube, GetApp, ChatBubble } from "@material-ui/icons"
 import React from "react"
 
 const ScoreList = props => {
+  //   console.log(props)
   return (
     <List dense={true} style={{ width: "100%" }}>
       {/* this is where props.(whatever).map(element =>{}) surrounds the following*/}
-      <Divider />
       <ListItem>
         <ListItemAvatar>
           <Avatar></Avatar>
@@ -37,8 +37,12 @@ const ScoreList = props => {
       </ListItem>
 
       {/* sepp here */}
-      <Divider />
-      <ListItem>
+      <ListItem
+        style={{
+          backgroundColor: props.themeStatus
+            ? "rgb(154, 166, 187)"
+            : "rgb(41, 49, 62)"
+        }}>
         <ListItemAvatar>
           <Avatar></Avatar>
         </ListItemAvatar>
