@@ -1,9 +1,8 @@
 import React from "react"
 import ReactDOM from "react-dom"
 import App from "./App"
-import { ThemeProvider } from "@material-ui/core/styles"
 import CssBaseline from "@material-ui/core/CssBaseline"
-import theme from "./Theme"
+// import theme from "./Theme"
 
 /**
  * @name - index
@@ -17,9 +16,7 @@ import theme from "./Theme"
 ReactDOM.render(
   <React.StrictMode>
     <CssBaseline />
-    <ThemeProvider theme={theme}>
-      <App />
-    </ThemeProvider>
+    <App />
   </React.StrictMode>,
   document.getElementById("root")
 )

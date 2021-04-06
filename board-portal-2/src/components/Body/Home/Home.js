@@ -1,6 +1,10 @@
+import { Grid, Paper } from "@material-ui/core"
 import React, { useState, useContext } from "react"
 import { HashLink as Link } from "react-router-hash-link"
-import "./home.css"
+import { useStyles } from "./style.js"
+import ScoreLists from "./ScoreLists"
+import Graph from "./Graph"
+import Filters from "./Filters"
 
 /**
  * @name - Home
@@ -16,10 +20,21 @@ import "./home.css"
  * @return -
  */
 function Home() {
+  const classes = useStyles()
   return (
-    <div id='Home' className='body-page'>
-      <h1>Welcome to the home page for Portal 2 Leaderboards </h1>
-    </div>
+    <Paper id='Home' className={classes.bodyPage}>
+      <Grid container direction='column'>
+        <Grid item>
+          <Filters />
+        </Grid>
+        <Grid item>
+          <Graph />
+        </Grid>
+        <Grid item>
+          <ScoreLists />
+        </Grid>
+      </Grid>
+    </Paper>
   )
 }
 
