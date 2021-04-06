@@ -16,7 +16,7 @@ function ChamberCard(props){
     //runs once when component mounts
     useEffect(() => {
         const getData = async () => {
-            let { data } = await axios.get(`http://localhost:5000/api/maps/coop/${props.level_id}`);
+            let { data } = await axios.get(`http://localhost:8080/api/maps/coop/${props.level_id}`);
 
             let temp = data.slice(0, 7);
   
