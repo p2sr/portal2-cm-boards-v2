@@ -5,6 +5,19 @@ import ChamberCard from './ChamberCard';
 import chapters from './Chapters';
 import Typography from '@material-ui/core/Typography';
 
+/**
+ * @name - App
+ * @desc - React Component that holds the theme, Header, Body(Routes), and Footer components
+ *
+ *        (Currently defaults to light mode as in dev mode, useMediaQuery is ran twice with
+ *          the first value being false, should work in production.)
+ * @author - John Fiedler
+ * @date - 3/17/21
+ * @version - 1.0
+ * @param -
+ * @return -
+ */
+
 function SinglePlayer(){
     const classes = useStyles();
 
@@ -23,7 +36,7 @@ function SinglePlayer(){
                 {chapters.chapter_1.map(level => {
                     return(
                         <Grid key={level.id} item>
-                            <ChamberCard scores={level.scores} image={level.image} title={level.title}/>
+                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
                         </Grid>
                     )
                 })}
@@ -41,7 +54,7 @@ function SinglePlayer(){
                 {chapters.chapter_2.map(level => {
                     return(
                         <Grid key={level.id} item>
-                            <ChamberCard scores={level.scores} image={level.image} title={level.title}/>
+                            <ChamberCard level_id={level.id} image={level.image} title={level.title}/>
                         </Grid>
                     )
                 })}
@@ -59,7 +72,7 @@ function SinglePlayer(){
                 {chapters.chapter_3.map(level => {
                     return(
                         <Grid key={level.id} item>
-                            <ChamberCard scores={level.scores} image={level.image} title={level.title}/>
+                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
                         </Grid>
                     )
                 })}
@@ -77,7 +90,7 @@ function SinglePlayer(){
                 {chapters.chapter_4.map(level => {
                     return(
                         <Grid key={level.id} item>
-                            <ChamberCard scores={level.scores} image={level.image} title={level.title}/>
+                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
                         </Grid>
                     )
                 })}
@@ -95,7 +108,7 @@ function SinglePlayer(){
                 {chapters.chapter_5.map(level => {
                     return(
                         <Grid key={level.id} item>
-                            <ChamberCard scores={level.scores} image={level.image} title={level.title}/>
+                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
                         </Grid>
                     )
                 })}
@@ -113,7 +126,7 @@ function SinglePlayer(){
                 {chapters.chapter_6.map(level => {
                     return(
                         <Grid key={level.id} item>
-                            <ChamberCard scores={level.scores} image={level.image} title={level.title}/>
+                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
                         </Grid>
                     )
                 })}
@@ -131,7 +144,7 @@ function SinglePlayer(){
                 {chapters.chapter_7.map(level => {
                     return(
                         <Grid key={level.id} item>
-                            <ChamberCard scores={level.scores} image={level.image} title={level.title}/>
+                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
                         </Grid>
                     )
                 })}
@@ -149,7 +162,7 @@ function SinglePlayer(){
                 {chapters.chapter_8.map(level => {
                     return(
                         <Grid key={level.id} item>
-                            <ChamberCard scores={level.scores} image={level.image} title={level.title}/>
+                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
                         </Grid>
                     )
                 })}
@@ -167,7 +180,7 @@ function SinglePlayer(){
                 {chapters.chapter_9.map(level => {
                     return(
                         <Grid key={level.id} item>
-                            <ChamberCard scores={level.scores} image={level.image} title={level.title}/>
+                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
                         </Grid>
                     )
                 })}
