@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useContext } from "react"
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom"
 import { ThemeProvider, createMuiTheme } from "@material-ui/core/styles"
 import { useMediaQuery, Box } from "@material-ui/core"
@@ -12,6 +12,8 @@ import Error from "./components/Error"
 import Donators from "./components/Body/Donators/Donators"
 import SinglePlayer from "./components/Body/SinglePlayer/SinglePlayer"
 import { useStyles } from "./style.js"
+import AggregatedSelector from "./components/Body/Aggregated_Selector/AggregatedSelector"
+import AggregatedOverall from "./components/Body/Aggregated_Overall/AggregatedOverall"
 
 /**
  * @name - App
@@ -25,6 +27,9 @@ import { useStyles } from "./style.js"
  * @param -
  * @return -
  */
+
+export const ThemeContext = React.createContext({})
+
 function App() {
   const classes = useStyles()
   const [themeStatus, setThemeStatus] = React.useState(
@@ -65,20 +70,24 @@ function App() {
   return (
     <Box bgcolor={themeStatus ? "rgb(154, 166, 187)" : "rgb(41, 49, 62)"}>
       <ThemeProvider theme={theme}>
-        <Router>
-          <Header handleChange={handleChange} themeStatus={themeStatus} />
-          <Switch>
-            {/* Insert the routes to other pages here as: 
+        <ThemeContext.Provider value={{ theme, themeStatus }}>
+          <Router>
+            <Header handleChange={handleChange} themeStatus={themeStatus} />
+            <Switch>
+              {/* Insert the routes to other pages here as: 
               <Route path='/(page name) component={(component name)}*/}
-            <Route exact path='/' component={Home} />
-            <Route path='/about' component={About} />
-            <Route path='/donators' component={Donators} />
-            <Route path='/wall_of_shame' component={WallOfShame} />
-            <Route path='/sp' component={SinglePlayer} />
-            <Route component={Error} />
-          </Switch>
-          <Footer />
-        </Router>
+              <Route exact path='/' component={Home} />
+              <Route path='/about' component={About} />
+              <Route path='/agg-selector' component={AggregatedSelector} />
+              <Route path='/agg-overall' component={AggregatedOverall} />
+              <Route path='/donators' component={Donators} />
+              <Route path='/wall_of_shame' component={WallOfShame} />
+              <Route path='/sp' component={SinglePlayer} />
+              <Route component={Error} />
+            </Switch>
+            <Footer />
+          </Router>
+        </ThemeContext.Provider>
       </ThemeProvider>
     </Box>
   )

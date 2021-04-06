@@ -1,6 +1,8 @@
 import { div } from "@material-ui/core"
+import React from "react"
+import { ThemeContext } from "../../../App"
 import "./about.css"
-
+import { useStyles } from "./style"
 /**
  * @name - About
  * @desc - Page for the "about" section. Contains formula for calculating
@@ -13,19 +15,25 @@ import "./about.css"
  */
 
 const About = () => {
+  const classes = useStyles()
+  const themeContext = React.useContext(ThemeContext)
   return (
-    <div className='about-body'>
-      <h1 className='about-header'>About</h1>
-      <h1 className='about-sub-header'>Rules & Console Commands</h1>
-      <div className='about-text'>
+    <div className={classes.aboutBody}>
+      <h1 className={classes.aboutHeader}>About</h1>
+      <h1 className={classes.aboutSubHeader}>Rules & Console Commands</h1>
+      <div className={classes.aboutText}>
         For rules and console commands, go <a>here</a>.
       </div>
-      <h1 className='about-sub-header'>Point Calculation</h1>
-      <div className='about-text'>
+      <h1 className={classes.aboutSubHeader}>Point Calculation</h1>
+      <div className={classes.aboutText}>
         Currently, the top 200 times are tracked for each map. A player's points
         for a specific chamber is calculated as follows:
       </div>
-      <table className='fraction'>
+      <table
+        className={classes.fraction}
+        style={{
+          color: themeContext.theme.palette.text.primary
+        }}>
         <tr>
           <td rowSpan='2' nowrap='nowrap'>
             max[1,&nbsp;
@@ -38,18 +46,37 @@ const About = () => {
           </td>
         </tr>
         <tr>
-          <td className='upper-line' style={{ textAlign: "center" }}>
+          <td
+            className={classes.upperLine}
+            style={{
+              textAlign: "center",
+              color: themeContext.theme.palette.text.primary
+            }}>
             200
           </td>
         </tr>
       </table>
-      <div className='about-text'>This gives us the following:</div>
+      <div className={classes.aboutText}>This gives us the following:</div>
       <table
         className='pointTable table table-condensed'
-        style={{ marginTop: "20px", width: "160px" }}>
+        style={{
+          marginTop: "20px",
+          width: "160px",
+          color: themeContext.theme.palette.text.primary
+        }}>
         <tr>
-          <th>Rank</th>
-          <th>Points</th>
+          <th
+            style={{
+              color: themeContext.theme.palette.text.primary
+            }}>
+            Rank
+          </th>
+          <th
+            style={{
+              color: themeContext.theme.palette.text.primary
+            }}>
+            Points
+          </th>
         </tr>
         <tr>
           <td>1</td>
@@ -84,8 +111,8 @@ const About = () => {
           <td>1</td>
         </tr>
       </table>
-      <h1 className='about-sub-header'>Team</h1>
-      <div className='about-team-list'>
+      <h1 className={classes.aboutSubHeader}>Team</h1>
+      <div className={classes.aboutTeamList}>
         <ul>
           <li>Randy Savage</li>
           <li>Randy Savage</li>
@@ -93,20 +120,34 @@ const About = () => {
           <li>Randy Savage</li>
         </ul>
       </div>
-      <h1 className='about-sub-header'>API</h1>
-      <div className='about-text'>
+      <h1 className={classes.aboutSubHeader}>API</h1>
+      <div className={classes.aboutText}>
         A JSON representation of the current leaderboard status can be retrieved
         by appending '/json' to any page URL, i.e.
         board.iverb.me/chamber/47458/json or board.iverb.me/profile/iVerb/json.
       </div>
-      <h1 className='about-sub-header'>Libraries</h1>
+      <h1 className={classes.aboutSubHeader}>Libraries</h1>
       <div>
         <table
           className='pointTable table table-condensed'
-          style={{ marginTop: "20px", width: "160px" }}>
+          style={{
+            marginTop: "20px",
+            width: "160px",
+            color: themeContext.theme.palette.text.primary
+          }}>
           <tr>
-            <th>Name</th>
-            <th>Language</th>
+            <th
+              style={{
+                color: themeContext.theme.palette.text.primary
+              }}>
+              Name
+            </th>
+            <th
+              style={{
+                color: themeContext.theme.palette.text.primary
+              }}>
+              Language
+            </th>
           </tr>
           <tr>
             <td>Portal2Boards.Net</td>
@@ -114,15 +155,15 @@ const About = () => {
           </tr>
         </table>
       </div>
-      <h1 className='about-sub-header'>Hosting</h1>
-      <div className='about-text'>
+      <h1 className={classes.aboutSubHeader}>Hosting</h1>
+      <div className={classes.aboutText}>
         This site is currently hosted on FastComet. Demos are stored using
       </div>
-      <div className='about-text'>
+      <div className={classes.aboutText}>
         Google Drive. The folder containg all demos can be found here.
       </div>
-      <h1 className='about-sub-header'>Feature Suggestions</h1>
-      <div className='about-text'>
+      <h1 className={classes.aboutSubHeader}>Feature Suggestions</h1>
+      <div className={classes.aboutText}>
         Forward any feature suggestions you may have to NeKz or iVerb.
       </div>
     </div>

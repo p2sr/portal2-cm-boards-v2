@@ -1,4 +1,11 @@
-import { Avatar, Grid, List, ListItem, Typography } from "@material-ui/core"
+import {
+  Avatar,
+  Grid,
+  List,
+  ListItem,
+  Typography,
+  Box
+} from "@material-ui/core"
 import { useStyles, CustomButton } from "./style.js"
 import React from "react"
 import Data from "./example.json"
@@ -16,23 +23,16 @@ import Data from "./example.json"
 const Donators = () => {
   const classes = useStyles()
 
-  const loadJSON = () => {
-    var obj = JSON.parse(Data)
-    for (var k in obj) {
-      console.log(k)
-    }
-  }
-
   return (
-    <div onLoad={loadJSON} id='container' className={classes.bodyWallOfShame}>
+    <Box id='container' className={classes.bodyWallOfShame}>
       <Typography
         className={classes.titleWallOfShame}
-        color='primary'
+        color='textPrimary'
         variant='h1'>
         Wall Of Shame
       </Typography>
       <Typography
-        color='primary'
+        color='textSecondary'
         variant='subtitle1'
         className={classes.subWallOfShame}>
         {" "}
@@ -54,7 +54,7 @@ const Donators = () => {
           </List>
         </Grid>
       </Grid>
-    </div>
+    </Box>
   )
 }
 

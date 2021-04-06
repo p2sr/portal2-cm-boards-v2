@@ -2,7 +2,7 @@ import { makeStyles, withStyles } from "@material-ui/core/styles"
 
 export const useStyles = makeStyles(theme => ({
   bodyWallOfShame: {
-    background: "rgb(246,246,246)",
+    background: theme.palette.background.default,
     margin: "5%",
     paddingTop: "0.5em",
     paddingLeft: "2em",
