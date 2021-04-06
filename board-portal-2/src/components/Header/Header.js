@@ -57,7 +57,7 @@ const Header = ({ handleChange, themeStatus }) => {
                 <img src={singlplayerIcon} className={classes.icon} />
                 Single Player
               </CustomButton>
-              <CustomButton variant='text'>
+              <CustomButton variant='text' href='/coop'>
                 <img src={coopIcon} className={classes.icon} />
                 Cooperative
               </CustomButton>

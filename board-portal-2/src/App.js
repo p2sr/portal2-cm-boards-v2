@@ -11,6 +11,7 @@ import WallOfShame from "./components/Body/Wall_of_Shame/WallOfShame"
 import Error from "./components/Error"
 import Donators from "./components/Body/Donators/Donators"
 import SinglePlayer from "./components/Body/SinglePlayer/SinglePlayer"
+import Cooperative from "./components/Body/Cooperative/Cooperative";
 import { useStyles } from "./style.js"
 import AggregatedSelector from "./components/Body/Aggregated_Selector/AggregatedSelector"
 import AggregatedOverall from "./components/Body/Aggregated_Overall/AggregatedOverall"
@@ -83,6 +84,7 @@ function App() {
               <Route path='/donators' component={Donators} />
               <Route path='/wall_of_shame' component={WallOfShame} />
               <Route path='/sp' component={SinglePlayer} />
+              <Route path='/coop' component={Cooperative} />
               <Route component={Error} />
             </Switch>
             <Footer />
