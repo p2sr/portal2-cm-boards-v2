@@ -6,32 +6,9 @@ import CardMedia from '@material-ui/core/CardMedia';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 import { useStyles } from './style';
-import { useEffect, useState } from 'react';
-import axios from 'axios';
 
 function ChamberCard(props){
     const classes = useStyles();
-    const [cardData, setCardData] = useState([]);
-
-    //runs once when component mounts
-    useEffect(() => {
-        const getData = async () => {
-            let { data } = await axios.get(`http://localhost:8080/api/maps/sp/${props.level_id}`);
-
-            let temp = data.slice(0, 7);
-  
-            let newData = temp.map(el => {
-                return {
-                    score: el.score_data.score,
-                    name: el.user_data.boardname ? el.user_data.boardname : el.user_data.steamname
-                }
-            });
-
-            setCardData(newData);
-        }
-
-        getData();
-    }, []);
 
     return(
         <Card className={classes.chamber_card}>
@@ -54,24 +31,24 @@ function ChamberCard(props){
                     justify="space-between"
                 >
                     <Typography variant="body2">
-                        {cardData.length > 0 ? cardData[0].name : "null"}
+                        {props.scores[0].boardname ? props.scores[0].boardname : props.scores[0].steamname}
                     </Typography>
                     <Typography variant="body2">
-                        {cardData.length > 0 ? cardData[0].score : "null"}
+                        {props.scores[0].score}
                     </Typography>
                 </Grid>
             </CardContent>
-            {cardData.map((score,i) => {
+            {props.scores.map((score,i) => {
                 if(i > 0){
                     return (
-                        <CardContent key={i} className={classes.card_content}>
+                        <CardContent key={score.score + score.steamname} className={classes.card_content}>
                             <Grid 
                                 container
                                 direction="row"
                                 justify="space-between"
                             >
                                 <Typography variant="caption">
-                                    {score.name}
+                                    {score.boardname ? score.boardname : score.steamname}
                                 </Typography>
                                 <Typography variant="caption">
                                     {score.score}
