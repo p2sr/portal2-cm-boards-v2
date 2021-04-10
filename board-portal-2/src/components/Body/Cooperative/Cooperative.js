@@ -6,7 +6,7 @@ import courses from './Courses';
 import Typography from '@material-ui/core/Typography';
 import imagePaths from '../SinglePlayer/ChamberImages';
 
-const ENDPOINT = 'http://localhost:8080/api/maps/coop';
+const ENDPOINT = 'http://localhost:8080/api/coop';
 
 /**
  * @name - App

@@ -5,7 +5,7 @@ import ChamberCard from './ChamberCard';
 import Typography from '@material-ui/core/Typography';
 import imagePaths from './ChamberImages';
 
-const ENDPOINT = 'http://localhost:8080/api/maps/sp';
+const ENDPOINT = 'http://localhost:8080/api/sp';
 
 /**
  * @name - App
