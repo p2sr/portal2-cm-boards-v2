@@ -1,39 +1,13 @@
 import Card from '@material-ui/core/Card';
 import CardActionArea from '@material-ui/core/CardActionArea';
-import CardActions from '@material-ui/core/CardActions';
 import CardContent from '@material-ui/core/CardContent';
 import CardMedia from '@material-ui/core/CardMedia';
 import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
 import { useStyles } from './style';
-import { useEffect, useState } from 'react';
-import axios from 'axios';
 
 function ChamberCard(props){
     const classes = useStyles();
-    const [cardData, setCardData] = useState([]);
-
-    //runs once when component mounts
-    useEffect(() => {
-        const getData = async () => {
-            let { data } = await axios.get(`http://localhost:8080/api/maps/coop/${props.level_id}`);
-
-            let temp = data.slice(0, 7);
-  
-            let newData = temp.map(el => {
-                console.log(el.user1_data.boardname ? el.user1_data.boardname : el.user2_data.steamname);
-                return {
-                    score: el.score_data.score,
-                    names: [el.user1_data.boardname ? el.user1_data.boardname : el.user2_data.steamname, 
-                        el.user2_data.boardname ? el.user2_data.boardname : el.user2_data.steamname]
-                }
-            });
-
-            setCardData(newData);
-        }
-
-        getData();
-    }, []);
 
     return(
         <Card className={classes.chamber_card}>
@@ -56,24 +30,26 @@ function ChamberCard(props){
                     justify="space-between"
                 >
                     <Typography variant="body2">
-                        {cardData.length > 0 ? `${cardData[0].names[0]} & ${cardData[0].names[1]}` : "null"}
+                        {`${(props.scores[0].boardname1 ? props.scores[0].boardname1 : props.scores[0].steamname1)}
+                        & ${(props.scores[0].boardname2 ? props.scores[0].boardname2 : props.scores[0].steamname2)}`}
                     </Typography>
                     <Typography variant="body2">
-                        {cardData.length > 0 ? cardData[0].score : "null"}
+                        {props.scores[0].score}
                     </Typography>
                 </Grid>
             </CardContent>
-            {cardData.map((score,i) => {
+            {props.scores.map((score,i) => {
                 if(i > 0){
                     return (
-                        <CardContent key={i} className={classes.card_content}>
+                        <CardContent key={score.score + score.steamname1} className={classes.card_content}>
                             <Grid 
                                 container
                                 direction="row"
                                 justify="space-between"
                             >
                                 <Typography variant="caption">
-                                    {`${score.names[0]} & ${score.names[1]}`}
+                                    {`${(score.boardname1 ? score.boardname1 : score.steamname1)}
+                                    & ${(score.boardname2 ? score.boardname2 : score.steamname2)}`}
                                 </Typography>
                                 <Typography variant="caption">
                                     {score.score}

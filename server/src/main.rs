@@ -10,6 +10,7 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use actix_web::{get, body::Body, http::header, web, App, HttpRequest, HttpServer,HttpResponse, Responder, Error, middleware::Logger};
+use actix_cors::Cors;
 use env_logger::Env;
 use dotenv::dotenv;
 use diesel::r2d2::{self, ConnectionManager};
@@ -40,7 +41,12 @@ async fn main() -> std::io::Result<()> {
       
     // Start our web server, mount and set up routes, data, wrapping, middleware and loggers
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin("http://localhost:3000")
+            .allowed_methods(vec!["GET"])
+            .max_age(3600);
         App::new()
+            .wrap(cors)
             .wrap(Logger::default())
             .data(pool.clone())
             .configure(handlers::init)

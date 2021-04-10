@@ -1,9 +1,12 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import { useStyles } from './style';
 import Grid from '@material-ui/core/Grid';
 import ChamberCard from './ChamberCard';
 import courses from './Courses';
 import Typography from '@material-ui/core/Typography';
+import imagePaths from '../SinglePlayer/ChamberImages';
+
+const ENDPOINT = 'http://localhost:8080/api/coop';
 
 /**
  * @name - App
@@ -17,30 +20,46 @@ import Typography from '@material-ui/core/Typography';
 
 function Cooperative(){
     const classes = useStyles();
+    const [levelData, setLevelData] = useState([]);
+
+    //fetching level data on first component load
+    useEffect(() => {
+        const fetchData = async () => {
+            let response = await fetch(ENDPOINT);
+
+            return response.json();
+        }
+
+        fetchData().then(data => setLevelData(data))
+        .catch(error => console.log(error));
+    }, []);
 
     return(
         <div>
+            {/*---------------Course 01------------------*/}
             <div className={classes.chapter_title_container}>
                 <Typography variant="h6" component="h1" className={classes.chapter_number}>Course 01</Typography>
-                <Typography variant="h4" component="h1" className={classes.chapter_name}>Team Building</Typography>
+                <Typography variant="h4" component="h1" className={classes.chapter_name}>TEAM BUILDING</Typography>
             </div>
             <Grid 
             container 
             spacing={2}
             direction="row"
-            className={classes.chapter_container}
+            className={classes.chapter_container}    
             >
-                {courses.course_1.map(level => {
+                {levelData.slice(0, 6).map(level => {
                     return(
-                        <Grid key={level.id} item>
-                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
+                        <Grid key={level.map_name} item>
+                            <ChamberCard level_id={level.scores[0].map_id} scores={level.scores} image={imagePaths[level.scores[0].map_id]} title={level.map_name}/>
                         </Grid>
                     )
                 })}
             </Grid>
+
+            {/*---------------Course 02------------------*/}
             <div className={classes.chapter_title_container}>
                 <Typography variant="h6" component="h1" className={classes.chapter_number}>Course 02</Typography>
-                <Typography variant="h4" component="h1" className={classes.chapter_name}>Mass and Velocity</Typography>
+                <Typography variant="h4" component="h1" className={classes.chapter_name}>MASS AND VELOCITY</Typography>
             </div>
             <Grid 
             container 
@@ -48,17 +67,19 @@ function Cooperative(){
             direction="row"
             className={classes.chapter_container}    
             >
-                {courses.course_2.map(level => {
+                {levelData.slice(6, 14).map(level => {
                     return(
-                        <Grid key={level.id} item>
-                            <ChamberCard level_id={level.id} image={level.image} title={level.title}/>
+                        <Grid key={level.map_name} item>
+                            <ChamberCard level_id={level.scores[0].map_id} scores={level.scores} image={imagePaths[level.scores[0].map_id]} title={level.map_name}/>
                         </Grid>
                     )
                 })}
             </Grid>
+
+            {/*---------------Course 03------------------*/}
             <div className={classes.chapter_title_container}>
                 <Typography variant="h6" component="h1" className={classes.chapter_number}>Course 03</Typography>
-                <Typography variant="h4" component="h1" className={classes.chapter_name}>Hard Light</Typography>
+                <Typography variant="h4" component="h1" className={classes.chapter_name}>HARD LIGHT</Typography>
             </div>
             <Grid 
             container 
@@ -66,17 +87,19 @@ function Cooperative(){
             direction="row"
             className={classes.chapter_container}    
             >
-                {courses.course_3.map(level => {
+                {levelData.slice(14, 22).map(level => {
                     return(
-                        <Grid key={level.id} item>
-                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
+                        <Grid key={level.map_name} item>
+                            <ChamberCard level_id={level.scores[0].map_id} scores={level.scores} image={imagePaths[level.scores[0].map_id]} title={level.map_name}/>
                         </Grid>
                     )
                 })}
             </Grid>
+
+            {/*---------------Course 04------------------*/}
             <div className={classes.chapter_title_container}>
                 <Typography variant="h6" component="h1" className={classes.chapter_number}>Course 04</Typography>
-                <Typography variant="h4" component="h1" className={classes.chapter_name}>Excursion Funnels</Typography>
+                <Typography variant="h4" component="h1" className={classes.chapter_name}>EXCURSION FUNNELS</Typography>
             </div>
             <Grid 
             container 
@@ -84,17 +107,19 @@ function Cooperative(){
             direction="row"
             className={classes.chapter_container}    
             >
-                {courses.course_4.map(level => {
+                {levelData.slice(22, 31).map(level => {
                     return(
-                        <Grid key={level.id} item>
-                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
+                        <Grid key={level.map_name} item>
+                            <ChamberCard level_id={level.scores[0].map_id} scores={level.scores} image={imagePaths[level.scores[0].map_id]} title={level.map_name}/>
                         </Grid>
                     )
                 })}
             </Grid>
+
+            {/*---------------Course 05------------------*/}
             <div className={classes.chapter_title_container}>
                 <Typography variant="h6" component="h1" className={classes.chapter_number}>Course 05</Typography>
-                <Typography variant="h4" component="h1" className={classes.chapter_name}>Mobility Gels</Typography>
+                <Typography variant="h4" component="h1" className={classes.chapter_name}>MOBILITY GELS</Typography>
             </div>
             <Grid 
             container 
@@ -102,17 +127,19 @@ function Cooperative(){
             direction="row"
             className={classes.chapter_container}    
             >
-                {courses.course_5.map(level => {
+                {levelData.slice(31, 39).map(level => {
                     return(
-                        <Grid key={level.id} item>
-                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
+                        <Grid key={level.map_name} item>
+                            <ChamberCard level_id={level.scores[0].map_id} scores={level.scores} image={imagePaths[level.scores[0].map_id]} title={level.map_name}/>
                         </Grid>
                     )
                 })}
             </Grid>
+
+            {/*---------------Course 06------------------*/}
             <div className={classes.chapter_title_container}>
                 <Typography variant="h6" component="h1" className={classes.chapter_number}>Course 06</Typography>
-                <Typography variant="h4" component="h1" className={classes.chapter_name}>Art Therapy</Typography>
+                <Typography variant="h4" component="h1" className={classes.chapter_name}>ART THERAPY</Typography>
             </div>
             <Grid 
             container 
@@ -120,10 +147,10 @@ function Cooperative(){
             direction="row"
             className={classes.chapter_container}    
             >
-                {courses.course_6.map(level => {
+                {levelData.slice(39).map(level => {
                     return(
-                        <Grid key={level.id} item>
-                            <ChamberCard level_id={level.id}  image={level.image} title={level.title}/>
+                        <Grid key={level.map_name} item>
+                            <ChamberCard level_id={level.scores[0].map_id} scores={level.scores} image={imagePaths[level.scores[0].map_id]} title={level.map_name}/>
                         </Grid>
                     )
                 })}
