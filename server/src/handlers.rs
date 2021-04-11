@@ -9,6 +9,7 @@ use crate::structs::SPMap;
 use crate::structs::CoopMap;
 use crate::structs::SpPreviews;
 use crate::structs::CoopPreviews;
+use crate::structs::ChangelogPage;
 
 // Calls models::Changelog::all with a connection from the pool tog grab the test
 // The web::block() moves the function outside of a blocking context onto another worker thread
@@ -185,6 +186,57 @@ async fn coop_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<Htt
     }
 }
 
+#[derive(Deserialize)]
+pub struct ChangelogQueryParams{
+    pub nickname: Option<String>,
+    pub profilenumber: Option<String>,
+    pub chamber: Option<String>,
+    pub sp: Option<i32>,
+    pub coop: Option<i32>,
+    pub wrgain: Option<i32>,
+    pub hasdemo: Option<i32>,
+    pub yt: Option<i32>,
+    pub limit: i32,
+}
+
+
+#[get("/changelog")]
+async fn changelog_default(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+    let conn = pool.get().expect("Could not get a DB connection from pool.");
+    let limit: i32 = 200;
+    let changelog_entries = web::block(move || ChangelogPage::show(&conn, limit))
+    .await
+    .map_err(|e|{
+        eprintln!("{}", e);
+        HttpResponse::InternalServerError().finish()
+    })?;
+    if let Some(changelog_entries) = changelog_entries{
+        Ok(HttpResponse::Ok().json(changelog_entries))
+    } else {
+        let res = HttpResponse::NotFound()
+            .body("No changelog entries found.");
+        Ok(res)
+    }
+}
+
+// Not currently working, not quite sure why.
+#[get("/changelog/filterd?nickname={nickname}&profileNumber={profilenumber}&chamber={chamber}&sp={sp}&coop={coop}&wrgain={wrgain}&hasDemo={hasdemo}&yt={yt}&limit={limit}")]
+async fn changelog_filtered(params: web::Path<ChangelogQueryParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+    let conn = pool.get().expect("Could not get a DB connection from pool.");
+    let changelog_entries = web::block(move || ChangelogPage::show_filtered(&conn, params.nickname.clone(), params.profilenumber.clone(), params.chamber.clone(), params.sp, params.coop, params.wrgain, params.hasdemo, params.yt, params.limit))
+    .await
+    .map_err(|e|{
+        eprintln!("{}", e);
+        HttpResponse::InternalServerError().finish()
+    })?;
+    if let Some(changelog_entries) = changelog_entries{
+        Ok(HttpResponse::Ok().json(changelog_entries))
+    } else {
+        let res = HttpResponse::NotFound()
+            .body("No changelog entries found.");
+        Ok(res)
+    }
+}
 
 // Mounts the routes to /api/..
 pub fn init(cfg: &mut web::ServiceConfig){
@@ -195,5 +247,7 @@ pub fn init(cfg: &mut web::ServiceConfig){
             .service(singleplayer_preview)
             .service(cooperative_preview)
             .service(dbpool_test)
+            .service(changelog_default)
+            .service(changelog_filtered)
     );
 }

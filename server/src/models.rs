@@ -209,6 +209,18 @@ impl Usersnew{
             .first(conn)?;
         Ok(Some(user))
     }
+    pub fn check_board_name(conn: &MysqlConnection, nickname: String) -> Result<bool, diesel::result::Error>{
+        let user = all_users
+            .filter(usersnew::boardname.like(nickname))
+            .filter(usersnew::banned.eq(0))
+            .get_result::<Usersnew>(conn);
+        if let Ok(user) = user{
+            return Ok(true);
+        }
+        else{
+            Ok(false)
+        }
+    }
 }
 
 /// impl block for CoopMapPrelude
@@ -316,5 +328,82 @@ impl Changelog{
             .load::<Changelog>(conn)?;
         // Wrapping the vector in a result and an option (not necessary but good practice)
         Ok(Some(cl))
+    }
+}
+
+
+impl ChangelogPage{
+    pub fn show(conn: &MysqlConnection, limit: i32) -> Result<Option<Vec<ChangelogPage>>, diesel::result::Error>{ 
+        let cl = all_changelogs
+            .inner_join(all_users)
+            .inner_join(all_maps.on(changelog::map_id.eq(maps::steam_id)))
+            .select((changelog::time_gained.nullable(), changelog::profile_number,
+            changelog::score, changelog::map_id, changelog::wr_gain, 
+            changelog::has_demo.nullable(), changelog::youtube_id.nullable(), 
+            changelog::previous_id.nullable(), changelog::id, changelog::coopid.nullable(),
+            changelog::post_rank.nullable(), changelog::pre_rank.nullable(),
+            changelog::submission, changelog::note.nullable(), 
+            changelog::category.nullable(), maps::name, usersnew::boardname.nullable(), 
+            usersnew::steamname.nullable(), usersnew::avatar.nullable()))
+            .order(changelog::time_gained.desc())
+            //.filter(changelog::time_gained.is_not_null())
+            .filter(usersnew::banned.eq(0))
+            .filter(changelog::profile_number.ne("".to_string()))
+            .limit(limit.into())
+            .load::<ChangelogPage>(conn)?;
+        Ok(Some(cl))
+    }
+
+    pub fn show_filtered(conn: &MysqlConnection, nickname: Option<String>, 
+        profilenumber: Option<String>, chamber: Option<String>,  sp: Option<i32>, 
+        coop: Option<i32>, wrgain: Option<i32>, hasdemo: Option<i32>, hasvideo: Option<i32>,
+        limit: i32) ->  Result<Option<Vec<ChangelogPage>>, diesel::result::Error> {
+
+        let mut query = all_changelogs
+        .inner_join(all_users)
+        .inner_join(all_maps.on(changelog::map_id.eq(maps::steam_id)))
+        .select((changelog::time_gained.nullable(), changelog::profile_number,
+        changelog::score, changelog::map_id, changelog::wr_gain, 
+        changelog::has_demo.nullable(), changelog::youtube_id.nullable(), 
+        changelog::previous_id.nullable(), changelog::id, changelog::coopid.nullable(),
+        changelog::post_rank.nullable(), changelog::pre_rank.nullable(),
+        changelog::submission, changelog::note.nullable(), 
+        changelog::category.nullable(), maps::name, usersnew::boardname.nullable(), 
+        usersnew::steamname.nullable(), usersnew::avatar.nullable()))
+        .order(changelog::time_gained.desc())
+        .filter(usersnew::banned.eq(0))
+        .into_boxed();
+        if let Some(sp) = sp{
+            query = query.filter(maps::is_coop.eq(0))
+        }
+        else if let Some(coop) = coop{
+            query = query.filter(maps::is_coop.eq(1));
+        }
+        if let Some(hasdemo) = hasdemo{
+            query = query.filter(changelog::has_demo.eq(1));
+        }
+        if let Some(hasvideo) = hasvideo{
+            query = query.filter(changelog::youtube_id.is_not_null());
+        }
+        if let Some(wrgain) = wrgain{
+            query = query.filter(changelog::wr_gain.eq(1));
+        }
+        if let Some(chamber) = chamber{
+            query = query.filter(changelog::map_id.eq(chamber));
+        }
+        if let Some(profilenumber) = profilenumber{
+            query = query.filter(changelog::profile_number.eq(profilenumber));
+        }
+        #[allow(irrefutable_let_patterns)]
+        if let Some(nickname) = nickname{
+            if let namecheck = Usersnew::check_board_name(&conn, nickname.clone()){
+                query = query.filter(usersnew::boardname.eq(nickname.clone()));
+            }else{
+                query = query.filter(usersnew::steamname.eq(nickname));
+            }
+        }
+        let result = query.limit(limit.into())
+            .load::<ChangelogPage>(conn)?;
+        Ok(Some(result))
     }
 }

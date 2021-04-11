@@ -246,3 +246,26 @@ pub struct CoopPreviews{
     pub map_name: Option<String>,
     pub scores: Vec<CoopPreview>,
 }
+
+#[derive(Serialize, Queryable, Debug, Clone)]
+pub struct ChangelogPage{
+    pub time_gained: Option<NaiveDateTime>,
+    pub profile_number: String,
+    pub score: i32,
+    pub map_id: String,
+    pub wr_gain: i32,
+    pub has_demo: Option<i32>,
+    pub youtube_id: Option<String>,
+    pub previous_id: Option<i32>,
+    pub id: i32,
+    pub coopid: Option<i32>,
+    pub post_rank: Option<i32>,
+    pub pre_rank: Option<i32>,
+    pub submission: i32,
+    pub note: Option<String>,
+    pub category: Option<String>,
+    pub name: Option<String>,
+    pub boardname: Option<String>,
+    pub steamname: Option<String>,
+    pub avatar: Option<String>,
+}
