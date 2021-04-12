@@ -1,4 +1,4 @@
-use actix_web::{get, body::Body, http::header, web, HttpResponse, Error};
+use actix_web::{get, post, body::Body, http::header, web, HttpResponse, Error};
 use std::collections::HashMap;
 use std::cmp::max;
 use num::pow;
@@ -186,20 +186,6 @@ async fn coop_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<Htt
     }
 }
 
-#[derive(Deserialize)]
-pub struct ChangelogQueryParams{
-    pub nickname: Option<String>,
-    pub profilenumber: Option<String>,
-    pub chamber: Option<String>,
-    pub sp: Option<i32>,
-    pub coop: Option<i32>,
-    pub wrgain: Option<i32>,
-    pub hasdemo: Option<i32>,
-    pub yt: Option<i32>,
-    pub limit: i32,
-}
-
-
 #[get("/changelog")]
 async fn changelog_default(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
@@ -219,10 +205,26 @@ async fn changelog_default(pool: web::Data<DbPool>) -> Result<HttpResponse, Erro
     }
 }
 
-// Not currently working, not quite sure why.
-#[get("/changelog/filterd?nickname={nickname}&profileNumber={profilenumber}&chamber={chamber}&sp={sp}&coop={coop}&wrgain={wrgain}&hasDemo={hasdemo}&yt={yt}&limit={limit}")]
-async fn changelog_filtered(params: web::Path<ChangelogQueryParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+/// All the accepted query parameters. Every parameter is optional except for limit, which controls the # of requests returned.
+#[derive(Deserialize, Debug)]
+pub struct ChangelogQueryParams{
+    pub limit: i32,
+    pub nickname: Option<String>,
+    pub profilenumber: Option<String>,
+    pub chamber: Option<String>,
+    pub sp: Option<i32>,
+    pub coop: Option<i32>,
+    pub wrgain: Option<i32>,
+    pub hasdemo: Option<i32>,
+    pub yt: Option<i32>,
+}
+
+// Thank you POST method :)
+/// POST method for changelog that allows the user to submit a JSON body to filter for specific parameters. See the ChangelogQueryParams struct info on accepted query parameters.println!
+#[post("/changelog")]
+async fn changelog_filtered(params: web::Json<ChangelogQueryParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
+    println!("Requested: {:#?}", params);
     let changelog_entries = web::block(move || ChangelogPage::show_filtered(&conn, params.nickname.clone(), params.profilenumber.clone(), params.chamber.clone(), params.sp, params.coop, params.wrgain, params.hasdemo, params.yt, params.limit))
     .await
     .map_err(|e|{

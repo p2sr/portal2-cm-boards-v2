@@ -25,6 +25,7 @@ dotenv = "0.15.0"
 config = "0.11.0"
 num = "0.1.42"
 env_logger = "0.8.3"
+log = "0.4.14"
 
 # Might need to run $ sudo apt-get install pkg-config libssl-dev
 #r2d2 = "0.8.9"

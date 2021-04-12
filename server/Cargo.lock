@@ -1667,6 +1667,7 @@ dependencies = [
  "dotenv",
  "env_logger",
  "futures-util",
+ "log",
  "num",
  "serde 1.0.125",
  "serde_derive",

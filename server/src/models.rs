@@ -374,10 +374,10 @@ impl ChangelogPage{
         .filter(usersnew::banned.eq(0))
         .into_boxed();
         if let Some(sp) = sp{
-            query = query.filter(maps::is_coop.eq(0))
+            query = query.filter(maps::is_coop.ne(sp));
         }
         else if let Some(coop) = coop{
-            query = query.filter(maps::is_coop.eq(1));
+            query = query.filter(maps::is_coop.eq(coop));
         }
         if let Some(hasdemo) = hasdemo{
             query = query.filter(changelog::has_demo.eq(1));
