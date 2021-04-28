@@ -17,11 +17,13 @@ use diesel::r2d2::{self, ConnectionManager};
 use diesel::mysql::MysqlConnection;
 
 mod config;
-mod handlers;
-mod schema;
-mod models;
 mod db;
-mod structs;
+mod api;
+mod tools;
+//mod handlers;
+//mod schema;
+//mod models;
+//mod structs;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -48,7 +50,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .wrap(Logger::default())
             .data(pool.clone())
-            .configure(handlers::init)
+            .configure(api::v1::handlers::init::mnt_api)
     })
     .bind(format!("{}:{}", config.server.host, config.server.port))?
     .run()
