@@ -1,11 +1,11 @@
 use actix_web::{get, post, web, HttpResponse, Error};
 
 use crate::db::DbPool;
-use crate::tools::structs::ChangelogPage;
-use crate::tools::structs::ChangelogQueryParams;
+use crate::tools::datamodels::ChangelogPage;
+use crate::tools::datamodels::ChangelogQueryParams;
 
 #[get("/changelog")]
-async fn changelog_default(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+async fn get_changelog(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     let limit: i32 = 200;
     let changelog_entries = web::block(move || ChangelogPage::show(&conn, limit))
@@ -26,7 +26,7 @@ async fn changelog_default(pool: web::Data<DbPool>) -> Result<HttpResponse, Erro
 // Thank you POST method :)
 /// POST method for changelog that allows the user to submit a JSON body to filter for specific parameters. See the ChangelogQueryParams struct info on accepted query parameters.println!
 #[post("/changelog")]
-async fn changelog_filtered(params: web::Json<ChangelogQueryParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+async fn post_changelog_filtered(params: web::Json<ChangelogQueryParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     println!("Requested: {:#?}", params);
     let changelog_entries = web::block(move || ChangelogPage::show_filtered(&conn, params.nickname.clone(), params.profilenumber.clone(), params.chamber.clone(), params.sp, params.coop, params.wrgain, params.hasdemo, params.yt, params.limit))

@@ -3,29 +3,9 @@ use serde_xml_rs::from_reader;
 use super::exporting::*;
 use chrono::prelude::*;
 
-use crate::models::datamodels::SPMap;
-use crate::models::datamodels::SPRanked;
-//use crate::models::*;
+use crate::models::datamodels::{SPMap, SPRanked, Leaderboards, XmlTag, Entry};
 
-#[derive(Debug, Deserialize)]
-pub struct XmlTag<T> {
-    #[serde(rename = "$value")]
-    pub value: T,
-}
 
-#[derive(Debug, Deserialize)]
-pub struct Entry {
-    #[serde(rename = "steamid")]
-    pub steam_id: XmlTag<String>,
-    pub score: XmlTag<i32>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Leaderboards {
-    #[serde(rename = "resultCount")]
-    pub result_count: XmlTag<i32>,
-    pub entries: XmlTag<Vec<Entry>>,
-}
 //  Result<Leaderboards, Box<dyn std::error::Error>>
 pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>) -> Leaderboards {
     let url = format!(

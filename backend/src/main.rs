@@ -3,34 +3,23 @@
 #![allow(unused_variables)]
 
 #[macro_use]
-extern crate diesel;
-#[macro_use]
 extern crate dotenv;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
-//extern crate text_diff;
 
-use std::fs::File;
-use std::path::Path;
-use std::collections::HashMap;
 use std::env;
-use std::thread;
 
 use dotenv::dotenv;
 use rayon::prelude::*;
 use chrono::prelude::*;
-use diesel::prelude::*;
-use diesel::mysql::MysqlConnection;
 
 mod stages;
 use stages::exporting::*;
 use stages::fetching::*;
 
 mod models;
-use models::datamodels::*;
-use models::schema::*;
 
 fn main() {
     dotenv().ok();

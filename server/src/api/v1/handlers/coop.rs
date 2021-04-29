@@ -2,14 +2,14 @@ use actix_web::{get, web, HttpResponse, Error};
 use std::collections::HashMap;
 
 use crate::db::DbPool;
-use crate::tools::structs::{CoopMap, CoopPreviews, CoopRanked};
+use crate::tools::datamodels::{CoopMap, CoopPreviews, CoopRanked};
 use crate::tools::calc::score;
 
 
 /// Endpoint to handle the preview page showing all coop maps.
 /// Returns: Json wrapped values -> { map_name, scores{ map_id (steam_id), profile_number (1 & 2), score, youtube_id (1 & 2), category, boardname (1 & 2), steamname (1 & 2)} }
 #[get("/coop")]
-async fn cooperative_preview(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+async fn get_cooperative_preview(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     let coop_previews = web::block(move || CoopPreviews::show(&conn))
     .await
@@ -31,7 +31,7 @@ async fn cooperative_preview(pool: web::Data<DbPool>) -> Result<HttpResponse, Er
 /// Handles filtering out obsolete times (1 per runner, allowed for more than 1 if a time is with a player without a better time)
 // TODO: Implement aliased queries (waiting on you diesel peer review team)
 #[get("/maps/coop/{mapid}")]
-async fn coop_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+async fn get_cooperative_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     let coopbundled_entries = web::block(move || CoopMap::show(&conn, mapid.to_string()))
     .await
