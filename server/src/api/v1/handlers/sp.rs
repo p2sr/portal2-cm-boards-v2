@@ -1,15 +1,13 @@
-use actix_web::{get, post, body::Body, http::header, web, HttpResponse, Error};
+use actix_web::{get, web, HttpResponse, Error};
 use std::collections::HashMap;
-use std::cmp::max;
-use num::pow;
 
 use crate::db::DbPool;
-use crate::tools::structs::{Changelog, SPMap, CoopMap, SpPreviews, CoopPreviews, ChangelogPage, SPRanked};
+use crate::tools::structs::{SPMap, SpPreviews, SPRanked};
 use crate::tools::calc::score;
 
 /// Endpoint to handle the preview page showing all sp maps.
 /// Returns: Json wrapped values -> { map_name, scores{ map_id (steam_id), profile_number, score, youtube_id, category, boardname, steamname } }
-#[get("/")]
+#[get("/sp")]
 async fn singleplayer_preview(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     let sp_previews = web::block(move || SpPreviews::show(&conn))
@@ -30,7 +28,7 @@ async fn singleplayer_preview(pool: web::Data<DbPool>) -> Result<HttpResponse, E
 
 // Calls models::SPMap to grab the entries for a particular mapid, returns a vector of the top 200 times, in a slimmed down fashion (only essential data)
 // Handles filtering out obsolete times (1 time per runner)
-#[get("/maps/{mapid}")]
+#[get("/maps/sp/{mapid}")]
 async fn singleplayer_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     // Grabs a mysql db connection from a pool in the web::Data.
     let conn = pool.get().expect("Could not get a DB connection from pool.");
@@ -65,12 +63,4 @@ async fn singleplayer_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Re
             .body("No changelog entries found.");
         Ok(res)
     }
-}
-
-pub fn mnt_sp(cfg: &mut web::ServiceConfig){
-    cfg.service(
-        web::scope("/sp")
-            .service(singleplayer_preview)
-            .service(singleplayer_maps)
-    );
 }

@@ -1,15 +1,16 @@
 #![allow(unused_imports)]
+//#![warn(missing_docs)]
 
 #[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate dotenv;
+// #[macro_use]
+// extern crate dotenv;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate serde_json;
+// #[macro_use]
+// extern crate serde_json;
 
-use actix_web::{get, body::Body, http::header, web, App, HttpRequest, HttpServer,HttpResponse, Responder, Error, middleware::Logger};
+use actix_web::{App, HttpServer, middleware::Logger};
 use actix_cors::Cors;
 use env_logger::Env;
 use dotenv::dotenv;
@@ -20,10 +21,6 @@ mod config;
 mod db;
 mod api;
 mod tools;
-//mod handlers;
-//mod schema;
-//mod models;
-//mod structs;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -50,7 +47,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .wrap(Logger::default())
             .data(pool.clone())
-            .configure(api::v1::handlers::init::mnt_api)
+            .configure(api::v1::handlers::init::init)
     })
     .bind(format!("{}:{}", config.server.host, config.server.port))?
     .run()

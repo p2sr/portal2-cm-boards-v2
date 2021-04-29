@@ -1,14 +1,10 @@
-use actix_web::{get, post, body::Body, http::header, web, HttpResponse, Error};
-use std::collections::HashMap;
-use std::cmp::max;
-use num::pow;
+use actix_web::{get, post, web, HttpResponse, Error};
 
 use crate::db::DbPool;
 use crate::tools::structs::ChangelogPage;
 use crate::tools::structs::ChangelogQueryParams;
-use crate::tools::calc::score;
 
-#[get("/")]
+#[get("/changelog")]
 async fn changelog_default(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     let limit: i32 = 200;
@@ -29,7 +25,7 @@ async fn changelog_default(pool: web::Data<DbPool>) -> Result<HttpResponse, Erro
 
 // Thank you POST method :)
 /// POST method for changelog that allows the user to submit a JSON body to filter for specific parameters. See the ChangelogQueryParams struct info on accepted query parameters.println!
-#[post("/")]
+#[post("/changelog")]
 async fn changelog_filtered(params: web::Json<ChangelogQueryParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     println!("Requested: {:#?}", params);
@@ -46,12 +42,4 @@ async fn changelog_filtered(params: web::Json<ChangelogQueryParams>, pool: web::
             .body("No changelog entries found.");
         Ok(res)
     }
-}
-
-pub fn mnt_changelog(cfg: &mut web::ServiceConfig){
-    cfg.service(
-        web::scope("/changelog")
-            .service(changelog_default)
-            .service(changelog_filtered)
-    );
 }
