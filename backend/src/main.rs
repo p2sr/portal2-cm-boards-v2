@@ -23,10 +23,7 @@ mod models;
 
 fn main() {
     dotenv().ok();
-    //let database_url = env::var("DATABASE_URL").expect("set the DATABASE_URL in ../.env");
-    //let conn = MysqlConnection::establish(&database_url).unwrap();
     fetch_sp();
-
 
 }
 
@@ -47,8 +44,6 @@ fn fetch_sp(){
         fetch_entries(*entry, 0, 450, utc)
     }).collect();
     // What do we do with the leaderboards...
-
-
 }
 /*
 changelog (id) {
