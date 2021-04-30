@@ -1,14 +1,8 @@
-#![allow(unused_imports)]
-//#![warn(missing_docs)]
-
 #[macro_use]
 extern crate diesel;
-// #[macro_use]
-// extern crate dotenv;
 #[macro_use]
 extern crate serde_derive;
-// #[macro_use]
-// extern crate serde_json;
+
 
 use actix_web::{App, HttpServer, middleware::Logger};
 use actix_cors::Cors;
@@ -17,11 +11,16 @@ use dotenv::dotenv;
 use diesel::r2d2::{self, ConnectionManager};
 use diesel::mysql::MysqlConnection;
 
+/// Configuration module that handles extracting information from the environment for setup.
 mod config;
+/// Database module for any specific database related functions.
 mod db;
+/// Module for the API versions containing handlers for API endpoints.
 mod api;
+/// Module for tools like our models and some of the calculation functions we use for the boards.
 mod tools;
 
+/// Driver code to start and mount all compontents to the webserver we create.
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();

@@ -7,7 +7,6 @@ use crate::tools::calc::score;
 
 
 /// Endpoint to handle the preview page showing all coop maps.
-/// Returns: Json wrapped values -> { map_name, scores{ map_id (steam_id), profile_number (1 & 2), score, youtube_id (1 & 2), category, boardname (1 & 2), steamname (1 & 2)} }
 #[get("/coop")]
 async fn get_cooperative_preview(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
@@ -26,10 +25,9 @@ async fn get_cooperative_preview(pool: web::Data<DbPool>) -> Result<HttpResponse
         Ok(res)
     }
 }
-
-/// Calls models::CoopMap to grab the entries for a particular mapid, returns a vector of the top 200 times, in a slimmed down fashion (only essential data)
-/// Handles filtering out obsolete times (1 per runner, allowed for more than 1 if a time is with a player without a better time)
 // TODO: Implement aliased queries (waiting on you diesel peer review team)
+/// Calls `models::CoopMap` to grab the entries for a particular mapid, returns a vector of the top 200 times, in a slimmed down fashion (only essential data)
+/// Handles filtering out obsolete times (1 per runner, allowed for more than 1 if a time is with a player without a better time)
 #[get("/maps/coop/{mapid}")]
 async fn get_cooperative_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
@@ -76,11 +74,3 @@ async fn get_cooperative_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) ->
         Ok(res)
     }
 }
-
-// pub fn mnt_coop(cfg: &mut web::ServiceConfig){
-//     cfg.service(
-//         web::scope("/coop")
-//             .service(cooperative_preview)
-//             .service(coop_maps)
-//     );
-// }

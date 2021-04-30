@@ -26,8 +26,8 @@ async fn get_singleplayer_preview(pool: web::Data<DbPool>) -> Result<HttpRespons
     }
 }
 
-// Calls models::SPMap to grab the entries for a particular mapid, returns a vector of the top 200 times, in a slimmed down fashion (only essential data)
-// Handles filtering out obsolete times (1 time per runner)
+/// Calls models::SPMap to grab the entries for a particular mapid, returns a vector of the top 200 times, in a slimmed down fashion (only essential data)
+/// Handles filtering out obsolete times (1 time per runner)
 #[get("/maps/sp/{mapid}")]
 async fn get_singleplayer_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     // Grabs a mysql db connection from a pool in the web::Data.

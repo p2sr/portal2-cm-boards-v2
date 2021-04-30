@@ -1,6 +1,20 @@
 use serde::Deserialize;
 use config::ConfigError;
 
+/// Server hosting information for mounting the webserver.
+#[derive(Deserialize)]
+pub struct ServerConfig{
+    pub host: String,
+    pub port: i32,
+}
+/// Holds database connection information.
+#[derive(Deserialize)]
+pub struct DatabaseConfig{
+    pub database_url: String
+}
+
+/// Wrapper for holding configuration details from environment.
+///
 /// The purpose of this file is to handle loading configs from the `.env` file.
 /// After pulling from github, the `.env.example` should be copied, and the `.example`
 /// should be removed. Fill in the appropriate fields as per the README.MD
@@ -19,26 +33,13 @@ use config::ConfigError;
 /// ```rust
 /// let config = crate::config::Config::from_env().unwrap();
 /// 
-/// HttpServer::new(move || {
-///     App::new()
-///         .data(pool.clone())
-///         .configure(api::v1::handlers::init::init)
+/// HttpServer::new(|| {
+///     App::new().route("/", web::get().to(|| HttpResponse::Ok()))
 ///     })
 ///     .bind(format!("{}:{}", config.server.host, config.server.port))?
 ///     .run()
 ///     .await
 /// ```
-#[derive(Deserialize)]
-pub struct ServerConfig{
-    pub host: String,
-    pub port: i32,
-}
-// Database Config Data (from .env)
-#[derive(Deserialize)]
-pub struct DatabaseConfig{
-    pub database_url: String
-}
-// Congif Wrapper Struct
 #[derive(Deserialize)]
 pub struct Config{
     pub server: ServerConfig,

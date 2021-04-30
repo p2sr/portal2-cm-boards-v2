@@ -4,6 +4,8 @@ use crate::db::DbPool;
 use crate::tools::datamodels::ChangelogPage;
 use crate::tools::datamodels::ChangelogQueryParams;
 
+// NOTE: We can consider making the limit higher in the future, or calculating it dynamically based off of scores in the last X amount of time.
+/// GET method for most recent 200 changelog entries.
 #[get("/changelog")]
 async fn get_changelog(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
@@ -23,8 +25,7 @@ async fn get_changelog(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     }
 }
 
-// Thank you POST method :)
-/// POST method for changelog that allows the user to submit a JSON body to filter for specific parameters. See the ChangelogQueryParams struct info on accepted query parameters.println!
+/// POST method for changelog that allows the user to submit a JSON body to filter for specific parameters. See the ChangelogQueryParams struct info on accepted query parameters.
 #[post("/changelog")]
 async fn post_changelog_filtered(params: web::Json<ChangelogQueryParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");

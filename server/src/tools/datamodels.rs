@@ -16,7 +16,10 @@ use crate::tools::schema::maps::dsl::maps as all_maps;
 use crate::tools::schema::coopbundled::dsl::coopbundled as all_coops;
 use crate::db::DbPool;
 
-/// Structs are generated off the database (using deisel_ext) and modified to be used to store query data.
+//TODO: Make this cleaner.
+
+// Structs prefixed with the `table_name` attribute are designed to pull raw data from any table in the database.
+/// One-to-one struct for changelog data.
 #[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
 #[table_name = "changelog"]
 pub struct Changelog {
@@ -37,7 +40,7 @@ pub struct Changelog {
     pub note: Option<String>,
     pub category: Option<String>,
 }
-
+/// One-to-one struct for chapter data.
 #[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
 #[table_name = "chapters"]
 pub struct Chapter {
@@ -45,7 +48,8 @@ pub struct Chapter {
     pub chapter_name: Option<String>,
     pub is_multiplayer: i32,
 }
-
+// TODO: Cut down on the amount of data stored in coopbundled after aliasing is fixed.
+/// One-to-one struct for coopbundled data.
 #[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
 #[table_name = "coopbundled"]
 pub struct Coopbundled {
@@ -76,7 +80,7 @@ pub struct Coopbundled {
     pub note2: Option<String>,
     pub category: Option<String>,
 }
-
+/// One-to-one struct for maps data.
 #[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
 #[table_name = "maps"]
 pub struct Map {
@@ -89,7 +93,7 @@ pub struct Map {
     pub is_coop: i32,
     pub is_public: i32,
 }
-
+/// One-to-one struct for scores data.
 #[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
 #[primary_key(changelog_id)]
 #[table_name = "scores"]
@@ -98,7 +102,7 @@ pub struct Score {
     pub map_id: String,
     pub changelog_id: i32,
 }
-
+/// One-to-one struct for new user (usersnew) data.
 #[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
 #[primary_key(profile_number)]
 #[table_name = "usersnew"]
@@ -116,8 +120,7 @@ pub struct Usersnew {
     pub donation_amount: Option<String>,
 }
 
-
-/// This struct handles the minimal information we want for SP map pages. We want to limit the amount of data we need to transfer.
+/// The minimal data we want for SP map pages to lower bandwidth usage.
 #[derive(Queryable, Serialize, Debug, Clone)]
 pub struct SPMap{
     pub time_gained: Option<NaiveDateTime>,
@@ -133,9 +136,10 @@ pub struct SPMap{
     pub avatar: Option<String>,
 }
 
-/// This struct is a work-around for the issues with aliased queries in diesel, ideally this would be scrapped for an aliased join on usersnew
-/// so we could grab both sets of usersnew information in one query
-/// TODO: Potentially work boardname and steamname into one field? (Check if boardname exists, if it doesn, keep it, if not, replace it with steamname)
+// TODO: Potentially work boardname and steamname into one field? (Check if boardname exists, if it doesn, keep it, if not, replace it with steamname)
+// NOTE: This struct is a work-around for the issues with aliased queries in diesel, ideally this would be scrapped for an aliased join on usersnew
+// so we could grab both sets of usersnew information in one query.
+/// Work-around table because of diesel limitations with aliases.
 #[derive(Queryable, Serialize, Debug, Clone)]
 pub struct CoopMapPrelude{
     pub time_gained: Option<NaiveDateTime>,
@@ -157,7 +161,9 @@ pub struct CoopMapPrelude{
     pub avatar: Option<String>,
 }
 
-/// This is the big brother struct for the prelude to handle all of the data. The overhead on copy all the data is relatively small, 
+/// Big brother struct for `CoopMapPrelude` to handle all of the data. 
+/// 
+/// The overhead on copy all the data is relatively small, 
 /// but ideally we would only need this and not the prelude.
 #[derive(Queryable, Serialize, Debug, Clone)]
 pub struct CoopMap{
@@ -182,18 +188,15 @@ pub struct CoopMap{
     pub steamname2: Option<String>,
     pub avatar2: Option<String>,
 }
-
-/// Grabs just the essential user information to aid in filling in the CoopMapPrelude
-// TODO: Potentially work boardname and steamname into one field? (Check if boardname exists, if it doesn, keep it, if not, replace it with steamname)
+// TODO: Potentially work boardname and steamname into one field? (Check if boardname exists, if it doesn, keep it, if not, replace it with steamname).
+/// Essential user information to aid in filling in `CoopMapPrelude`.
 #[derive(Queryable, Serialize, Debug, Clone)]
 pub struct UserMap{
     pub boardname: Option<String>,
     pub steamname: Option<String>,
     pub avatar: Option<String>,
 }
-
-/// SpPreview and SpPreviews generate the time information displayed on the /sp route. 
-// These two work together to grab all that data from the database (only what's necessary)
+/// `SpPreview` and `SpPreviews` grab the preview information for the `/sp` route. 
 #[derive(Queryable, Serialize, Debug, Clone)]
 pub struct SpPreview{
     pub map_id: String,
@@ -204,14 +207,13 @@ pub struct SpPreview{
     pub boardname: Option<String>,
     pub steamname: Option<String>,
 }
-
-/// Preview the top 7 for all SP maps (any%)
+/// Wrapper for previewing the top 7 for all SP maps (any%).
 #[derive(Queryable, Serialize, Debug, Clone)]
 pub struct SpPreviews{
     pub map_name: Option<String>,
     pub scores: Vec<SpPreview>,
 }
-
+/// Similar to `CoopMapPrelude`, a work-around for no alias support in diesel.
 #[derive(Queryable, Serialize, Debug, Clone)]
 pub struct CoopPreviewPrelude{
     pub map_id: String,
@@ -224,7 +226,7 @@ pub struct CoopPreviewPrelude{
     pub boardname: Option<String>,
     pub steamname: Option<String>,
 }
-
+/// `CoopPreview` and `CoopPreviews` grab the preview information for the `/coop` route. 
 #[derive(Queryable, Serialize, Debug, Clone)]
 pub struct CoopPreview{
     pub map_id: String,
@@ -239,14 +241,13 @@ pub struct CoopPreview{
     pub boardname2: Option<String>,
     pub steamname2: Option<String>,
 }
-
-
+/// Wrapper for prevciewing the top 7 for all Coop maps (any%).
 #[derive(Queryable, Serialize, Debug, Clone)]
 pub struct CoopPreviews{
     pub map_name: Option<String>,
     pub scores: Vec<CoopPreview>,
 }
-
+/// Data needed for the changelog entries on the changelog page.
 #[derive(Serialize, Queryable, Debug, Clone)]
 pub struct ChangelogPage{
     pub time_gained: Option<NaiveDateTime>,
@@ -270,9 +271,8 @@ pub struct ChangelogPage{
     pub avatar: Option<String>,
 }
 
-//// From original handlers.rs
 
-// Wrapper for the sp map data and the rank/score
+/// Wrapper for the sp map data and the rank/score.
 #[derive(Serialize)]
 pub struct SPRanked{
     pub map_data: SPMap,
@@ -280,7 +280,7 @@ pub struct SPRanked{
     pub score: f32,
 }
 
-// Wrapper for the coop map data and the rank/score
+/// Wrapper for the coop map data and the rank/score.
 #[derive(Serialize)]
 pub struct CoopRanked{
     pub map_data: CoopMap,
@@ -288,7 +288,7 @@ pub struct CoopRanked{
     pub score: f32,
 }
 
-/// All the accepted query parameters. Every parameter is optional except for limit, which controls the # of requests returned.
+/// All the accepted query parameters for the changelog page.
 #[derive(Deserialize, Debug)]
 pub struct ChangelogQueryParams{
     pub limit: i32,

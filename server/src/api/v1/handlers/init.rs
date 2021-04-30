@@ -4,7 +4,7 @@ use crate::api::v1::handlers::sp::{get_singleplayer_maps, get_singleplayer_previ
 use crate::api::v1::handlers::coop::{get_cooperative_maps, get_cooperative_preview};
 use crate::api::v1::handlers::changelog::{get_changelog, post_changelog_filtered};
 
-// Mounts the routes to /api/..
+/// Mounts the routes to /api/..
 pub fn init(cfg: &mut web::ServiceConfig){
     cfg.service(
         web::scope("/api")

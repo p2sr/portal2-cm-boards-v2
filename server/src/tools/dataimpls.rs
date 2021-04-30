@@ -18,6 +18,8 @@ use crate::tools::datamodels::*;
 use crate::db::DbPool;
 
 impl CoopPreviewPrelude{
+    /// Only used internally by the `CoopPreview::show` method.
+    /// Grabs the top 40 times on a Coop map. Used as a prelude because of limitations with diesel and aliases.
     pub fn show(conn: &MysqlConnection, mapid: String) -> Vec<CoopPreviewPrelude>{
         all_coops
             .inner_join(all_users)
@@ -34,6 +36,8 @@ impl CoopPreviewPrelude{
 }
 
 impl CoopPreview{
+    /// Only used internally by the `CoopPreviews::show` method.
+    /// Joins user information for a given set of scores for a map.
     pub fn show(conn: &MysqlConnection, mapid: String) -> Result<Option<Vec<CoopPreview>>, diesel::result::Error>{
         let coop_prelude = CoopPreviewPrelude::show(&conn, mapid.clone());
         let mut vec_joined = Vec::new();
@@ -64,6 +68,9 @@ impl CoopPreview{
 }
 
 impl CoopPreviews{
+    /// Calls two internal functions to gather the necessary information, and truncates excess information.
+    /// Uses manual filtering through hashmaps to eliminate duplicate times by players in accordance to how cooperative handles "carrying".
+    /// The logic is slightly more complicated, and nearly identical to the logic in the handler for coop maps.
     pub fn show(conn: &MysqlConnection) -> Result<Option<Vec<CoopPreviews>>, diesel::result::Error>{
         let map_id_vec = Map::all_coop_mapids(&conn);
         let mut vec_final = Vec::new();
@@ -92,14 +99,14 @@ impl CoopPreviews{
     }
 }
 
-/// impl block for SpPreview
-    /// methods:
-        /// show(conn: &MysqlConnection, mapid: String)
-            /// Grabs 40 times to be filtered (thanks for no distinct_on diesel...) for use on the /sp route.
-            /// Returns a vector of SpPreview (40)
+
+
 impl SpPreview{
-    // Maybe improve error handling???? Probably not lol
+    // TODO: Improve error handling.
+    // TODO: Check on distinct_on support or MySQL.
     // WHY IS DISTINCT_ON ONLY SUPPORTED FOR POSTGRES?
+    /// Grabs top 40 times in an SP map. This is a crutch to avoid filtering out too many times for duplicates from one user.
+    /// We do this rather than using the `DISTINCT_ON` method in diesel & MySQL as it's not currently supported by Diesel, the hope is that this is changed in the future.
     pub fn show(conn: &MysqlConnection, mapid: String) -> Vec<SpPreview>{
         all_changelogs
             .inner_join(all_users)
@@ -115,13 +122,10 @@ impl SpPreview{
     } 
 }
 
-/// impl block for SpPreview
-    /// methods:
-        /// show(conn: &MysqlConnection)
-            /// Makes a call to grab all map_ids, grabs the map name off a call to Map::get_name()
-            /// Runs through the SpPreview::show() for all 60 sp maps, and filters out top 7 for distinct runners (out of 40, that number should be safe right?)
-            /// Returns a vector of SpPreviews, wrapped in an option, wrapped in a result.
 impl SpPreviews{
+    /// Makes a call to grab all `map_ids`, grabs the map name off a call to `Map::get_name()` and
+    /// calls`SpPreview::show()` for all 60 sp maps and filters out top 7 for distinct runners.
+    // Top 40 to handle duplicates to generate top 7, that number should be safe right?
     pub fn show(conn: &MysqlConnection) -> Result<Option<Vec<SpPreviews>>, diesel::result::Error>{
         let map_id_vec = Map::all_sp_mapids(&conn);
         let mut vec_final = Vec::new();
@@ -144,30 +148,16 @@ impl SpPreviews{
         Ok(Some(vec_final))
     }
 }
-/// impl block for SpPreview
-    /// methods:
-        /// show(conn: &MysqlConnection, id: String)
-            /// Grabs the map at a given steam_id
-            /// Returns a vector of maps
-        /// all_sp_mapids(conn: &MysqlConnection)
-            /// Grabs all steam_ids for single player
-            /// Returns a vector of strings
-        /// all_coop_mapids(conn: &MysqlConnection)
-            /// Grabs all steam_ids for Cooperative
-            /// Returns a vector of strings
-        /// all(conn: &MysqlConnection)
-            /// Grabs all map info and loads it into Map vectors
-            /// Returns a vector of Maps
-        /// get_name(conn: &MysqlConnection, mapid: String)
-            /// Grabs the map name for the map at the given steam_id
-            /// Returns a Option wrapped String
+
 impl Map{
+    /// Grabs the map at a given steam_id
     pub fn show(conn: &MysqlConnection, id: String) -> Vec<Map> {
         all_maps
             .filter(maps::steam_id.eq(id))
             .load::<Map>(conn)
             .expect("Error Loading Maps")
     }
+    /// Grabs all steam_ids for single player
     pub fn all_sp_mapids(conn: &MysqlConnection) -> Vec<String> {
         all_maps
             .select(maps::steam_id)
@@ -175,6 +165,7 @@ impl Map{
             .load::<String>(conn)
             .expect("Error loading SP maps")
     }
+    /// Grabs all steam_ids for Cooperative
     pub fn all_coop_mapids(conn: &MysqlConnection) -> Vec<String> {
         all_maps
             .select(maps::steam_id)
@@ -182,12 +173,14 @@ impl Map{
             .load::<String>(conn)
             .expect("Error loading SP maps")
     }
+    /// Grabs all map info and loads it into Map vectors
     pub fn all(conn: &MysqlConnection) -> Vec<Map> {
         all_maps
             .order(maps::id.desc())
             .load::<Map>(conn)
             .expect("Error loading all maps")
     }
+    /// Grabs the map name for the map at the given steam_id
     pub fn get_name(conn: &MysqlConnection, mapid: String) -> Option<String>{
         all_maps
             .select((maps::name))
@@ -197,11 +190,8 @@ impl Map{
     }
 }
 
-/// impl block for Usersnew
-    /// methods:
-        /// show(conn: &MysqlConnection, profile_number: String)
-            /// Returns a result wrapped option that wraps an instance of UserMap (I know, redundant...)
 impl Usersnew{
+    /// Gets the boardname, steamname and avatar from the database for a specifc user.
     pub fn show(conn: &MysqlConnection, profilenum: String) -> Result<Option<UserMap>, diesel::result::Error>{
         let user = all_users
             .select((usersnew::boardname.nullable(), usersnew::steamname.nullable(), usersnew::avatar.nullable()))
@@ -209,11 +199,13 @@ impl Usersnew{
             .first(conn)?;
         Ok(Some(user))
     }
+    /// Search function to find if there's a player with a similar boardname in the database.
     pub fn check_board_name(conn: &MysqlConnection, nickname: String) -> Result<bool, diesel::result::Error>{
         let user = all_users
             .filter(usersnew::boardname.like(nickname))
             .filter(usersnew::banned.eq(0))
             .get_result::<Usersnew>(conn);
+        // Dear god fix this error handling
         if let Ok(user) = user{
             return Ok(true);
         }
@@ -223,12 +215,9 @@ impl Usersnew{
     }
 }
 
-/// impl block for CoopMapPrelude
-    /// methods:
-        /// show(conn: &MysqlConnection, map_id: String)
-            /// Returns a result wrapped option that wraps an instance of CoopMapPrelude, used to grab the initial join for coop map pages
 // TODO: Fix this when diesel adds support for aliased queries.
 impl CoopMapPrelude{
+    /// Work-around for lack of alias support, grabs all information except the second user's profile data for the times on a given map.
     pub fn show(conn: &MysqlConnection, mapid: String) -> Result<Option<Vec<CoopMapPrelude>>, diesel::result::Error>{
         let map = all_coops
             .inner_join(all_users)
@@ -249,14 +238,12 @@ impl CoopMapPrelude{
     }
 }
 
-/// impl block for CoopMap
-    /// methods:
-        /// show(conn: &MysqlConnection, map_id: String) 
-            /// Returns a result wrapped option that wraps an instance of CoopMap
-            /// Makes calls to both CoopMapPrelude and individual Usernews.println!
-            /// Handles null partners with Option<None>'s.
+/// Returns a result wrapped option that wraps an instance of CoopMap
+/// Makes calls to both CoopMapPrelude and individual Usernews.println!
+/// Handles null partners with Option<None>'s.
 // TODO: Look into non-blocking, concurrent alternatives while we're using this work-around.
 impl CoopMap{
+    /// Calls `CoopMapPrelude::show` and `Usersnew::show` to fill in data due to lack of alias support in diesel. Returns all coop map information for a given map.actix_web
     pub fn show(conn: &MysqlConnection, mapid: String) -> Result<Option<Vec<CoopMap>>, diesel::result::Error>{
         let coop_prelude = CoopMapPrelude::show(&conn, mapid.clone())?;
         if let Some(coop_prelude) = coop_prelude {
@@ -286,18 +273,16 @@ impl CoopMap{
             }
             Ok(Some(vec_final))
         } else{
-            //FIXME: Awful Error Handling
+            // TODO: FIXME: Awful Error Handling
             let vec_final = Vec::new();
             Ok(Some(vec_final))
         }
     }
 }
-/// impl block for SPMap
-    /// methods:
-        /// show(conn: &MysqlConnection, map_id: String) 
-            /// Returns a result wrapped option that wraps an instance of SPMap
-            /// Selects the necessary information for the maps page, filters out banned times and users
+
+// TODO: Support for `DISTINCT_ON` in the future.
 impl SPMap{
+    /// Selects the necessary information for the sp maps page, filters out banned times and users
     pub fn show(conn: &MysqlConnection, mapid: String) -> Result<Option<Vec<SPMap>>, diesel::result::Error>{
         let map = all_changelogs            
             .inner_join(all_users)
@@ -316,23 +301,8 @@ impl SPMap{
     }
 }
 
-
-// Test function to grab 50 most recent changelog entries
-impl Changelog{
-    pub fn all(conn: &MysqlConnection) -> Result<Option<Vec<Changelog>>, diesel::result::Error> {
-        let cl = all_changelogs
-            .order(changelog::time_gained.desc())
-            .filter(changelog::time_gained.is_not_null())
-            .filter(changelog::banned.eq(0))
-            .limit(50)
-            .load::<Changelog>(conn)?;
-        // Wrapping the vector in a result and an option (not necessary but good practice)
-        Ok(Some(cl))
-    }
-}
-
-
 impl ChangelogPage{
+    /// Returns `limit` number of changelog entries. Handle the joining for map and user data.
     pub fn show(conn: &MysqlConnection, limit: i32) -> Result<Option<Vec<ChangelogPage>>, diesel::result::Error>{ 
         let cl = all_changelogs
             .inner_join(all_users)
@@ -353,12 +323,13 @@ impl ChangelogPage{
             .load::<ChangelogPage>(conn)?;
         Ok(Some(cl))
     }
-
+    // TODO: Make this a struct dear god...
+    /// Filtering options for the changelog through any of the options passed. For more information, checkout `ChangelogQueryParams` in `datamodels.rs`
     pub fn show_filtered(conn: &MysqlConnection, nickname: Option<String>, 
         profilenumber: Option<String>, chamber: Option<String>,  sp: Option<i32>, 
         coop: Option<i32>, wrgain: Option<i32>, hasdemo: Option<i32>, hasvideo: Option<i32>,
-        limit: i32) ->  Result<Option<Vec<ChangelogPage>>, diesel::result::Error> {
-
+        limit: i32) ->  Result<Option<Vec<ChangelogPage>>, diesel::result::Error>
+        {
         let mut query = all_changelogs
         .inner_join(all_users)
         .inner_join(all_maps.on(changelog::map_id.eq(maps::steam_id)))
