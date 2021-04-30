@@ -38,11 +38,11 @@ The front-end build can be done with `npm install` in the `/board-portal-2` fold
 
 ## Original Project Team
 This project started as a Senior Capstone Project for the following members.
-* Daniel Bates   -> @DanielBatesJ
-* Mitchell Baker -> @MitchellBaker65
-* Josh Bednarz   -> @Pixel-Knight
-* Michael Murphy -> @MurphyMichael
-* John Fiedler   -> @JFiedler23
+* @DanielBatesJ
+* @MitchellBaker65
+* @Pixel-Knight
+* @MurphyMichael
+* @JFiedler23
 
 ## Project References 
 [Original Portal 2 Boards](https://github.com/iVerb1/Portal2Boards)
