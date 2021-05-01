@@ -21,6 +21,22 @@ AND map_id=52642
 ORDER BY coopbundled.score ASC; 
 
 
+SELECT  changelog.time_gained
+       ,maps.name
+       ,changelog.score
+       ,usersnew.steamname
+FROM changelog
+JOIN maps
+ON changelog.map_id=maps.steam_id
+JOIN usersnew
+ON changelog.profile_number=usersnew.profile_number
+WHERE changelog.banned=0 
+AND usersnew.banned=0 
+AND map_id=47458
+GROUP BY changelog.profile_number
+ORDER BY changelog.score ASC; 
+
+
 INSERT INTO usersnew
 
 
