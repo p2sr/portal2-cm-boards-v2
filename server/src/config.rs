@@ -12,6 +12,12 @@ pub struct ServerConfig{
 pub struct DatabaseConfig{
     pub database_url: String
 }
+/// The proof standards, update based on the mod tools desired.
+#[derive(Deserialize)]
+pub struct ProofConfig{
+    pub demo: i32,
+    pub video: i32,
+}
 
 /// Wrapper for holding configuration details from environment.
 ///
@@ -43,7 +49,8 @@ pub struct DatabaseConfig{
 #[derive(Deserialize)]
 pub struct Config{
     pub server: ServerConfig,
-    pub database: DatabaseConfig
+    pub database: DatabaseConfig,
+    pub proof: ProofConfig,
 }
 // Extracts the environment variables from .env
 impl Config {

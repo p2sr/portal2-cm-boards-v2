@@ -7,7 +7,7 @@ use crate::models::datamodels::{SPMap, SPRanked, Leaderboards, XmlTag, Entry};
 
 
 //  Result<Leaderboards, Box<dyn std::error::Error>>
-pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>) -> Leaderboards {
+pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>, is_coop: bool) -> Leaderboards {
     let url = format!(
         "https://steamcommunity.com/stats/{game}/leaderboards/{id}?xml=1&start={start}&end={end}",
         game = "Portal2",
