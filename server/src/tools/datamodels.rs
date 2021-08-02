@@ -301,3 +301,8 @@ pub struct ChangelogQueryParams{
     pub hasdemo: Option<i32>,
     pub yt: Option<i32>,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct UserParams{
+    pub profilenumber: String,
+}

@@ -35,7 +35,7 @@ pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>, is
 /// `filter_entries` handles comparison with the current leaderboards to see if any user has a new best time
 pub fn filter_entries(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>, data: &XmlTag<Vec<Entry>>){
     let url = format!("http://localhost:8080/api/maps/sp/{id}", id = id);
-    let map_json: Vec<SPRanked> = reqwest::blocking::get(&url).expect("Error in query to our local API").json().expect("Error in converting our API values to JSON");
+    let map_json: Vec<SPRanked> = reqwest::blocking::get(&url).expect("Error in query to our local API (Make sure the webserver is running").json().expect("Error in converting our API values to JSON");
     let mut existing_hash: HashMap<String, i32> = HashMap::with_capacity(200);
     let worst_score = map_json[199].map_data.score;
     

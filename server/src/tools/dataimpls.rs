@@ -213,6 +213,29 @@ impl Usersnew{
             Ok(false)
         }
     }
+    pub fn showbanned(conn: &MysqlConnection) -> Result<Vec<String>, diesel::result::Error>{
+        let user = all_users
+            .select(usersnew::profile_number)
+            .filter(usersnew::banned.eq(1))
+            .load::<String>(conn)?;
+        Ok(user)
+    }
+    pub fn check_banned(conn: &MysqlConnection, profilenum: String) -> Result<bool, diesel::result::Error>{
+        let user = all_users
+            .filter(usersnew::profile_number.eq(profilenum))
+            .get_result::<Usersnew>(conn);
+        if let Ok(user) = user{
+            if user.banned == 1{
+                return Ok(true)
+            }
+            else{
+                Ok(false)
+            }
+        }
+        else{
+            return Err(diesel::result::Error::NotFound);
+        }
+    }
 }
 
 // TODO: Fix this when diesel adds support for aliased queries.

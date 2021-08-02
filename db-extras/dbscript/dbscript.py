@@ -32,7 +32,7 @@ def main():
         host="localhost",
         user="root",
         password=mysql_password,
-        database="testdb",
+        database="p2boardsTest",
         autocommit=True
     )
     mycursor = mydb.cursor()

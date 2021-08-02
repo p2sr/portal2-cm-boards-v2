@@ -24,7 +24,6 @@ mod models;
 fn main() {
     dotenv().ok();
     fetch_sp();
-
 }
 
 fn fetch_sp(){
