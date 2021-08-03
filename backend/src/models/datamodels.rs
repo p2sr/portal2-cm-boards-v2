@@ -42,3 +42,35 @@ pub struct SPRanked{
     pub rank: i32,
     pub score: f32,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CoopMap{
+    pub time_gained: Option<NaiveDateTime>,
+    pub profile_number1: String,
+    pub profile_number2: String,
+    pub score: i32,
+    pub is_blue: Option<i32>,
+    pub has_demo1: Option<i32>,
+    pub has_demo2: Option<i32>,
+    pub youtube_id1: Option<String>,
+    pub youtube_id2: Option<String>,
+    pub submission1: i32,
+    pub submission2: i32,
+    pub note1: Option<String>,
+    pub note2: Option<String>,
+    pub category: Option<String>,
+    pub boardname1: Option<String>,
+    pub steamname1: Option<String>,
+    pub avatar1: Option<String>,
+    pub boardname2: Option<String>,
+    pub steamname2: Option<String>,
+    pub avatar2: Option<String>,
+}
+
+/// Wrapper for the coop map data and the rank/score.
+#[derive(Serialize, Deserialize)]
+pub struct CoopRanked{
+    pub map_data: CoopMap,
+    pub rank: i32,
+    pub score: f32,
+}
