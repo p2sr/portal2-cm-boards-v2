@@ -3,7 +3,7 @@ use serde_xml_rs::from_reader;
 use super::exporting::*;
 use chrono::prelude::*;
 
-use crate::models::datamodels::{SPMap, SPRanked, SpBanned, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
+use crate::models::datamodels::{SPMap, SPRanked, SpBanned, CoopBanned, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
 
 /// Grabs the map at the current ID from valve's API and caches times.
 pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>, is_coop: bool) -> Leaderboards {
@@ -133,10 +133,10 @@ pub fn filter_entries_coop(id: i32, start: i32, end: i32, timestamp: DateTime<Ut
     // We now have a list of all the times we want to add to the db. Now we attempt to match them.
     // We need to reference a list of all banned times on a map.
     let ban_url = format!("http://localhost:8080/api/maps/coop/banned/{id}", id = id);
-    // let banned_users: Vec<CoopBanned> = reqwest::blocking::get(&ban_url)
-    //     .expect("Error in query to our local API (Make sure the webserver is running")
-    //     .json()
-    //     .expect("Error in converting our API values to JSON");
+    let banned_users: Vec<CoopBanned> = reqwest::blocking::get(&ban_url)
+        .expect("Error in query to our local API (Make sure the webserver is running")
+        .json()
+        .expect("Error in converting our API values to JSON");
     
     // Check to see if any of the times are banned on our leaderboards
 

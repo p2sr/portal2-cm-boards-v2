@@ -64,7 +64,7 @@ async fn get_singleplayer_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -
         Ok(res)
     }
 }
-
+/// Gives the profile number and score for all banned times on a given SP map
 #[get("/maps/sp/banned/{mapid}")]
 async fn get_banned_scores(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");

@@ -157,7 +157,22 @@ impl SpBanned{
             .filter(changelog::map_id.eq(mapid))
             .load::<SpBanned>(conn);
         if let Ok(changelog_entries) = changelog_entries{
-            return Ok(changelog_entries)
+            return Ok(changelog_entries);
+        } else{
+            return Err(diesel::result::Error::NotFound);
+        }
+    }
+}
+
+impl CoopBanned{
+    pub fn show(conn: &MysqlConnection, mapid: String) ->Result<Vec<CoopBanned>, diesel::result::Error>{
+        let coopbundled_entries = all_coops
+            .select((coopbundled::profile_number1, coopbundled::profile_number2, coopbundled::score))
+            .filter(coopbundled::map_id.eq(mapid))
+            .filter(coopbundled::banned.eq(1))
+            .load::<CoopBanned>(conn);
+        if let Ok(coopbundled_entries) = coopbundled_entries{
+            return Ok(coopbundled_entries);
         } else{
             return Err(diesel::result::Error::NotFound);
         }

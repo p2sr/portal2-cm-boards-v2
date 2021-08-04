@@ -80,3 +80,11 @@ pub struct SpBanned{
     pub profilenumber: String,
     pub score: i32,
 }
+
+// Banned times for Coop
+#[derive(Deserialize, Debug)]
+pub struct CoopBanned{
+    pub profilenumber1: String,
+    pub profilenumber2: String,
+    pub score: i32,
+}

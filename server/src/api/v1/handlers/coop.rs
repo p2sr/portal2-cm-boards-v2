@@ -2,7 +2,7 @@ use actix_web::{get, web, HttpResponse, Error};
 use std::collections::HashMap;
 
 use crate::db::DbPool;
-use crate::tools::datamodels::{CoopMap, CoopPreviews, CoopRanked};
+use crate::tools::datamodels::{CoopMap, CoopBanned, CoopPreviews, CoopRanked};
 use crate::tools::calc::score;
 
 
@@ -73,4 +73,16 @@ async fn get_cooperative_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) ->
             .body("No changelog entries found.");
         Ok(res)
     }
+}
+/// Returns two profile numbers and the score for all banned times on a coop map.
+#[get("/maps/coop/banned/{mapid}")]
+async fn get_banned_scores(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+    let conn = pool.get().expect("Could not get a DB connection from pool.");
+    let banned_entries = web::block(move || CoopBanned::show(&conn, mapid.to_string()))
+    .await
+    .map_err(|e|{
+        eprintln!("{}", e);
+        HttpResponse::InternalServerError().finish()
+    })?;
+    Ok(HttpResponse::Ok().json(banned_entries))
 }

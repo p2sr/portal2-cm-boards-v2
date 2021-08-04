@@ -314,4 +314,10 @@ pub struct SpBanned{
     pub score: i32,
 }
 
-// TODO: CoopBanned
+// Banned times for Coop
+#[derive(Serialize, Queryable, Deserialize, Debug)]
+pub struct CoopBanned{
+    pub profilenumber1: String,
+    pub profilenumber2: String,
+    pub score: i32,
+}
