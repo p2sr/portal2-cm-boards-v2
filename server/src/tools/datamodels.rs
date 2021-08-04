@@ -302,6 +302,7 @@ pub struct ChangelogQueryParams{
     pub yt: Option<i32>,
 }
 
+/// Wrapper to send a profile number as a search result
 #[derive(Deserialize, Debug)]
 pub struct UserParams{
     pub profilenumber: String,
@@ -314,7 +315,7 @@ pub struct SpBanned{
     pub score: i32,
 }
 
-// Banned times for Coop
+/// Banned times for Coop
 #[derive(Serialize, Queryable, Deserialize, Debug)]
 pub struct CoopBanned{
     pub profilenumber1: String,
