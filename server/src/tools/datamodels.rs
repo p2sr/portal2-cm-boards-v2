@@ -306,3 +306,12 @@ pub struct ChangelogQueryParams{
 pub struct UserParams{
     pub profilenumber: String,
 }
+
+/// Banned times for SP
+#[derive(Serialize, Queryable, Deserialize, Debug)]
+pub struct SpBanned{
+    pub profilenumber: String,
+    pub score: i32,
+}
+
+// TODO: CoopBanned

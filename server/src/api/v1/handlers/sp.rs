@@ -2,7 +2,7 @@ use actix_web::{get, web, HttpResponse, Error};
 use std::collections::HashMap;
 
 use crate::db::DbPool;
-use crate::tools::datamodels::{SPMap, SpPreviews, SPRanked};
+use crate::tools::datamodels::{SPMap, SpPreviews, SPRanked, SpBanned};
 use crate::tools::calc::score;
 
 /// Endpoint to handle the preview page showing all sp maps.
@@ -63,4 +63,16 @@ async fn get_singleplayer_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -
             .body("No changelog entries found.");
         Ok(res)
     }
+}
+
+#[get("/maps/sp/banned/{mapid}")]
+async fn get_banned_scores(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+    let conn = pool.get().expect("Could not get a DB connection from pool.");
+    let banned_entries = web::block(move || SpBanned::show(&conn, mapid.to_string()))
+    .await
+    .map_err(|e|{
+        eprintln!("{}", e);
+        HttpResponse::InternalServerError().finish()
+    })?;
+    Ok(HttpResponse::Ok().json(banned_entries))
 }

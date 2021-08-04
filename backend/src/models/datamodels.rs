@@ -74,3 +74,9 @@ pub struct CoopRanked{
     pub rank: i32,
     pub score: f32,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct SpBanned{
+    pub profilenumber: String,
+    pub score: i32,
+}

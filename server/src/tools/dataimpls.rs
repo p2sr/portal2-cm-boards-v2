@@ -149,6 +149,21 @@ impl SpPreviews{
     }
 }
 
+impl SpBanned{
+    pub fn show(conn: &MysqlConnection, mapid: String) -> Result<Vec<SpBanned>, diesel::result::Error>{
+        let changelog_entries = all_changelogs
+            .select((changelog::profile_number, changelog::score))
+            .filter(changelog::banned.eq(1))
+            .filter(changelog::map_id.eq(mapid))
+            .load::<SpBanned>(conn);
+        if let Ok(changelog_entries) = changelog_entries{
+            return Ok(changelog_entries)
+        } else{
+            return Err(diesel::result::Error::NotFound);
+        }
+    }
+}
+
 impl Map{
     /// Grabs the map at a given steam_id
     pub fn show(conn: &MysqlConnection, id: String) -> Vec<Map> {
