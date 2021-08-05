@@ -20,6 +20,26 @@ pub struct Leaderboards {
     pub entries: XmlTag<Vec<Entry>>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Changelog {
+    pub time_gained: Option<NaiveDateTime>,
+    pub profile_number: String,
+    pub score: i32,
+    pub map_id: String,
+    pub wr_gain: i32,
+    pub has_demo: Option<i32>,
+    pub banned: i32,
+    pub youtube_id: Option<String>,
+    pub previous_id: Option<i32>,
+    pub id: i32,
+    pub coopid: Option<i32>,
+    pub post_rank: Option<i32>,
+    pub pre_rank: Option<i32>,
+    pub submission: i32,
+    pub note: Option<String>,
+    pub category: Option<String>,
+}
+
 /// This struct handles the minimal information we want for SP map pages. We want to limit the amount of data we need to transfer.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SPMap{
@@ -88,4 +108,18 @@ pub struct CoopBanned{
     pub profilenumber1: String,
     pub profilenumber2: String,
     pub score: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UserMap{
+    pub boardname: Option<String>,
+    pub steamname: Option<String>,
+    pub avatar: Option<String>,
+}
+
+/// Wrapper for a player's SP PB history.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SpPbHistory{
+    pub user_info: UserMap,
+    pub pb_history: Vec<Changelog>,
 }

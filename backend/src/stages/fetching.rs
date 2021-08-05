@@ -3,10 +3,10 @@ use serde_xml_rs::from_reader;
 use super::exporting::*;
 use chrono::prelude::*;
 
-use crate::models::datamodels::{SPMap, SPRanked, SpBanned, CoopBanned, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
+use crate::models::datamodels::{SPMap, SpPbHistory, SPRanked, SpBanned, Changelog, CoopBanned, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
 
 /// Grabs the map at the current ID from valve's API and caches times.
-pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>, is_coop: bool) -> Leaderboards {
+pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: NaiveDateTime, is_coop: bool) -> Leaderboards {
     let url = format!(
         "https://steamcommunity.com/stats/{game}/leaderboards/{id}?xml=1&start={start}&end={end}",
         game = "Portal2",
@@ -43,30 +43,34 @@ pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>, is
 
 // A much lower-code implementation would be to send potential values through POST to see if they exist in the DB, but the # of db interactions would probably cause much worse performance.
 /// Handles comparison with the current leaderboards to see if any user has a new best time
-pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>, banned_users: Vec<String>, data: &XmlTag<Vec<Entry>>){
+pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: NaiveDateTime, banned_users: Vec<String>, data: &XmlTag<Vec<Entry>>){
     let url = format!("http://localhost:8080/api/maps/sp/{id}", id = id);
     let map_json: Vec<SPRanked> = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json()
         .expect("Error in converting our API values to JSON");
-    let mut existing_hash: HashMap<String, i32> = HashMap::with_capacity(200);
+    let mut existing_hash: HashMap<String, (i32, i32)> = HashMap::with_capacity(200);
     let worst_score = map_json[199].map_data.score;
+    let wr = map_json[0].map_data.score;
     let mut not_cheated: Vec<SpBanned> = Vec::new();
 
+    let mut current_rank: Option<i32> = None;
 
     #[allow(clippy::redundant_pattern_matching)]
     for rank in map_json.iter(){
-        if let Some(_) = existing_hash.insert(rank.map_data.profile_number.clone(), rank.map_data.score) {}
+        if let Some(_) = existing_hash.insert(rank.map_data.profile_number.clone(), (rank.map_data.score, rank.rank)) {}
     } 
     // TODO: Implement a per-map threshold???
     // Potentially turn this into a macro? This basic shape is reused.
     for entry in data.value.iter(){
         match existing_hash.get(&entry.steam_id.value){
             // The user has a time in top 200 currently
-            Some(score) => {
+            Some((score, rank)) => {
                 if score > &entry.score.value{
                     // Add to leaderboards.
                     println!("New better time for user {} on map_id {}", entry.steam_id.value, id);
+                    // Save the rank.
+                    current_rank = Some(rank.clone());
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_cheated.push(SpBanned {profilenumber: entry.steam_id.value.clone() , score: entry.score.value}),
                         _ => (),
@@ -97,15 +101,63 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>
                 println!("Time not found, so assumed to be unbanned.");
                 // We have now checked that the user is not banned, that the time is top 200 worthy, that the score doesn't exist in the db, but is banned.
                 // Implement posting the score to the database.
+                post_sp_pb(entry.profilenumber.clone(), entry.score, wr, id, timestamp, current_rank, &map_json);
             },
         }
     }
-
     // Create a changelog entry for the time.
-    
 }
+
+pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp: NaiveDateTime, current_rank: Option<i32>, map_json: &Vec<SPRanked>) -> bool{
+    let mut wr_gain = 0;
+    if score >= wr{
+        wr_gain = 1;
+    }
+    // Grab the PB history.
+    let url = format!("http://localhost:8080/api/maps/sp/{}/{}", id, profilenumber); // TODO: Handle crashing if no PB history is found.
+    let pb_history: SpPbHistory = reqwest::blocking::get(&url)
+        .expect("Error in query to our local API (Make sure the webserver is running")
+        .json()
+        .expect("Error in converting our API values to JSON");
+
+    // TODO: If the user has no PB history...
+    let current_pb = pb_history.pb_history.into_iter().nth(0).unwrap();
+    let previous_id = current_pb.score;
+    let mut post_rank: Option<i32> = None;
+    for entry in map_json.iter(){
+        if entry.map_data.score == score{
+            // They have the same rank
+            post_rank = Some(entry.rank)
+        } else if entry.map_data.score > score{
+            // They will temporarily have the same rank, as when the board re-calculates, the values for the other maps will change. But this value only tracks the inital rank at time of update.
+            post_rank = Some(entry.rank)
+        }
+    }
+
+    let new_score = Changelog {
+        time_gained: Some(timestamp),
+        profile_number: profilenumber, 
+        score: score,
+        map_id: id.to_string(),
+        wr_gain: wr_gain,
+        previous_id: Some(previous_id), // id of last PB
+        post_rank: post_rank, // New rank as of this score update
+        pre_rank: current_rank, // Rank prior to this score update
+        has_demo: Some(0),
+        banned: 0,
+        submission: 0,
+        youtube_id: None,
+        coopid: None,
+        note: None,
+        category: Some("any%".to_string()),
+        id: 0,
+    };
+    // TODO: POST UPDATE TO API ENDPOINT
+    false
+}
+
 /// Version of `filter_entries` for coop, using different logic.
-pub fn filter_entries_coop(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>, banned_users: Vec<String>, data: &XmlTag<Vec<Entry>>){
+pub fn filter_entries_coop(id: i32, start: i32, end: i32, timestamp: NaiveDateTime, banned_users: Vec<String>, data: &XmlTag<Vec<Entry>>){
     let url = format!("http://localhost:8080/api/maps/coop/{id}", id = id);
     let map_json: Vec<CoopRanked> = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")

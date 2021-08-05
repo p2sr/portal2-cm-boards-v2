@@ -2,7 +2,7 @@ use actix_web::{get, post, web, HttpResponse, Error};
 use std::collections::HashMap;
 
 use crate::db::DbPool;
-use crate::tools::datamodels::{SPMap, SpPreviews, SpScoreParams, SPRanked, SpBanned, Changelog};
+use crate::tools::datamodels::{SPMap, SpPbHistory, SpPreviews, SpScoreParams, SPRanked, SpBanned, Changelog, Usersnew};
 use crate::tools::calc::score;
 
 /// Endpoint to handle the preview page showing all sp maps.
@@ -95,3 +95,35 @@ async fn post_banned_scores(mapid: web::Path<u64>, params: web::Json<SpScorePara
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     }
 }
+
+/// Returns a players PB history on an SP map
+#[get("/maps/sp/{mapid}/{profilenumber}")]
+async fn get_sp_pbs(info: web::Path<(i32, i32)>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+    let conn = pool.get().expect("Could not get a DB connection from pool.");
+    
+    // This is gross but Rust was being dumb so I had to do a bunch of weird working around.
+    let new_info = info.0;
+    let profile_number = new_info.0.to_string();
+    let map_id = new_info.1.to_string();
+    let map_id_copy = map_id.clone();
+
+    // Get usersnew info for the player. It should be reusable.
+    let user_data = web::block(move || Usersnew::show(&conn, map_id))
+    .await
+    .map_err(|e|{
+        eprintln!("{}", e);
+        HttpResponse::InternalServerError().finish()
+    })?;
+    let conn = pool.get().expect("Could not get a DB connection from pool.");
+    let changelog_data = web::block(move || Changelog::sp_pb_history(&conn, profile_number, map_id_copy))
+    .await
+    .map_err(|e|{
+        eprintln!("{}", e);
+        HttpResponse::InternalServerError().finish()
+    })?;
+    Ok(HttpResponse::Ok().json(SpPbHistory {
+        user_info: user_data.unwrap(),
+        pb_history: changelog_data,
+    }))
+}
+

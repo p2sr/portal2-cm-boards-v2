@@ -36,8 +36,8 @@ fn fetch_sp(){
     47835,47837,47840,47841,47844,47845,47848,47849,47854,47856,47858,47861,52642,52660,52662,
     52663,52665,52667,52671,52687,52689,52691,52777,52694,52711,52714,52715,52717,52735,52738,
     52740,49341,49343,49345,49347,49349,49351,52757,52759,48287];
-    let utc: DateTime<Utc> = Utc::now();
-   
+    //let utc: DateTime<Utc> = Utc::now();
+    let utc = Utc::now().naive_utc();
     let res_sp: Vec<_> = official_sp.into_par_iter().map(|entry|{
         fetch_entries(entry, 0, 450, utc, false)
     }).collect();

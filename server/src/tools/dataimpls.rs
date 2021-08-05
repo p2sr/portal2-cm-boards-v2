@@ -370,6 +370,14 @@ impl Changelog{
             Err(e) => return Ok(false),
         }
     }
+    pub fn sp_pb_history(conn: &MysqlConnection, mapid: String, profilenumber: String) -> Result<Vec<Changelog>, diesel::result::Error>{
+        let res = all_changelogs
+            .filter(changelog::profile_number.eq(profilenumber))
+            .filter(changelog::map_id.eq(mapid))
+            .order(changelog::score.asc())
+            .load::<Changelog>(conn)?;
+        Ok(res)
+    }
 }
 
 impl ChangelogPage{

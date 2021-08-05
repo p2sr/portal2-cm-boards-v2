@@ -20,7 +20,7 @@ use crate::db::DbPool;
 
 // Structs prefixed with the `table_name` attribute are designed to pull raw data from any table in the database.
 /// One-to-one struct for changelog data.
-#[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
+#[derive(Serialize, Queryable, Debug, Clone, Identifiable, Deserialize)]
 #[table_name = "changelog"]
 pub struct Changelog {
     pub time_gained: Option<NaiveDateTime>,
@@ -190,7 +190,7 @@ pub struct CoopMap{
 }
 // TODO: Potentially work boardname and steamname into one field? (Check if boardname exists, if it doesn, keep it, if not, replace it with steamname).
 /// Essential user information to aid in filling in `CoopMapPrelude`.
-#[derive(Queryable, Serialize, Debug, Clone)]
+#[derive(Queryable, Serialize, Deserialize, Debug, Clone)]
 pub struct UserMap{
     pub boardname: Option<String>,
     pub steamname: Option<String>,
@@ -328,4 +328,11 @@ pub struct CoopBanned{
     pub profilenumber1: String,
     pub profilenumber2: String,
     pub score: i32,
+}
+
+/// Wrapper for a player's SP PB history.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SpPbHistory{
+    pub user_info: UserMap,
+    pub pb_history: Vec<Changelog>,
 }
