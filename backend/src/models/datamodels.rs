@@ -1,12 +1,12 @@
 use chrono::NaiveDateTime;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct XmlTag<T> {
     #[serde(rename = "$value")]
     pub value: T,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct Entry {
     #[serde(rename = "steamid")]
     pub steam_id: XmlTag<String>,

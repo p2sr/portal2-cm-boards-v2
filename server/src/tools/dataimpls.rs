@@ -357,7 +357,8 @@ impl SPMap{
 }
 
 impl Changelog{
-    pub fn check_banned_scores(conn: &MysqlConnection, mapid: String, score: i32, profilenumber: String) -> bool{
+    // TODO: More specific error handling (only return OK when "not found" is the error.)
+    pub fn check_banned_scores(conn: &MysqlConnection, mapid: String, score: i32, profilenumber: String) -> Result<bool, diesel::result::Error>{
         let res = all_changelogs
             .filter(changelog::score.eq(score))
             .filter(changelog::map_id.eq(mapid))
@@ -365,8 +366,8 @@ impl Changelog{
             .filter(changelog::banned.eq(1))
             .load::<Changelog>(conn);
         match res{
-            Ok(_) => return true,
-            Err(e) => return false,
+            Ok(_) => return Ok(true),
+            Err(e) => return Ok(false),
         }
     }
 }
