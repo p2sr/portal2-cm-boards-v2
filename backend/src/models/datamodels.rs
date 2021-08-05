@@ -1,12 +1,12 @@
 use chrono::NaiveDateTime;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct XmlTag<T> {
     #[serde(rename = "$value")]
     pub value: T,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Entry {
     #[serde(rename = "steamid")]
     pub steam_id: XmlTag<String>,
@@ -76,7 +76,7 @@ pub struct CoopRanked{
 }
 
 /// To deserialize banned SP entries from the webserver API calls.
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SpBanned{
     pub profilenumber: String,
     pub score: i32,

@@ -41,6 +41,7 @@ pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>, is
     leaderboard
 }
 
+// A much lower-code implementation would be to send potential values through POST to see if they exist in the DB, but the # of db interactions would probably cause much worse performance.
 /// Handles comparison with the current leaderboards to see if any user has a new best time
 pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>, banned_users: Vec<String>, data: &XmlTag<Vec<Entry>>){
     let url = format!("http://localhost:8080/api/maps/sp/{id}", id = id);
@@ -50,7 +51,9 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>
         .expect("Error in converting our API values to JSON");
     let mut existing_hash: HashMap<String, i32> = HashMap::with_capacity(200);
     let worst_score = map_json[199].map_data.score;
-    
+    let mut not_cheated: Vec<SpBanned> = Vec::new();
+
+
     #[allow(clippy::redundant_pattern_matching)]
     for rank in map_json.iter(){
         if let Some(_) = existing_hash.insert(rank.map_data.profile_number.clone(), rank.map_data.score) {}
@@ -65,7 +68,7 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>
                     // Add to leaderboards.
                     println!("New better time for user {} on map_id {}", entry.steam_id.value, id);
                     match check_cheated(&entry.steam_id.value, &banned_users) {
-                        false => println!("User not banned"), // Send score to be added to db. 
+                        false => not_cheated.push(SpBanned {profilenumber: entry.steam_id.value.clone() , score: entry.score.value}),
                         _ => (),
                     }
                 }
@@ -73,7 +76,7 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>
                 if entry.score.value > worst_score{
                     println!("User {} is new to top 200 on {}, we need to add their time!", entry.steam_id.value, id);
                     match check_cheated(&entry.steam_id.value, &banned_users) {
-                        false => println!("User not banned"), // Send score to be added to db. 
+                        false => not_cheated.push(SpBanned {profilenumber: entry.steam_id.value.clone() , score: entry.score.value}),
                         _ => (),
                     }
                 }
@@ -81,14 +84,23 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: DateTime<Utc>
         }
     }
     // We grab the list of banned times from our API.
-    let ban_url = format!("http://localhost:8080/api/maps/sp/banned/{id}", id = id);
-    let banned_users: Vec<SpBanned> = reqwest::blocking::get(&ban_url)
-        .expect("Error in query to our local API (Make sure the webserver is running")
-        .json()
-        .expect("Error in converting our API values to JSON");
-    
+
     // Filter out any times that are banned from the list of potential runs.
-    
+    // The list of new scores is probably relatively low, it would be easier to just send the score information to an endpoint and have it check.
+    let client = reqwest::blocking::Client::new();
+    let ban_url = format!("http://localhost:8080/api/maps/sp/banned/{id}", id = id);
+    for entry in not_cheated.iter(){
+        let res: bool = client.post(&url).json(entry).send().expect("Error querying our local API").json().expect("Error converting to json");
+        match res{
+            true => println!("The time was found, so the time is banned. Ignore"),
+            false => {
+                println!("Time not found, so assumed to be unbanned.");
+                // We have now checked that the user is not banned, that the time is top 200 worthy, that the score doesn't exist in the db, but is banned.
+                // Implement posting the score to the database.
+            },
+        }
+    }
+
     // Create a changelog entry for the time.
     
 }
@@ -99,7 +111,6 @@ pub fn filter_entries_coop(id: i32, start: i32, end: i32, timestamp: DateTime<Ut
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json()
         .expect("Error in converting our API values to JSON");
-    // What the fuck do we do here?
 
     let mut existing_hash: HashMap<String, i32> = HashMap::with_capacity(400);
     let worst_score = map_json[199].map_data.score;

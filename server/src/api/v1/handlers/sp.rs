@@ -1,8 +1,8 @@
-use actix_web::{get, web, HttpResponse, Error};
+use actix_web::{get, post, web, HttpResponse, Error};
 use std::collections::HashMap;
 
 use crate::db::DbPool;
-use crate::tools::datamodels::{SPMap, SpPreviews, SPRanked, SpBanned};
+use crate::tools::datamodels::{SPMap, SpPreviews, SpScoreParams, SPRanked, SpBanned, Changelog};
 use crate::tools::calc::score;
 
 /// Endpoint to handle the preview page showing all sp maps.
@@ -74,5 +74,15 @@ async fn get_banned_scores(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Re
         eprintln!("{}", e);
         HttpResponse::InternalServerError().finish()
     })?;
+    Ok(HttpResponse::Ok().json(banned_entries))
+}
+
+
+// TODO: Currently just handles any error case as "there is no banned time." Should definitely fix that
+/// Gives the profile number and score for all banned times on a given SP map
+#[post("/maps/sp/banned/{mapid}")]
+async fn post_banned_scores(mapid: web::Path<u64>, params: web::Json<SpScoreParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+    let conn = pool.get().expect("Could not get a DB connection from pool.");
+    let banned_entries = Changelog::check_banned_scores(&conn, mapid.to_string(), params.score, params.profilenumber.clone());
     Ok(HttpResponse::Ok().json(banned_entries))
 }

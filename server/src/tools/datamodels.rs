@@ -308,6 +308,13 @@ pub struct UserParams{
     pub profilenumber: String,
 }
 
+/// Wrapper to send a profile number as a search result
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SpScoreParams{
+    pub profilenumber: String,
+    pub score: i32,
+}
+
 /// Banned times for SP
 #[derive(Serialize, Queryable, Deserialize, Debug)]
 pub struct SpBanned{

@@ -155,6 +155,7 @@ impl SpBanned{
             .select((changelog::profile_number, changelog::score))
             .filter(changelog::banned.eq(1))
             .filter(changelog::map_id.eq(mapid))
+            .order(changelog::score.asc())
             .load::<SpBanned>(conn);
         if let Ok(changelog_entries) = changelog_entries{
             return Ok(changelog_entries);
@@ -170,6 +171,7 @@ impl CoopBanned{
             .select((coopbundled::profile_number1, coopbundled::profile_number2, coopbundled::score))
             .filter(coopbundled::map_id.eq(mapid))
             .filter(coopbundled::banned.eq(1))
+            .order(coopbundled::score.asc())
             .load::<CoopBanned>(conn);
         if let Ok(coopbundled_entries) = coopbundled_entries{
             return Ok(coopbundled_entries);
@@ -351,6 +353,21 @@ impl SPMap{
             .load::<SPMap>(conn)?;
         // Wrapping the vector in a result and an option (not necessary but good practice)
         Ok(Some(map))
+    }
+}
+
+impl Changelog{
+    pub fn check_banned_scores(conn: &MysqlConnection, mapid: String, score: i32, profilenumber: String) -> bool{
+        let res = all_changelogs
+            .filter(changelog::score.eq(score))
+            .filter(changelog::map_id.eq(mapid))
+            .filter(changelog::profile_number.eq(profilenumber))
+            .filter(changelog::banned.eq(1))
+            .load::<Changelog>(conn);
+        match res{
+            Ok(_) => return true,
+            Err(e) => return false,
+        }
     }
 }
 
