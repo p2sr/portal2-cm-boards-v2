@@ -122,7 +122,7 @@ pub struct Usersnew {
 
 /// The minimal data we want for SP map pages to lower bandwidth usage.
 #[derive(Queryable, Serialize, Debug, Clone)]
-pub struct SPMap{
+pub struct SpMap{
     pub time_gained: Option<NaiveDateTime>,
     pub profile_number: String,
     pub score: i32,
@@ -274,8 +274,8 @@ pub struct ChangelogPage{
 
 /// Wrapper for the sp map data and the rank/score.
 #[derive(Serialize)]
-pub struct SPRanked{
-    pub map_data: SPMap,
+pub struct SpRanked{
+    pub map_data: SpMap,
     pub rank: i32,
     pub score: f32,
 }
@@ -334,5 +334,5 @@ pub struct CoopBanned{
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SpPbHistory{
     pub user_info: UserMap,
-    pub pb_history: Vec<Changelog>,
+    pub pb_history: Option<Vec<Changelog>>,
 }

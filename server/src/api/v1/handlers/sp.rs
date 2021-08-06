@@ -2,7 +2,7 @@ use actix_web::{get, post, web, HttpResponse, Error};
 use std::collections::HashMap;
 
 use crate::db::DbPool;
-use crate::tools::datamodels::{SPMap, SpPbHistory, SpPreviews, SpScoreParams, SPRanked, SpBanned, Changelog, Usersnew};
+use crate::tools::datamodels::{SpMap, SpPbHistory, SpPreviews, SpScoreParams, SpRanked, SpBanned, Changelog, Usersnew};
 use crate::tools::calc::score;
 
 /// Endpoint to handle the preview page showing all sp maps.
@@ -26,14 +26,14 @@ async fn get_singleplayer_preview(pool: web::Data<DbPool>) -> Result<HttpRespons
     }
 }
 
-/// Calls models::SPMap to grab the entries for a particular mapid, returns a vector of the top 200 times, in a slimmed down fashion (only essential data)
+/// Calls models::SpMap to grab the entries for a particular mapid, returns a vector of the top 200 times, in a slimmed down fashion (only essential data)
 /// Handles filtering out obsolete times (1 time per runner)
 #[get("/maps/sp/{mapid}")]
 async fn get_singleplayer_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     // Grabs a mysql db connection from a pool in the web::Data.
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     // Async non-blocking call to grab the data from the database.
-    let changelog_entries = web::block(move || SPMap::show(&conn, mapid.to_string()))
+    let changelog_entries = web::block(move || SpMap::show(&conn, mapid.to_string()))
     .await
     .map_err(|e|{
         eprintln!("{}", e);
@@ -50,7 +50,7 @@ async fn get_singleplayer_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -
                 // If this returns, the profile_number has a better time, remove the time from the vector
                 Some(_) => (),
                 _ => {
-                    changelog_entries_filtered.push( SPRanked {map_data: entry.clone(), rank: i, score: score(i)});
+                    changelog_entries_filtered.push( SpRanked {map_data: entry.clone(), rank: i, score: score(i)});
                     i += 1;
                 }
             }
@@ -121,9 +121,16 @@ async fn get_sp_pbs(info: web::Path<(i32, i32)>, pool: web::Data<DbPool>) -> Res
         eprintln!("{}", e);
         HttpResponse::InternalServerError().finish()
     })?;
-    Ok(HttpResponse::Ok().json(SpPbHistory {
-        user_info: user_data.unwrap(),
-        pb_history: changelog_data,
-    }))
+    if let Some(changelog_data) = changelog_data{
+        Ok(HttpResponse::Ok().json(SpPbHistory {
+            user_info: user_data.unwrap(),
+            pb_history: Some(changelog_data),
+        }))
+    } else{
+        Ok(HttpResponse::Ok().json(SpPbHistory {
+            user_info: user_data.unwrap(),
+            pb_history: None,
+        }))
+    }
 }
 

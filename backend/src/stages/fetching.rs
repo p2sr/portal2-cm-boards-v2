@@ -3,7 +3,7 @@ use serde_xml_rs::from_reader;
 use super::exporting::*;
 use chrono::prelude::*;
 
-use crate::models::datamodels::{SPMap, SpPbHistory, SPRanked, SpBanned, Changelog, CoopBanned, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
+use crate::models::datamodels::{SpMap, SpPbHistory, SpRanked, SpBanned, Changelog, CoopBanned, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
 
 /// Grabs the map at the current ID from valve's API and caches times.
 pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: NaiveDateTime, is_coop: bool) -> Leaderboards {
@@ -22,6 +22,7 @@ pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: NaiveDateTime, is
 
     // Print to cache
     let is_updated = cache_leaderboard(id, text.clone());
+    // TODO: Set this up with logging.
     if is_updated{
         println!("The cache is updated for map {}", id);
     }
@@ -45,32 +46,29 @@ pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: NaiveDateTime, is
 /// Handles comparison with the current leaderboards to see if any user has a new best time
 pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: NaiveDateTime, banned_users: Vec<String>, data: &XmlTag<Vec<Entry>>){
     let url = format!("http://localhost:8080/api/maps/sp/{id}", id = id);
-    let map_json: Vec<SPRanked> = reqwest::blocking::get(&url)
+    let map_json: Vec<SpRanked> = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json()
         .expect("Error in converting our API values to JSON");
+
     let mut existing_hash: HashMap<String, (i32, i32)> = HashMap::with_capacity(200);
-    let worst_score = map_json[199].map_data.score;
-    let wr = map_json[0].map_data.score;
     let mut not_cheated: Vec<SpBanned> = Vec::new();
 
     let mut current_rank: Option<i32> = None;
+    let worst_score = map_json[199].map_data.score;
+    let wr = map_json[0].map_data.score;
 
-    #[allow(clippy::redundant_pattern_matching)]
     for rank in map_json.iter(){
-        if let Some(_) = existing_hash.insert(rank.map_data.profile_number.clone(), (rank.map_data.score, rank.rank)) {}
+        existing_hash.insert(rank.map_data.profile_number.clone(), (rank.map_data.score, rank.rank));
     } 
     // TODO: Implement a per-map threshold???
     // Potentially turn this into a macro? This basic shape is reused.
     for entry in data.value.iter(){
         match existing_hash.get(&entry.steam_id.value){
-            // The user has a time in top 200 currently
-            Some((score, rank)) => {
+            Some((score, rank)) => {    // The user has a time in top 200 currently
                 if score > &entry.score.value{
-                    // Add to leaderboards.
-                    println!("New better time for user {} on map_id {}", entry.steam_id.value, id);
-                    // Save the rank.
-                    current_rank = Some(rank.clone());
+                    println!("New better time for user {} on map_id {}", entry.steam_id.value, id); // Add to leaderboards.
+                    current_rank = Some(rank.clone());  // Save the rank.
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_cheated.push(SpBanned {profilenumber: entry.steam_id.value.clone() , score: entry.score.value}),
                         _ => (),
@@ -94,21 +92,25 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: NaiveDateTime
     let client = reqwest::blocking::Client::new();
     let ban_url = format!("http://localhost:8080/api/maps/sp/banned/{id}", id = id);
     for entry in not_cheated.iter(){
-        let res: bool = client.post(&url).json(entry).send().expect("Error querying our local API").json().expect("Error converting to json");
+        let res: bool = client
+            .post(&url)
+            .json(entry)
+            .send()
+            .expect("Error querying our local API")
+            .json()
+            .expect("Error converting to json");
         match res{
             true => println!("The time was found, so the time is banned. Ignore"),
             false => {
                 println!("Time not found, so assumed to be unbanned.");
                 // We have now checked that the user is not banned, that the time is top 200 worthy, that the score doesn't exist in the db, but is banned.
-                // Implement posting the score to the database.
                 post_sp_pb(entry.profilenumber.clone(), entry.score, wr, id, timestamp, current_rank, &map_json);
             },
         }
     }
-    // Create a changelog entry for the time.
 }
 
-pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp: NaiveDateTime, current_rank: Option<i32>, map_json: &Vec<SPRanked>) -> bool{
+pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp: NaiveDateTime, current_rank: Option<i32>, map_json: &Vec<SpRanked>) -> bool{
     let mut wr_gain = 0;
     if score >= wr{
         wr_gain = 1;
@@ -120,9 +122,19 @@ pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp
         .json()
         .expect("Error in converting our API values to JSON");
 
-    // TODO: If the user has no PB history...
-    let current_pb = pb_history.pb_history.into_iter().nth(0).unwrap();
-    let previous_id = current_pb.score;
+    let mut previous_id = None;
+    let pb_vec = pb_history.pb_history;
+    match pb_vec{
+        Some(pb_vec) => {
+            let current_pb = pb_vec
+                .into_iter()
+                .nth(0)
+                .unwrap();
+            previous_id = Some(current_pb.score);
+        },
+        None => (),
+    }
+
     let mut post_rank: Option<i32> = None;
     for entry in map_json.iter(){
         if entry.map_data.score == score{
@@ -140,7 +152,7 @@ pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp
         score: score,
         map_id: id.to_string(),
         wr_gain: wr_gain,
-        previous_id: Some(previous_id), // id of last PB
+        previous_id: previous_id, // id of last PB
         post_rank: post_rank, // New rank as of this score update
         pre_rank: current_rank, // Rank prior to this score update
         has_demo: Some(0),
@@ -169,8 +181,8 @@ pub fn filter_entries_coop(id: i32, start: i32, end: i32, timestamp: NaiveDateTi
     let mut new_times = Vec::new();
     // We attempt to insert both players into the hashmap. This way we get all players with a top 200 in coop.
     for rank in map_json.iter(){
-        if let Some(_) = existing_hash.insert(rank.map_data.profile_number1.clone(), rank.map_data.score) {}
-        if let Some(_) = existing_hash.insert(rank.map_data.profile_number2.clone(), rank.map_data.score) {}
+        existing_hash.insert(rank.map_data.profile_number1.clone(), rank.map_data.score);
+        existing_hash.insert(rank.map_data.profile_number2.clone(), rank.map_data.score);
     }
 
     // Filter out all scores that exist

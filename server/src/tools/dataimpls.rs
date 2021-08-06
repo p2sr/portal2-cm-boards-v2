@@ -336,9 +336,9 @@ impl CoopMap{
 }
 
 // TODO: Support for `DISTINCT_ON` in the future.
-impl SPMap{
+impl SpMap{
     /// Selects the necessary information for the sp maps page, filters out banned times and users
-    pub fn show(conn: &MysqlConnection, mapid: String) -> Result<Option<Vec<SPMap>>, diesel::result::Error>{
+    pub fn show(conn: &MysqlConnection, mapid: String) -> Result<Option<Vec<SpMap>>, diesel::result::Error>{
         let map = all_changelogs            
             .inner_join(all_users)
             .select((changelog::time_gained.nullable(), changelog::profile_number, changelog::score, 
@@ -350,7 +350,7 @@ impl SPMap{
             .filter(changelog::banned.eq(0))
             .filter(usersnew::banned.eq(0))
             .order(changelog::score.asc())
-            .load::<SPMap>(conn)?;
+            .load::<SpMap>(conn)?;
         // Wrapping the vector in a result and an option (not necessary but good practice)
         Ok(Some(map))
     }
@@ -370,13 +370,18 @@ impl Changelog{
             Err(e) => return Ok(false),
         }
     }
-    pub fn sp_pb_history(conn: &MysqlConnection, mapid: String, profilenumber: String) -> Result<Vec<Changelog>, diesel::result::Error>{
+    // TODO: Better error handling.
+    pub fn sp_pb_history(conn: &MysqlConnection, mapid: String, profilenumber: String) -> Result<Option<Vec<Changelog>>, diesel::result::Error>{
         let res = all_changelogs
             .filter(changelog::profile_number.eq(profilenumber))
             .filter(changelog::map_id.eq(mapid))
             .order(changelog::score.asc())
-            .load::<Changelog>(conn)?;
-        Ok(res)
+            .load::<Changelog>(conn);
+        if let Ok(res) = res{
+            return Ok(Some(res));
+        } else{
+            Ok(None)
+        }
     }
 }
 
