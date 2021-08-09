@@ -14,6 +14,7 @@ use std::env;
 use dotenv::dotenv;
 use rayon::prelude::*;
 use chrono::prelude::*;
+use log::{info, trace, warn};
 
 mod stages;
 use stages::exporting::*;
