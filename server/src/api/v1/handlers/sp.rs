@@ -134,9 +134,11 @@ async fn get_sp_pbs(info: web::Path<(i32, i32)>, pool: web::Data<DbPool>) -> Res
     }
 }
 /// Receives a new score to add to the DB.
-#[post("/maps/sp/post_score")]
+#[post("/sp/post_score")]
 async fn post_score_sp(params: web::Json<ChangelogInsert>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
+    // TODO: Handle demo uploads.
+    // TODO: Differentiate scores pulled from Steam vs manual submissions.
     web::block(move || Changelog::insert_changelog(&conn, params.0))
         .await
         .map_err(|e|{
@@ -146,12 +148,17 @@ async fn post_score_sp(params: web::Json<ChangelogInsert>, pool: web::Data<DbPoo
     Ok(HttpResponse::Ok().json(true))
 }
 
-///// Receives new data to update an existing score.
-// #[put("/maps/sp/update")]
-// async fn put_score_sp(params: web::Json<ChangelogInsert>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
-//     let conn = pool.get().expect("Could not get a DB connection from pool.");
+/// Receives new data to update an existing score.
+#[put("/maps/sp/update")]
+async fn put_score_sp(params: web::Json<Changelog>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+    let conn = pool.get().expect("Could not get a DB connection from pool.");
+    // TODO: Handle demo uploads.
+    let res = web::block(move || Changelog::update_changelog(&conn, params.0))
+        .await
+        .map_err(|e|{
+            eprintln!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })?;
 
-
-
-//     Ok(HttpResponse::Ok().json(true))
-// }
+    Ok(HttpResponse::Ok().json(res))
+}

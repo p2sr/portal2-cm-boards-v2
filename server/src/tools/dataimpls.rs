@@ -393,6 +393,17 @@ impl Changelog{
             Err(e) => return Err(e),
         }
     }
+    /// Update an existing score
+    pub fn update_changelog(conn: &MysqlConnection, update: Changelog) -> Result<Changelog, diesel::result::Error>{
+        diesel::update(all_changelogs.filter(changelog::id.eq(update.id)))
+            .set((changelog::banned.eq(update.banned), changelog::note.eq(update.note), changelog::youtube_id.eq(update.youtube_id), changelog::has_demo.eq(update.has_demo)))
+            .execute(conn)?;
+        // TODO: Handle demo uploading
+        let res = all_changelogs
+            .filter(changelog::id.eq(update.id))
+            .first(conn)?;
+        Ok(res)
+    }
 }
 
 impl ChangelogPage{
