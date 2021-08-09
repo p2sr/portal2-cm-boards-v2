@@ -163,8 +163,20 @@ pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp
         note: None,
         category: Some("any%".to_string()),
     };
-    // TODO: POST UPDATE TO API ENDPOINT
-    false
+    let client = reqwest::blocking::Client::new();
+    let post_url = "http://localhost:8080/api/sp/postscore".to_string();
+    let res: bool = client
+        .post(&url)
+        .json(&new_score)
+        .send()
+        .expect("Error querying our local API")
+        .json()
+        .expect("Error converting to json");
+    // TODO: Better handling of failure
+    match res{
+        true => return true,
+        false => return false,
+    }
 }
 
 /// Version of `filter_entries` for coop, using different logic.
