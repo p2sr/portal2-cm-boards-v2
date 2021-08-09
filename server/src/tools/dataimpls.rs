@@ -383,6 +383,16 @@ impl Changelog{
             Ok(None)
         }
     }
+    /// Insert a new changelog entry.
+    pub fn insert_changelog(conn: &MysqlConnection, update: ChangelogInsert) -> Result<bool, diesel::result::Error>{
+        let res = diesel::insert_into(changelog::table)
+            .values(&update)
+            .execute(conn);
+        match res{
+            Ok(_) => return Ok(true),
+            Err(e) => return Err(e),
+        }
+    }
 }
 
 impl ChangelogPage{

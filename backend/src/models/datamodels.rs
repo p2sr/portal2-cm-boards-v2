@@ -40,6 +40,25 @@ pub struct Changelog {
     pub category: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChangelogInsert {
+    pub time_gained: Option<NaiveDateTime>,
+    pub profile_number: String,
+    pub score: i32,
+    pub map_id: String,
+    pub wr_gain: i32,
+    pub has_demo: Option<i32>,
+    pub banned: i32,
+    pub youtube_id: Option<String>,
+    pub previous_id: Option<i32>,
+    pub coopid: Option<i32>,
+    pub post_rank: Option<i32>,
+    pub pre_rank: Option<i32>,
+    pub submission: i32,
+    pub note: Option<String>,
+    pub category: Option<String>,
+}
+
 /// This struct handles the minimal information we want for SP map pages. We want to limit the amount of data we need to transfer.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpMap{

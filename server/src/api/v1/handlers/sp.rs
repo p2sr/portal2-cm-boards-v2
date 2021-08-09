@@ -1,8 +1,8 @@
-use actix_web::{get, post, web, HttpResponse, Error};
+use actix_web::{get, post, put, web, HttpResponse, Error};
 use std::collections::HashMap;
 
 use crate::db::DbPool;
-use crate::tools::datamodels::{SpMap, SpPbHistory, SpPreviews, SpScoreParams, SpRanked, SpBanned, Changelog, Usersnew};
+use crate::tools::datamodels::{SpMap, SpPbHistory, SpPreviews, SpScoreParams, SpRanked, SpBanned, Changelog, ChangelogInsert, Usersnew};
 use crate::tools::calc::score;
 
 /// Endpoint to handle the preview page showing all sp maps.
@@ -11,11 +11,11 @@ use crate::tools::calc::score;
 async fn get_singleplayer_preview(pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     let sp_previews = web::block(move || SpPreviews::show(&conn))
-    .await
-    .map_err(|e|{
-        eprintln!("{}", e);
-        HttpResponse::InternalServerError().finish()
-    })?;
+        .await
+        .map_err(|e|{
+            eprintln!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })?;
     // Check the contents of the Option, if it exists extract it. 
     if let Some(sp_previews) = sp_previews{
         Ok(HttpResponse::Ok().json(sp_previews))
@@ -34,11 +34,11 @@ async fn get_singleplayer_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     // Async non-blocking call to grab the data from the database.
     let changelog_entries = web::block(move || SpMap::show(&conn, mapid.to_string()))
-    .await
-    .map_err(|e|{
-        eprintln!("{}", e);
-        HttpResponse::InternalServerError().finish()
-    })?;
+        .await
+        .map_err(|e|{
+            eprintln!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })?;
     // Check the contents of the Option, if it exists extract it. 
     if let Some(changelog_entries) = changelog_entries{
         // Filters out all obsolete times from the result, then truncates to 200 entries.
@@ -69,11 +69,11 @@ async fn get_singleplayer_maps(mapid: web::Path<u64>, pool: web::Data<DbPool>) -
 async fn get_banned_scores(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     let banned_entries = web::block(move || SpBanned::show(&conn, mapid.to_string()))
-    .await
-    .map_err(|e|{
-        eprintln!("{}", e);
-        HttpResponse::InternalServerError().finish()
-    })?;
+        .await
+        .map_err(|e|{
+            eprintln!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })?;
     Ok(HttpResponse::Ok().json(banned_entries))
 }
 
@@ -109,18 +109,18 @@ async fn get_sp_pbs(info: web::Path<(i32, i32)>, pool: web::Data<DbPool>) -> Res
 
     // Get usersnew info for the player. It should be reusable.
     let user_data = web::block(move || Usersnew::show(&conn, map_id))
-    .await
-    .map_err(|e|{
-        eprintln!("{}", e);
-        HttpResponse::InternalServerError().finish()
-    })?;
+        .await
+        .map_err(|e|{
+            eprintln!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })?;
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     let changelog_data = web::block(move || Changelog::sp_pb_history(&conn, profile_number, map_id_copy))
-    .await
-    .map_err(|e|{
-        eprintln!("{}", e);
-        HttpResponse::InternalServerError().finish()
-    })?;
+        .await
+        .map_err(|e|{
+            eprintln!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })?;
     if let Some(changelog_data) = changelog_data{
         Ok(HttpResponse::Ok().json(SpPbHistory {
             user_info: user_data.unwrap(),
@@ -133,4 +133,25 @@ async fn get_sp_pbs(info: web::Path<(i32, i32)>, pool: web::Data<DbPool>) -> Res
         }))
     }
 }
+/// Receives a new score to add to the DB.
+#[post("/maps/sp/post_score")]
+async fn post_score_sp(params: web::Json<ChangelogInsert>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+    let conn = pool.get().expect("Could not get a DB connection from pool.");
+    web::block(move || Changelog::insert_changelog(&conn, params.0))
+        .await
+        .map_err(|e|{
+            eprintln!("{}", e);
+            HttpResponse::InternalServerError().finish()
+        })?;
+    Ok(HttpResponse::Ok().json(true))
+}
 
+///// Receives new data to update an existing score.
+// #[put("/maps/sp/update")]
+// async fn put_score_sp(params: web::Json<ChangelogInsert>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+//     let conn = pool.get().expect("Could not get a DB connection from pool.");
+
+
+
+//     Ok(HttpResponse::Ok().json(true))
+// }

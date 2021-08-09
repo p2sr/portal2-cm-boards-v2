@@ -40,6 +40,27 @@ pub struct Changelog {
     pub note: Option<String>,
     pub category: Option<String>,
 }
+
+#[derive(Serialize, Debug, Clone, Deserialize, Insertable)]
+#[table_name = "changelog"]
+pub struct ChangelogInsert {
+    pub time_gained: Option<NaiveDateTime>,
+    pub profile_number: String,
+    pub score: i32,
+    pub map_id: String,
+    pub wr_gain: i32,
+    pub has_demo: Option<i32>,
+    pub banned: i32,
+    pub youtube_id: Option<String>,
+    pub previous_id: Option<i32>,
+    pub coopid: Option<i32>,
+    pub post_rank: Option<i32>,
+    pub pre_rank: Option<i32>,
+    pub submission: i32,
+    pub note: Option<String>,
+    pub category: Option<String>,
+}
+
 /// One-to-one struct for chapter data.
 #[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
 #[table_name = "chapters"]

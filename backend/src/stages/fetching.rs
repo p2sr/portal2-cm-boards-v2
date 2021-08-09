@@ -3,7 +3,7 @@ use serde_xml_rs::from_reader;
 use super::exporting::*;
 use chrono::prelude::*;
 
-use crate::models::datamodels::{SpMap, SpPbHistory, SpRanked, SpBanned, Changelog, CoopBanned, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
+use crate::models::datamodels::{SpMap, SpPbHistory, SpRanked, SpBanned, ChangelogInsert, CoopBanned, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
 
 /// Grabs the map at the current ID from valve's API and caches times.
 pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: NaiveDateTime, is_coop: bool) -> Leaderboards {
@@ -146,7 +146,7 @@ pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp
         }
     }
 
-    let new_score = Changelog {
+    let new_score = ChangelogInsert {
         time_gained: Some(timestamp),
         profile_number: profilenumber, 
         score: score,
@@ -162,7 +162,6 @@ pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp
         coopid: None,
         note: None,
         category: Some("any%".to_string()),
-        id: 0,
     };
     // TODO: POST UPDATE TO API ENDPOINT
     false
