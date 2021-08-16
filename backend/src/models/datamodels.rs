@@ -115,7 +115,7 @@ pub struct CoopRanked{
 }
 
 /// To deserialize banned SP entries from the webserver API calls.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SpBanned{
     pub profilenumber: String,
     pub score: i32,
@@ -123,9 +123,9 @@ pub struct SpBanned{
 
 /// To deserialize banned Coop entries from the webserver API calls.
 #[derive(Deserialize, Debug)]
-pub struct CoopBanned{
+pub struct CoopBundled{
     pub profilenumber1: String,
-    pub profilenumber2: String,
+    pub profilenumber2: Option<String>,
     pub score: i32,
 }
 

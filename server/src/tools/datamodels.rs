@@ -331,7 +331,7 @@ pub struct UserParams{
 
 /// Wrapper to send a profile number as a search result
 #[derive(Serialize, Deserialize, Debug)]
-pub struct SpScoreParams{
+pub struct ScoreParams{
     pub profilenumber: String,
     pub score: i32,
 }

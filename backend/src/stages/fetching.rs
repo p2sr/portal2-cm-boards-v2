@@ -3,7 +3,7 @@ use serde_xml_rs::from_reader;
 use super::exporting::*;
 use chrono::prelude::*;
 
-use crate::models::datamodels::{SpMap, SpPbHistory, SpRanked, SpBanned, ChangelogInsert, CoopBanned, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
+use crate::models::datamodels::{SpMap, SpPbHistory, SpRanked, SpBanned, ChangelogInsert, CoopBundled, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
 
 /// Grabs the map at the current ID from valve's API and caches times.
 pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: NaiveDateTime, is_coop: bool) -> Leaderboards {
@@ -68,6 +68,7 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: NaiveDateTime
             Some((score, rank)) => {    // The user has a time in top 200 currently
                 if score > &entry.score.value{
                     println!("New better time for user {} on map_id {}", entry.steam_id.value, id); // Add to leaderboards.
+                    // TODO: Current_rank does not save as we go, we over-write it everytime.
                     current_rank = Some(rank.clone());  // Save the rank.
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_cheated.push(SpBanned {profilenumber: entry.steam_id.value.clone() , score: entry.score.value}),
@@ -187,52 +188,108 @@ pub fn filter_entries_coop(id: i32, start: i32, end: i32, timestamp: NaiveDateTi
         .json()
         .expect("Error in converting our API values to JSON");
 
-    let mut existing_hash: HashMap<String, i32> = HashMap::with_capacity(400);
+    let mut existing_hash: HashMap<String, (i32, i32)> = HashMap::with_capacity(400);
     let worst_score = map_json[199].map_data.score;
-    let mut new_times = Vec::new();
+    let wr = map_json[0].map_data.score;
+    let mut current_rank: Option<i32> = None;
+    
+    let mut not_banned_player = Vec::new();
     // We attempt to insert both players into the hashmap. This way we get all players with a top 200 in coop.
     for rank in map_json.iter(){
-        existing_hash.insert(rank.map_data.profile_number1.clone(), rank.map_data.score);
-        existing_hash.insert(rank.map_data.profile_number2.clone(), rank.map_data.score);
-    }
-
-    // Filter out all scores that exist
+        existing_hash.insert(rank.map_data.profile_number1.clone(), (rank.map_data.score, rank.rank));
+        existing_hash.insert(rank.map_data.profile_number2.clone(), (rank.map_data.score, rank.rank));
+    } 
+    // Filter out all scores that exist. We filter this out in the same way that we filter SP times, the coop-specific logic is handled later
     for entry in data.value.iter(){
         match existing_hash.get(&entry.steam_id.value){
-            Some(score) => { // If they're in top 200
-                if score > &entry.score.value{ // If the score is better than their pre-existing score
-                    match check_cheated(&entry.steam_id.value, &banned_users){
-                        false => new_times.push(entry.clone()), // Add to list of new coop times to be processed.
-                        _ => (), // Banned user, ignore time.
+            Some((score, rank)) => {    // The user has a time in top 200 currently
+                if score > &entry.score.value{
+                    println!("New better time for user {} on map_id {}", entry.steam_id.value, id); // Add to leaderboards.
+                    current_rank = Some(rank.clone());  // Save the rank.
+                    match check_cheated(&entry.steam_id.value, &banned_users) { 
+                        // We use SpBanned here because scores taken from the SteamAPI are all handled as SP times.
+                        false => not_banned_player.push(SpBanned {profilenumber: entry.steam_id.value.clone() , score: entry.score.value}),
+                        _ => (),    
                     }
                 }
-            } _ => {
-                if entry.score.value > worst_score{ // If they're not in top 200, but they should be
-                    match check_cheated(&entry.steam_id.value, &banned_users){
-                        false => new_times.push(entry.clone()), // Add to list of new coop times to be processed.
+            } _ => { // The user is not currently in top 200.
+                if entry.score.value > worst_score{
+                    println!("User {} is new to top 200 on {}, we need to add their time!", entry.steam_id.value, id);
+                    match check_cheated(&entry.steam_id.value, &banned_users) {
+                        false => not_banned_player.push(SpBanned {profilenumber: entry.steam_id.value.clone() , score: entry.score.value}),
                         _ => (),
                     }
                 }
             }
         }
     }
-    // We now have a list of all the times we want to add to the db. Now we attempt to match them.
-    // We need to reference a list of all banned times on a map.
-    let ban_url = format!("http://localhost:8080/api/maps/coop/banned/{id}", id = id);
-    let banned_users: Vec<CoopBanned> = reqwest::blocking::get(&ban_url)
-        .expect("Error in query to our local API (Make sure the webserver is running")
-        .json()
-        .expect("Error in converting our API values to JSON");
-    
+
     // Check to see if any of the times are banned on our leaderboards
+    // Do an SP style check here first, as we want to ensure none of the times are old and banned.
+    // The issue with doing this step pre-bundled would be if long-standing, banned times are bundled before checking
+    // to see that they're old, banned times on the leaderboard, our assumption about all scores being new and together
+    // falls apart.
+    let client = reqwest::blocking::Client::new();
+    let ban_url = format!("http://localhost:8080/api/maps/coop/banned/{id}", id = id);
+    let mut not_cheated = Vec::new();   // Becomes the vector of times that are not from banned players, and do not exist in the changelog.
+    for entry in not_banned_player.iter(){
+        let res: bool = client
+            .post(&url)
+            .json(entry)
+            .send()
+            .expect("Error querying our local API")
+            .json()
+            .expect("Error converting to json");
+        match res{
+            true => println!("The time was found, so the time is banned. Ignore"),
+            false => not_cheated.push(entry.clone()),
+        }
+    }
+
 
     // The times that aren't banned should be parsed to see if there are matching times
     // If the times are matching, all old times are filtered, and no banned times are taken into consideration, 
     // it's fair to assume the times were gotten together between two people
-    
+    let mut already_bundled: HashMap<String, i32> = HashMap::new();
+    // Contains the bundled entries (if profilenumber2 is None, there is no mathcing time)
+    let mut bundled_entries = Vec::new();
+    for entry in not_cheated.iter(){
+        for entry2 in not_cheated.iter(){
+            if (entry.profilenumber != entry2.profilenumber) & (entry.score == entry2.score){
+                // Scores are assumed to be gotten together. 
+                match already_bundled.get(&entry.profilenumber){ // Make sure we aren't just reading the second entry later down the line.
+                    Some(_) => (),
+                    None => {
+                        match already_bundled.get(&entry2.profilenumber){
+                            Some(_) => (),
+                            None => {
+                                bundled_entries.push(CoopBundled{profilenumber1: entry.profilenumber.clone(), profilenumber2: Some(entry2.profilenumber.clone()), score: entry.score});
+                                already_bundled.insert(entry.profilenumber.clone(), 1);
+                                already_bundled.insert(entry2.profilenumber.clone(), 1);
+                            }
+                        }
+                    }
+                }
+            } 
+        }
+        // If we have looked through every entry, and found no match, the time is "carried" and the p2 is unknown
+        match already_bundled.get(&entry.profilenumber){
+            Some(_) => (),
+            None => {
+                bundled_entries.push(CoopBundled{profilenumber1: entry.profilenumber.clone(), profilenumber2: None, score: entry.score});
+                // Probably unnecessary to add to hashmap, but doing it just incase.
+                already_bundled.insert(entry.profilenumber.clone(), 0);
+            }
+        }
+    }
     // Create individual changelog entries, and create a bundled coop time to represent the new times
 
     // Push to the database.
+}
+
+///
+pub fn post_coop_pb(profilenumber1: String, profilenumber2: Option<String>, score: i32, wr: i32, id: i32, timestamp: NaiveDateTime, current_rank: Option<i32>, map_json: &Vec<CoopRanked>) -> bool{
+    true
 }
 
 pub fn check_cheated(id: &String, banned_users: &Vec<String>) -> bool{

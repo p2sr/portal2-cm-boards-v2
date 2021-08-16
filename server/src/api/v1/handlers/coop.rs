@@ -1,8 +1,8 @@
-use actix_web::{get, web, HttpResponse, Error};
+use actix_web::{get, post, web, HttpResponse, Error};
 use std::collections::HashMap;
 
 use crate::db::DbPool;
-use crate::tools::datamodels::{CoopMap, CoopBanned, CoopPreviews, CoopRanked};
+use crate::tools::datamodels::{Changelog, ScoreParams, CoopMap, CoopBanned, CoopPreviews, CoopRanked};
 use crate::tools::calc::score;
 
 
@@ -85,4 +85,23 @@ async fn get_banned_scores(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Re
         HttpResponse::InternalServerError().finish()
     })?;
     Ok(HttpResponse::Ok().json(banned_entries))
+}
+
+// TODO: Probably should still improve error handling, but now the call is web::block()ing
+/// Gives the profile number and score for all banned times on a given Coop map. Same as SP for now
+#[post("/maps/coop/banned/{mapid}")]
+async fn post_banned_scores(mapid: web::Path<u64>, params: web::Json<ScoreParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+    let conn = pool.get().expect("Could not get a DB connection from pool.");
+    // Potentially check for a valid coop map_id before spawning a thread to query the database.
+    let banned_entries = web::block(move || Changelog::check_banned_scores(&conn, mapid.to_string(), params.score, params.profilenumber.clone()))
+    .await
+    .map_err(|e|{
+        eprintln!("{}", e);
+        // HttpResponse::InternalServerError().finish()
+    });
+    match banned_entries{
+        Ok(true) => return Ok(HttpResponse::Ok().json(true)),
+        Ok(false) => return Ok(HttpResponse::Ok().json(false)),
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
+    }
 }

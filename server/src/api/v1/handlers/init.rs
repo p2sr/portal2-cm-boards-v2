@@ -1,6 +1,6 @@
 use actix_web::web;
 
-use crate::api::v1::handlers::sp::{get_singleplayer_maps, get_singleplayer_preview, get_banned_scores, post_banned_scores, get_sp_pbs, post_score_sp};
+use crate::api::v1::handlers::sp::{get_singleplayer_maps, get_singleplayer_preview, get_banned_scores, post_banned_scores, get_sp_pbs, post_score_sp, put_score_sp};
 use crate::api::v1::handlers::coop::{get_cooperative_maps, get_cooperative_preview};
 use crate::api::v1::handlers::changelog::{get_changelog, post_changelog_filtered};
 use crate::api::v1::handlers::users::{get_banned_users, check_ban_status};
@@ -15,6 +15,7 @@ pub fn init(cfg: &mut web::ServiceConfig){
             .service(post_banned_scores)
             .service(get_sp_pbs)
             .service(post_score_sp)
+            .service(put_score_sp)
             .service(get_cooperative_maps) // Coop
             .service(get_cooperative_preview)
             .service(get_changelog)

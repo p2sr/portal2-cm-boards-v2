@@ -2,7 +2,7 @@ use actix_web::{get, post, put, web, HttpResponse, Error};
 use std::collections::HashMap;
 
 use crate::db::DbPool;
-use crate::tools::datamodels::{SpMap, SpPbHistory, SpPreviews, SpScoreParams, SpRanked, SpBanned, Changelog, ChangelogInsert, Usersnew};
+use crate::tools::datamodels::{SpMap, SpPbHistory, SpPreviews, ScoreParams, SpRanked, SpBanned, Changelog, ChangelogInsert, Usersnew};
 use crate::tools::calc::score;
 
 /// Endpoint to handle the preview page showing all sp maps.
@@ -81,7 +81,7 @@ async fn get_banned_scores(mapid: web::Path<u64>, pool: web::Data<DbPool>) -> Re
 // TODO: Probably should still improve error handling, but now the call is web::block()ing
 /// Gives the profile number and score for all banned times on a given SP map
 #[post("/maps/sp/banned/{mapid}")]
-async fn post_banned_scores(mapid: web::Path<u64>, params: web::Json<SpScoreParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+async fn post_banned_scores(mapid: web::Path<u64>, params: web::Json<ScoreParams>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
     let conn = pool.get().expect("Could not get a DB connection from pool.");
     let banned_entries = web::block(move || Changelog::check_banned_scores(&conn, mapid.to_string(), params.score, params.profilenumber.clone()))
     .await
