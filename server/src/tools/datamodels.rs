@@ -101,6 +101,37 @@ pub struct Coopbundled {
     pub note2: Option<String>,
     pub category: Option<String>,
 }
+
+#[derive(Serialize, Queryable, Debug, Clone, Insertable)]
+#[table_name = "coopbundled"]
+pub struct CoopbundledInsert {
+    pub time_gained: Option<NaiveDateTime>,
+    pub profile_number1: String,
+    pub profile_number2: String,
+    pub score: i32,
+    pub map_id: String,
+    pub wr_gain: i32,
+    pub is_blue: Option<i32>,
+    pub has_demo1: Option<i32>,
+    pub has_demo2: Option<i32>,
+    pub banned: i32,
+    pub youtube_id1: Option<String>,
+    pub youtube_id2: Option<String>,
+    pub previous_id1: Option<i32>,
+    pub previous_id2: Option<i32>,
+    pub changelogid1: i32,
+    pub changelogid2: i32,
+    pub post_rank1: Option<i32>,
+    pub post_rank2: Option<i32>,
+    pub pre_rank1: Option<i32>,
+    pub pre_rank2: Option<i32>,
+    pub submission1: i32,
+    pub submission2: i32,
+    pub note1: Option<String>,
+    pub note2: Option<String>,
+    pub category: Option<String>,
+}
+
 /// One-to-one struct for maps data.
 #[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
 #[table_name = "maps"]

@@ -20,6 +20,38 @@ AND u2.banned=0
 AND map_id=52642
 ORDER BY coopbundled.score ASC; 
 
+SELECT cl.profile_number, cl.score
+FROM changelog cl
+	INNER JOIN (SELECT profile_number, MIN(score) as m_score
+    	FROM changelog
+        GROUP BY profile_number) s
+     ON cl.profile_number=s.profile_number
+        AND cl.score=s.m_score
+WHERE
+  cl.map_id = '1'
+GROUP BY
+  cl.profile_number, cl.score
+ORDER BY 
+  cl.score;
+
+
+/*WIP*/
+SELECT cl.profile_number, cl.map_id, cl.id, cl.score
+FROM changelog cl
+	INNER JOIN (SELECT profile_number, map_id, id, MIN(score) as m_score
+    	FROM changelog
+        GROUP BY profile_number, map_id, id) s
+     ON cl.profile_number=s.profile_number
+       AND cl.map_id=s.map_id
+       AND cl.id=s.id
+        AND cl.score=s.m_score
+WHERE
+  cl.map_id = '1'
+GROUP BY
+  cl.profile_number, cl.score, cl.id, cl.map_id
+ORDER BY 
+  cl.score;
+
 
 SELECT  changelog.time_gained
        ,maps.name

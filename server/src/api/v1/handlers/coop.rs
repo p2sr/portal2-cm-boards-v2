@@ -105,3 +105,43 @@ async fn post_banned_scores(mapid: web::Path<u64>, params: web::Json<ScoreParams
         Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     }
 }
+
+// TODO: How do we want to handle PB history for coop? Do we want a coop bundled for each player? Do we want just an SP changelog?
+// For this particular instance, I think we want to have multiple endpoints. 
+// #[get("/maps/coop/{mapid}/{profilenumber1}/{profilenumber2}")]
+// async fn get_sp_pbs(info: web::Path<(i32, i32, i32)>, pool: web::Data<DbPool>) -> Result<HttpResponse, Error>{
+//     let conn = pool.get().expect("Could not get a DB connection from pool.");
+    
+//     // This is gross but Rust was being dumb so I had to do a bunch of weird working around.
+//     let new_info = info.0;
+//     let map_id = new_info.0.to_string();
+//     let profile_number1 = new_info.1.to_string();
+//     let profile_number2 = new_info.2.to_string();
+//     let map_id_copy = map_id.clone();
+
+//     // Get usersnew info for the player. It should be reusable.
+//     let user_data = web::block(move || Usersnew::show(&conn, map_id))
+//         .await
+//         .map_err(|e|{
+//             eprintln!("{}", e);
+//             HttpResponse::InternalServerError().finish()
+//         })?;
+//     let conn = pool.get().expect("Could not get a DB connection from pool.");
+//     let changelog_data = web::block(move || Changelog::sp_pb_history(&conn, profile_number, map_id_copy))
+//         .await
+//         .map_err(|e|{
+//             eprintln!("{}", e);
+//             HttpResponse::InternalServerError().finish()
+//         })?;
+//     if let Some(changelog_data) = changelog_data{
+//         Ok(HttpResponse::Ok().json(SpPbHistory {
+//             user_info: user_data.unwrap(),
+//             pb_history: Some(changelog_data),
+//         }))
+//     } else{
+//         Ok(HttpResponse::Ok().json(SpPbHistory {
+//             user_info: user_data.unwrap(),
+//             pb_history: None,
+//         }))
+//     }
+// }

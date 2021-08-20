@@ -3,7 +3,7 @@ use serde_xml_rs::from_reader;
 use super::exporting::*;
 use chrono::prelude::*;
 
-use crate::models::datamodels::{SpMap, SpPbHistory, SpRanked, SpBanned, ChangelogInsert, CoopBundled, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
+use crate::models::datamodels::{SpMap, SpPbHistory, SpRanked, SpBanned, ChangelogInsert, CoopbundledInsert, CoopBundled, CoopMap, CoopRanked, Leaderboards, XmlTag, Entry};
 
 /// Grabs the map at the current ID from valve's API and caches times.
 pub fn fetch_entries(id: i32, start: i32, end: i32, timestamp: NaiveDateTime, is_coop: bool) -> Leaderboards {
@@ -52,9 +52,9 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: NaiveDateTime
         .expect("Error in converting our API values to JSON");
 
     let mut existing_hash: HashMap<String, (i32, i32)> = HashMap::with_capacity(200);
+    let mut current_rank: HashMap<String, i32> = HashMap::new();
     let mut not_cheated: Vec<SpBanned> = Vec::new();
 
-    let mut current_rank: Option<i32> = None;
     let worst_score = map_json[199].map_data.score;
     let wr = map_json[0].map_data.score;
 
@@ -68,8 +68,7 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: NaiveDateTime
             Some((score, rank)) => {    // The user has a time in top 200 currently
                 if score > &entry.score.value{
                     println!("New better time for user {} on map_id {}", entry.steam_id.value, id); // Add to leaderboards.
-                    // TODO: Current_rank does not save as we go, we over-write it everytime.
-                    current_rank = Some(rank.clone());  // Save the rank.
+                    current_rank.insert(entry.steam_id.value.clone(), rank.clone());
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_cheated.push(SpBanned {profilenumber: entry.steam_id.value.clone() , score: entry.score.value}),
                         _ => (),
@@ -105,13 +104,16 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: NaiveDateTime
             false => {
                 println!("Time not found, so assumed to be unbanned.");
                 // We have now checked that the user is not banned, that the time is top 200 worthy, that the score doesn't exist in the db, but is banned.
-                post_sp_pb(entry.profilenumber.clone(), entry.score, wr, id, timestamp, current_rank, &map_json);
+                match post_sp_pb(entry.profilenumber.clone(), entry.score, wr, id, timestamp, &current_rank, &map_json){
+                    true => (), //TODO: Handle failure.
+                    false => (),
+                };
             },
         }
     }
 }
 
-pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp: NaiveDateTime, current_rank: Option<i32>, map_json: &Vec<SpRanked>) -> bool{
+pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp: NaiveDateTime, current_rank: &HashMap<String, i32>, map_json: &Vec<SpRanked>) -> bool{
     let mut wr_gain = 0;
     if score >= wr{
         wr_gain = 1;
@@ -131,7 +133,7 @@ pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp
                 .into_iter()
                 .nth(0)
                 .unwrap();
-            previous_id = Some(current_pb.score);
+            previous_id = Some(current_pb.id);
         },
         None => (),
     }
@@ -146,6 +148,10 @@ pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp
             post_rank = Some(entry.rank)
         }
     }
+    let prerank: Option<i32> = match current_rank.get(&profilenumber){
+        Some(rank) => Some(rank.clone()),
+        None => None,
+    };
 
     let new_score = ChangelogInsert {
         time_gained: Some(timestamp),
@@ -155,7 +161,7 @@ pub fn post_sp_pb(profilenumber: String, score: i32, wr: i32, id: i32, timestamp
         wr_gain: wr_gain,
         previous_id: previous_id, // id of last PB
         post_rank: post_rank, // New rank as of this score update
-        pre_rank: current_rank, // Rank prior to this score update
+        pre_rank: prerank, // Rank prior to this score update
         has_demo: Some(0),
         banned: 0,
         submission: 0,
@@ -191,7 +197,7 @@ pub fn filter_entries_coop(id: i32, start: i32, end: i32, timestamp: NaiveDateTi
     let mut existing_hash: HashMap<String, (i32, i32)> = HashMap::with_capacity(400);
     let worst_score = map_json[199].map_data.score;
     let wr = map_json[0].map_data.score;
-    let mut current_rank: Option<i32> = None;
+    let mut current_rank: HashMap<String, i32> = HashMap::new();
     
     let mut not_banned_player = Vec::new();
     // We attempt to insert both players into the hashmap. This way we get all players with a top 200 in coop.
@@ -205,7 +211,7 @@ pub fn filter_entries_coop(id: i32, start: i32, end: i32, timestamp: NaiveDateTi
             Some((score, rank)) => {    // The user has a time in top 200 currently
                 if score > &entry.score.value{
                     println!("New better time for user {} on map_id {}", entry.steam_id.value, id); // Add to leaderboards.
-                    current_rank = Some(rank.clone());  // Save the rank.
+                    current_rank.insert(entry.steam_id.value.clone(), rank.clone());
                     match check_cheated(&entry.steam_id.value, &banned_users) { 
                         // We use SpBanned here because scores taken from the SteamAPI are all handled as SP times.
                         false => not_banned_player.push(SpBanned {profilenumber: entry.steam_id.value.clone() , score: entry.score.value}),
@@ -285,10 +291,111 @@ pub fn filter_entries_coop(id: i32, start: i32, end: i32, timestamp: NaiveDateTi
     // Create individual changelog entries, and create a bundled coop time to represent the new times
 
     // Push to the database.
+    for entry in  bundled_entries.iter(){
+        // TODO: Handle failture to insert.
+        match post_coop_pb(entry.profilenumber1.clone(), entry.profilenumber2.clone(), entry.score, wr, id, timestamp, &current_rank, &map_json){
+            true => (),
+            false => (),
+        };
+    }
 }
 
 ///
-pub fn post_coop_pb(profilenumber1: String, profilenumber2: Option<String>, score: i32, wr: i32, id: i32, timestamp: NaiveDateTime, current_rank: Option<i32>, map_json: &Vec<CoopRanked>) -> bool{
+pub fn post_coop_pb(profilenumber1: String, profilenumber2: Option<String>, score: i32, wr: i32, id: i32, timestamp: NaiveDateTime, current_rank: &HashMap<String, i32>, map_json: &Vec<CoopRanked>) -> bool{
+    let mut wr_gain = 0;
+    if score >= wr{
+        wr_gain = 1;
+    }
+    // Handle there being a partner
+    if let Some(profilenumber2) = profilenumber2{
+             // Grab the PB history. For now, we're just going to use 2 calls to our API rather than a combined call. (We'll use SP here).
+        let url = format!("http://localhost:8080/api/maps/sp/{}/{}", id, profilenumber1); // TODO: Handle crashing if no PB history is found.
+        let pb_history1: SpPbHistory = reqwest::blocking::get(&url)
+            .expect("Error in query to our local API (Make sure the webserver is running")
+            .json()
+            .expect("Error in converting our API values to JSON");
+        let url = format!("http://localhost:8080/api/maps/sp/{}/{}", id, profilenumber2); // TODO: Handle crashing if no PB history is found.
+        let pb_history2: SpPbHistory = reqwest::blocking::get(&url)
+            .expect("Error in query to our local API (Make sure the webserver is running")
+            .json()
+            .expect("Error in converting our API values to JSON");
+        
+        let mut previous_id1 = None;
+        let pb_vec = pb_history1.pb_history;
+        match pb_vec{
+            Some(pb_vec) => {
+                let current_pb = pb_vec
+                    .into_iter()
+                    .nth(0)
+                    .unwrap();
+                previous_id1 = Some(current_pb.id);
+            },
+            None => (),
+        }
+        let mut previous_id2 = None;
+        let pb_vec = pb_history2.pb_history;
+        match pb_vec{
+            Some(pb_vec) => {
+                let current_pb = pb_vec
+                    .into_iter()
+                    .nth(0)
+                    .unwrap();
+                previous_id2 = Some(current_pb.id);
+            },
+            None => (),
+        }
+
+        let mut post_rank: Option<i32> = None;
+        for entry in map_json.iter(){
+            if entry.map_data.score == score{
+                // They have the same rank
+                post_rank = Some(entry.rank)
+            } else if entry.map_data.score > score{
+                // They will temporarily have the same rank, as when the board re-calculates, the values for the other maps will change. But this value only tracks the inital rank at time of update.
+                post_rank = Some(entry.rank)
+            }
+        }
+
+        let prerank1: Option<i32> = match current_rank.get(&profilenumber1){
+            Some(rank) => Some(rank.clone()),
+            None => None,
+        };
+        let prerank2: Option<i32> = match current_rank.get(&profilenumber2){
+            Some(rank) => Some(rank.clone()),
+            None => None,
+        };
+
+        // TODO: We first need to upload individually as changelog entries, get the result from that insert (the changelogID it creates, then use that for the bundling process).
+
+        let news_score = CoopbundledInsert{
+            time_gained: Some(timestamp),
+            profile_number1: profilenumber1,
+            profile_number2: profilenumber2,
+            score: score,
+            map_id: id.to_string(),
+            wr_gain: wr_gain,
+            is_blue: None,
+            has_demo1: Some(0),
+            has_demo2: Some(0),
+            banned: 0,
+            youtube_id1: None,
+            youtube_id2: None,
+            previous_id1: previous_id1,
+            previous_id2: previous_id2,
+            changelogid1: 0, //TODO: Get clid
+            changelogid2: 0, //TODO: Get clid
+            post_rank1: post_rank, //TODO: We should not have 2 post_ranks. The values should always be the same
+            post_rank2: post_rank,
+            pre_rank1: prerank1,
+            pre_rank2: prerank2,
+            submission1: 0,
+            submission2: 0,
+            note1: None,
+            note2: None,
+            category: Some("any%".to_string()),
+        };
+    }
+
     true
 }
 

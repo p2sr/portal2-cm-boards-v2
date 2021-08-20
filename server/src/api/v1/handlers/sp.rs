@@ -103,8 +103,8 @@ async fn get_sp_pbs(info: web::Path<(i32, i32)>, pool: web::Data<DbPool>) -> Res
     
     // This is gross but Rust was being dumb so I had to do a bunch of weird working around.
     let new_info = info.0;
-    let profile_number = new_info.0.to_string();
-    let map_id = new_info.1.to_string();
+    let map_id = new_info.0.to_string();
+    let profile_number = new_info.1.to_string();
     let map_id_copy = map_id.clone();
 
     // Get usersnew info for the player. It should be reusable.
