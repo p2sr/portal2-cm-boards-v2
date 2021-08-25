@@ -9,7 +9,7 @@ class changelog:
     def __init__(self, time_gained,
     profile_number, score, map_id, wr_gain, 
     has_demo, banned, youtube_id, previous_id, 
-    id, coopid, post_rank, pre_rank, submission, note):
+    id, coopid, post_rank, pre_rank, submission, note, category):
         self.time_gained = time_gained
         self.profile_number = profile_number
         self.score = score
@@ -25,20 +25,24 @@ class changelog:
         self.pre_rank = pre_rank
         self.submission = submission
         self.note = note
+        self.category = category
     def __str__(self):
         return f"{self.id} - {self.time_gained} - {self.profile_number} - {self.score} - {self. note}"
+
 def main():
     mydb = mysql.connector.connect(
         host="localhost",
         user="root",
         password=mysql_password,
-        database="p2boardsTest",
-        autocommit=True
+        database="p2boards",
+        autocommit=False,
     )
+
+    
     mycursor = mydb.cursor()
     testquery = "SELECT * FROM changelog WHERE"
     #Grabs all coop entries from the database
-    grabcoop = "SELECT changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id, changelog.wr_gain, changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id, changelog.coopid, changelog.post_rank, changelog.pre_rank,changelog.submission, changelog.note FROM changelog LEFT JOIN maps ON maps.steam_id=changelog.map_id WHERE maps.is_coop=1"
+    grabcoop = "SELECT changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id, changelog.wr_gain, changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id, changelog.coopid, changelog.post_rank, changelog.pre_rank,changelog.submission, changelog.note, changelog.category FROM changelog LEFT JOIN maps ON maps.steam_id=changelog.map_id WHERE maps.is_coop=1"
     mycursor.execute(grabcoop)
     myresult = mycursor.fetchall()
     # Adds every coop changelog entry into a class object, and inserts it into a dictionary with id as the key
