@@ -27,7 +27,7 @@ class changelog:
         self.note = note
         self.category = category
     def __str__(self):
-        return f"{self.id} - {self.time_gained} - {self.profile_number} - {self.score} - {self. note}"
+        return f"{self.id} - {self.time_gained} - {self.profile_number} - {self.score} - {self.note}"
 
 def main():
     mydb = mysql.connector.connect(

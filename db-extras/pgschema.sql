@@ -1,6 +1,6 @@
-CREATE SCHEMA IF NOT EXISTS "db remake";
+CREATE SCHEMA IF NOT EXISTS "p2boards";
 
-CREATE  TABLE "db remake".categories ( 
+CREATE  TABLE "p2boards".categories ( 
 	id                   serial  NOT NULL ,
 	name                 varchar(100) DEFAULT '' NOT NULL ,
 	map_id               varchar(6) DEFAULT '' NOT NULL ,
@@ -8,13 +8,13 @@ CREATE  TABLE "db remake".categories (
 	CONSTRAINT pk_categories_id PRIMARY KEY ( id )
  );
 
-CREATE  TABLE "db remake".games ( 
+CREATE  TABLE "p2boards".games ( 
 	id                   serial  NOT NULL ,
 	game_name            varchar(50) DEFAULT 'Portal 2' NOT NULL ,
 	CONSTRAINT pk_game_id PRIMARY KEY ( id )
  );
 
-CREATE  TABLE "db remake".users ( 
+CREATE  TABLE "p2boards".users ( 
 	profile_number       varchar(50) DEFAULT '' NOT NULL ,
 	board_name           varchar(50)   ,
 	steam_name           varchar(50)   ,
@@ -30,16 +30,16 @@ CREATE  TABLE "db remake".users (
 	CONSTRAINT pk_users_profile_number PRIMARY KEY ( profile_number )
  );
 
-CREATE  TABLE "db remake".chapters ( 
+CREATE  TABLE "p2boards".chapters ( 
 	id                   serial  NOT NULL ,
 	chapter_name         varchar(50)   ,
 	is_multiplayer       boolean DEFAULT false NOT NULL ,
-	game                 integer DEFAULT 1 NOT NULL ,
+	game_id              integer DEFAULT 1 NOT NULL ,
 	CONSTRAINT pk_chapters_id PRIMARY KEY ( id ),
-	CONSTRAINT fk_chapters_game FOREIGN KEY ( game ) REFERENCES "db remake".games( id )   
+	CONSTRAINT fk_chapters_game_id FOREIGN KEY ( game_id ) REFERENCES "p2boards".games( id )   
  );
 
-CREATE  TABLE "db remake".maps ( 
+CREATE  TABLE "p2boards".maps ( 
 	id                   serial  NOT NULL ,
 	steam_id             varchar(6) DEFAULT '' NOT NULL ,
 	lp_id                varchar(6) DEFAULT '' NOT NULL ,
@@ -48,12 +48,12 @@ CREATE  TABLE "db remake".maps (
 	is_public            boolean DEFAULT false NOT NULL ,
 	CONSTRAINT pk_maps_id PRIMARY KEY ( id ),
 	CONSTRAINT unq_maps_steam_id UNIQUE ( steam_id ) ,
-	CONSTRAINT fk_maps_chapters FOREIGN KEY ( chapter_id ) REFERENCES "db remake".chapters( id )   
+	CONSTRAINT fk_maps_chapters FOREIGN KEY ( chapter_id ) REFERENCES "p2boards".chapters( id )   
  );
 
-CREATE  TABLE "db remake".changelog ( 
+CREATE  TABLE "p2boards".changelog ( 
 	id                   bigserial  NOT NULL ,
-	"timestamp"          timestamp(12)   ,
+	"timestamp"          timestamp(6)   ,
 	profile_number       varchar(50)  NOT NULL ,
 	score                integer  NOT NULL ,
 	map_id               varchar(6) DEFAULT '' NOT NULL ,
@@ -73,7 +73,7 @@ CREATE  TABLE "db remake".changelog (
 	CONSTRAINT pk_changelog_id PRIMARY KEY ( id )
  );
 
-CREATE  TABLE "db remake".coop_bundled ( 
+CREATE  TABLE "p2boards".coop_bundled ( 
 	id                   bigserial  NOT NULL ,
 	p_id1                varchar(50)  NOT NULL ,
 	p_id2                varchar(50)   ,
@@ -83,7 +83,7 @@ CREATE  TABLE "db remake".coop_bundled (
 	CONSTRAINT pk_coop_bundled_id PRIMARY KEY ( id )
  );
 
-CREATE  TABLE "db remake".demos ( 
+CREATE  TABLE "p2boards".demos ( 
 	id                   bigserial  NOT NULL ,
 	drive_url            varchar(100)  NOT NULL ,
 	partner_name         varchar(50)   ,
@@ -93,22 +93,22 @@ CREATE  TABLE "db remake".demos (
 	CONSTRAINT unq_demos_id UNIQUE ( id ) 
  );
 
-ALTER TABLE "db remake".changelog ADD CONSTRAINT fk_changelog_users FOREIGN KEY ( profile_number ) REFERENCES "db remake".users( profile_number );
+ALTER TABLE "p2boards".changelog ADD CONSTRAINT fk_changelog_users FOREIGN KEY ( profile_number ) REFERENCES "p2boards".users( profile_number );
 
-ALTER TABLE "db remake".changelog ADD CONSTRAINT fk_changelog_maps FOREIGN KEY ( map_id ) REFERENCES "db remake".maps( steam_id );
+ALTER TABLE "p2boards".changelog ADD CONSTRAINT fk_changelog_maps FOREIGN KEY ( map_id ) REFERENCES "p2boards".maps( steam_id );
 
-ALTER TABLE "db remake".changelog ADD CONSTRAINT fk_changelog_coop_bundled FOREIGN KEY ( coop_id ) REFERENCES "db remake".coop_bundled( id );
+ALTER TABLE "p2boards".changelog ADD CONSTRAINT fk_changelog_coop_bundled FOREIGN KEY ( coop_id ) REFERENCES "p2boards".coop_bundled( id );
 
-ALTER TABLE "db remake".changelog ADD CONSTRAINT fk_changelog_demos FOREIGN KEY ( demo_id ) REFERENCES "db remake".demos( id );
+ALTER TABLE "p2boards".changelog ADD CONSTRAINT fk_changelog_demos FOREIGN KEY ( demo_id ) REFERENCES "p2boards".demos( id );
 
-ALTER TABLE "db remake".changelog ADD CONSTRAINT fk_changelog_categories FOREIGN KEY ( category_id ) REFERENCES "db remake".categories( id );
+ALTER TABLE "p2boards".changelog ADD CONSTRAINT fk_changelog_categories FOREIGN KEY ( category_id ) REFERENCES "p2boards".categories( id );
 
-ALTER TABLE "db remake".coop_bundled ADD CONSTRAINT fk_coop_bundled_cl_id1 FOREIGN KEY ( cl_id1 ) REFERENCES "db remake".changelog( id );
+ALTER TABLE "p2boards".coop_bundled ADD CONSTRAINT fk_coop_bundled_cl_id1 FOREIGN KEY ( cl_id1 ) REFERENCES "p2boards".changelog( id );
 
-ALTER TABLE "db remake".coop_bundled ADD CONSTRAINT fk_coop_bundled_chapters_cl_id2 FOREIGN KEY ( cl_id2 ) REFERENCES "db remake".changelog( id );
+ALTER TABLE "p2boards".coop_bundled ADD CONSTRAINT fk_coop_bundled_chapters_cl_id2 FOREIGN KEY ( cl_id2 ) REFERENCES "p2boards".changelog( id );
 
-ALTER TABLE "db remake".coop_bundled ADD CONSTRAINT fk_coop_bundled_users_u1 FOREIGN KEY ( p_id1 ) REFERENCES "db remake".users( profile_number );
+ALTER TABLE "p2boards".coop_bundled ADD CONSTRAINT fk_coop_bundled_users_u1 FOREIGN KEY ( p_id1 ) REFERENCES "p2boards".users( profile_number );
 
-ALTER TABLE "db remake".coop_bundled ADD CONSTRAINT fk_coop_bundled_users_u2 FOREIGN KEY ( p_id2 ) REFERENCES "db remake".users( profile_number );
+ALTER TABLE "p2boards".coop_bundled ADD CONSTRAINT fk_coop_bundled_users_u2 FOREIGN KEY ( p_id2 ) REFERENCES "p2boards".users( profile_number );
 
-ALTER TABLE "db remake".demos ADD CONSTRAINT fk_demos_changelog FOREIGN KEY ( cl_id ) REFERENCES "db remake".changelog( id );
+ALTER TABLE "p2boards".demos ADD CONSTRAINT fk_demos_changelog FOREIGN KEY ( cl_id ) REFERENCES "p2boards".changelog( id );
