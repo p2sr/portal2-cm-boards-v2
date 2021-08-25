@@ -227,6 +227,94 @@ def main():
     )
     pg_cursor = pg_conn.cursor()
     mysql_cursor = mysql_conn.cursor()
+    categories(mysql_cursor, pg_cursor)
+    games(mysql_cursor, pg_cursor)
+    users(mysql_cursor, pg_cursor)
+    chapters(mysql_cursor, pg_cursor)
+    maps(mysql_cursor, pg_cursor)
+    changelog(mysql_cursor, pg_cursor) #Demo creation will happen here.
+    coop_bundled(mysql_cursor, pg_cursor)
+
+def coop_bundled(mysql_cursor, pg_cursor):
+    get_all_coop = """SELECT
+    changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id, changelog.wr_gain,
+    changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id,
+    changelog.post_rank, changelog.pre_rank, changelog.submission,
+    changelog.note, changelog.pending 
+    FROM changelog 
+    LEFT JOIN maps 
+    ON maps.steam_id=changelog.map_id 
+    LEFT JOIN usersnew
+    ON usersnew.profile_number=changelog.profile_number
+    WHERE maps.is_coop=1
+    AND usersnew.banned=0
+    AND changelog.banned=0
+    AND changelog.time_gained IS NOT NULL"""
+    mysql_cursor.execute(get_all_coop)
+    all_coop = mysql_cursor.fetchall()
+    # Adds every coop changelog entry into a class object, and inserts it into a dictionary with id as the key
+    for i, x in enumerate(all_coop):
+        temp = MySQLChangelog(*x)
+        #print(f"Adding key {temp.id}")
+        coopdict[temp.id] = temp
+        changelogIDs.append(temp.id)
+    # Our query handles checking for banned users, changelog entries, and NULL timestamps
+    count = 1
+    while len(changelogIDs) != 0:
+        index = len(changelogIDs)-1
+        value = coopdict[changelogIDs[index]]
+        #
+        get_matching_times = f"SELECT * FROM changelog WHERE time_gained=\"{value.time_gained}\" AND score={value.score} AND map_id={value.map_id}"
+        #print(get_matching_times)
+        mysql_cursor.execute(get_matching_times)
+        matching_times = mysql_cursor.fetchall()
+        if len(matching_times) == 2:
+            temp = MySQLChangelog(*matching_times[0])
+            temp2 = MySQLChangelog(*matching_times[1])
+            # TODO: Create coop_bundled
+            # TODO: Update both changelog entries to have a coop_bundled ID
+            # These updates should happen on the PG side. I will use the MySQL connection to parse coop information,
+            # but the actual coop_bundle should be created on PG.
+            raise NotImplementedError
+        elif len(matching_times) == 1:
+            temp = MySQLChangelog(*matching_times[0])
+            # TODO: Set the values for cl_id2 & p_id2 to NULL. 
+            # Insert coopbundle to PG, and update PG changelog for cl_id1
+            raise NotImplementedError
+        else: # There are more than 2 times.
+            temp = MySQLChangelog(*matching_times[0])
+            print(f"{temp}") #DEBUG: This case shouldn't be reached.
+        #
+        del changelogIDs[index]
+    
+# NEW BLOCK
+def categories(mysql_cursor, pg_cursor):
+    # We want to create 108 any% cateogies for all 108 base-maps
     raise NotImplementedError
+
+def games(mysql_cursor, pg_cursor):
+    # We just create game "Portal 2" for now.
+    raise NotImplementedError
+
+def users(mysql_cursor, pg_cursor):
+    # Keep all user data, add `None` for discord_id 
+    raise NotImplementedError
+
+def chapters(mysql_cursor, pg_cursor):
+    # Set game_id = 1
+    raise NotImplementedError
+
+def maps(mysql_cursor, pg_cursor):
+    # Trimmed down, otherwise the same
+    raise NotImplementedError
+
+#Demo creation will happen here.
+def changelog(mysql_cursor, pg_cursor):
+    # `coop_id` & `admin_note` now exists
+    # Calculate `score_delta`
+    # Invert `pending`
+    # Class constructor *should* handle all of this logic for us.
+    raise NotImplementedError    
+     
 
 main()

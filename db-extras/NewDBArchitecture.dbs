@@ -112,15 +112,15 @@ Can be NULL because of times added after initial creation of DB.]]></comment>
 				<defo><![CDATA[false]]></defo>
 				<comment><![CDATA[Is the chapter multiplayer?]]></comment>
 			</column>
-			<column name="game" type="integer" length="50" jt="4" mandatory="y" >
+			<column name="game_id" prior="game" type="integer" length="50" jt="4" mandatory="y" >
 				<defo><![CDATA[1]]></defo>
 				<comment><![CDATA[The game the chapter is associated with]]></comment>
 			</column>
 			<index name="pk_chapters_id" unique="PRIMARY_KEY" >
 				<column name="id" />
 			</index>
-			<fk name="fk_chapters_game" to_schema="db remake" to_table="games" >
-				<fk_column name="game" pk="id" />
+			<fk name="fk_chapters_game_id" to_schema="db remake" to_table="games" >
+				<fk_column name="game_id" pk="id" />
 			</fk>
 		</table>
 		<table name="coop_bundled" prior="tbl" >
@@ -282,6 +282,245 @@ Can be NULL because of times added after initial creation of DB.]]></comment>
 		<entity schema="db remake" name="games" color="C1D8EE" x="288" y="416" />
 		<entity schema="db remake" name="maps" color="C1D8EE" x="432" y="576" />
 		<entity schema="db remake" name="users" color="C1D8EE" x="256" y="144" />
+		<script name="SQL_Editor" id="Editor_1e7c" language="SQL" >
+			<string><![CDATA[CREATE SCHEMA IF NOT EXISTS "db remake";
+
+CREATE  TABLE "db remake".categories ( 
+	id                   serial  NOT NULL ,
+	name                 varchar(100) DEFAULT '' NOT NULL ,
+	map_id               varchar(6) DEFAULT '' NOT NULL ,
+	rules                varchar(1000) DEFAULT '' NOT NULL ,
+	CONSTRAINT pk_categories_id PRIMARY KEY ( id )
+ );
+
+COMMENT ON TABLE "db remake".categories IS 'Table to hold information on categories.';
+
+COMMENT ON COLUMN "db remake".categories.id IS 'The primary key for categories';
+
+COMMENT ON COLUMN "db remake".categories.name IS 'The name of the category';
+
+COMMENT ON COLUMN "db remake".categories.map_id IS 'The associated map_id';
+
+COMMENT ON COLUMN "db remake".categories.rules IS 'A string of the ruleset for the category';
+
+CREATE  TABLE "db remake".games ( 
+	id                   serial  NOT NULL ,
+	game_name            varchar(50) DEFAULT 'Portal 2' NOT NULL ,
+	CONSTRAINT pk_game_id PRIMARY KEY ( id )
+ );
+
+COMMENT ON TABLE "db remake".games IS 'Table for different games';
+
+COMMENT ON COLUMN "db remake".games.game_name IS 'The name of the associated game';
+
+CREATE  TABLE "db remake".users ( 
+	profile_number       varchar(50) DEFAULT '' NOT NULL ,
+	board_name           varchar(50)   ,
+	steam_name           varchar(50)   ,
+	banned               boolean DEFAULT false NOT NULL ,
+	registered           integer DEFAULT 0 NOT NULL ,
+	avatar               varchar(200)   ,
+	twitch               varchar(100)   ,
+	youtube              varchar(100)   ,
+	title                varchar(200)   ,
+	"admin"              integer DEFAULT 0 NOT NULL ,
+	donation_amount      varchar(11)   ,
+	discord_id           varchar(40)   ,
+	CONSTRAINT pk_users_profile_number PRIMARY KEY ( profile_number )
+ );
+
+COMMENT ON TABLE "db remake".users IS 'Table with all user data.';
+
+COMMENT ON COLUMN "db remake".users.profile_number IS 'Steam ID associated with the user. Primary key';
+
+COMMENT ON COLUMN "db remake".users.board_name IS 'Name of the user on the boards.';
+
+COMMENT ON COLUMN "db remake".users.steam_name IS 'Name of the user pulled from Steam';
+
+COMMENT ON COLUMN "db remake".users.banned IS 'Is the time banned?';
+
+COMMENT ON COLUMN "db remake".users.registered IS 'Is the user registered (unsure of purpose).';
+
+COMMENT ON COLUMN "db remake".users.avatar IS 'Link to profile picture.';
+
+COMMENT ON COLUMN "db remake".users.twitch IS 'Twitch URL';
+
+COMMENT ON COLUMN "db remake".users.youtube IS 'Youtube URL';
+
+COMMENT ON COLUMN "db remake".users.title IS 'Customer user title to be displayed on their user page.';
+
+COMMENT ON COLUMN "db remake".users."admin" IS 'Kept as integer for potential "shadow admin" role. 0 can be non-admin, anything higher can have admin perms, only `1` will be displayed as admin?? Could be dumb, at request of Rex.';
+
+COMMENT ON COLUMN "db remake".users.donation_amount IS 'Amount donated to the server.';
+
+COMMENT ON COLUMN "db remake".users.discord_id IS 'User''s Discord ID';
+
+CREATE  TABLE "db remake".chapters ( 
+	id                   serial  NOT NULL ,
+	chapter_name         varchar(50)   ,
+	is_multiplayer       boolean DEFAULT false NOT NULL ,
+	game                 integer DEFAULT 1 NOT NULL ,
+	CONSTRAINT pk_chapters_id PRIMARY KEY ( id ),
+	CONSTRAINT fk_chapters_game FOREIGN KEY ( game ) REFERENCES "db remake".games( id )   
+ );
+
+COMMENT ON TABLE "db remake".chapters IS 'Chapters in the game';
+
+COMMENT ON COLUMN "db remake".chapters.chapter_name IS 'The in-game name of the chapter.';
+
+COMMENT ON COLUMN "db remake".chapters.is_multiplayer IS 'Is the chapter multiplayer?';
+
+COMMENT ON COLUMN "db remake".chapters.game IS 'The game the chapter is associated with';
+
+CREATE  TABLE "db remake".maps ( 
+	id                   serial  NOT NULL ,
+	steam_id             varchar(6) DEFAULT '' NOT NULL ,
+	lp_id                varchar(6) DEFAULT '' NOT NULL ,
+	name                 varchar(50)  NOT NULL ,
+	chapter_id           integer   ,
+	is_public            boolean DEFAULT false NOT NULL ,
+	CONSTRAINT pk_maps_id PRIMARY KEY ( id ),
+	CONSTRAINT unq_maps_steam_id UNIQUE ( steam_id ) ,
+	CONSTRAINT fk_maps_chapters FOREIGN KEY ( chapter_id ) REFERENCES "db remake".chapters( id )   
+ );
+
+COMMENT ON TABLE "db remake".maps IS 'Table to represent maps in the game.';
+
+COMMENT ON COLUMN "db remake".maps.steam_id IS 'ID given the map on Steam';
+
+COMMENT ON COLUMN "db remake".maps.lp_id IS 'Least Portals value assigned by Steam (might as well bring over lol)';
+
+COMMENT ON COLUMN "db remake".maps.name IS 'Name of the map';
+
+COMMENT ON COLUMN "db remake".maps.chapter_id IS 'ID for the chapter';
+
+COMMENT ON COLUMN "db remake".maps.is_public IS 'Can we still access public Steam API?';
+
+CREATE  TABLE "db remake".changelog ( 
+	id                   bigserial  NOT NULL ,
+	"timestamp"          timestamp(12)   ,
+	profile_number       varchar(50)  NOT NULL ,
+	score                integer  NOT NULL ,
+	map_id               varchar(6) DEFAULT '' NOT NULL ,
+	demo_id              bigint   ,
+	banned               boolean DEFAULT false NOT NULL ,
+	youtube_id           varchar(30)   ,
+	previous_id          integer   ,
+	coop_id              bigint   ,
+	post_rank            integer   ,
+	pre_rank             integer   ,
+	submission           boolean DEFAULT false NOT NULL ,
+	note                 varchar(100)   ,
+	category_id          integer DEFAULT 1 NOT NULL ,
+	score_delta          integer   ,
+	verified             boolean   ,
+	admin_note           varchar(200)   ,
+	CONSTRAINT pk_changelog_id PRIMARY KEY ( id )
+ );
+
+COMMENT ON TABLE "db remake".changelog IS 'The table to hold an indidual score update and all it''s details';
+
+COMMENT ON COLUMN "db remake".changelog.id IS 'The auto-generated ID for the changelog table';
+
+COMMENT ON COLUMN "db remake".changelog."timestamp" IS 'Formerly (time_gained), Naive UTC time.\nCan be NULL because of times added after initial creation of DB.';
+
+COMMENT ON COLUMN "db remake".changelog.profile_number IS 'Associated with a Steam ID number. Used as the primary key for users.';
+
+COMMENT ON COLUMN "db remake".changelog.score IS 'The int value of the time the user got on.';
+
+COMMENT ON COLUMN "db remake".changelog.map_id IS 'ID associated with the map on Steam.';
+
+COMMENT ON COLUMN "db remake".changelog.demo_id IS 'Foreign key for demos table.';
+
+COMMENT ON COLUMN "db remake".changelog.banned IS 'Is the entry banned?';
+
+COMMENT ON COLUMN "db remake".changelog.youtube_id IS 'Youtube URL';
+
+COMMENT ON COLUMN "db remake".changelog.previous_id IS 'Changelog ID of the previous score from the user.';
+
+COMMENT ON COLUMN "db remake".changelog.coop_id IS 'Foreign key for a coop time. Links two different scores together.';
+
+COMMENT ON COLUMN "db remake".changelog.post_rank IS 'New rank at time of score update.';
+
+COMMENT ON COLUMN "db remake".changelog.pre_rank IS 'Rank your previous time ended at when this score update was added.';
+
+COMMENT ON COLUMN "db remake".changelog.submission IS 'Was this run manually submitted?';
+
+COMMENT ON COLUMN "db remake".changelog.note IS 'Comment a user can leave on their score.';
+
+COMMENT ON COLUMN "db remake".changelog.category_id IS 'The category associated with the score.';
+
+COMMENT ON COLUMN "db remake".changelog.score_delta IS 'The time score difference between this PB and the last';
+
+COMMENT ON COLUMN "db remake".changelog.verified IS 'Has this run been reviewed by admins? (yes -> true, no -> false, n/a -> NULL)';
+
+COMMENT ON COLUMN "db remake".changelog.admin_note IS 'Note that can be left by an admin';
+
+CREATE  TABLE "db remake".coop_bundled ( 
+	id                   bigserial  NOT NULL ,
+	p_id1                varchar(50)  NOT NULL ,
+	p_id2                varchar(50)   ,
+	p1_is_host           boolean  NOT NULL ,
+	cl_id1               bigint  NOT NULL ,
+	cl_id2               bigint   ,
+	CONSTRAINT pk_coop_bundled_id PRIMARY KEY ( id )
+ );
+
+COMMENT ON TABLE "db remake".coop_bundled IS 'The bundling of two changelog entries, two profiles and additional multiplayer-specific coop details.';
+
+COMMENT ON COLUMN "db remake".coop_bundled.p_id1 IS 'Profile number for player 1.';
+
+COMMENT ON COLUMN "db remake".coop_bundled.p_id2 IS 'Profile number for player 2 (can be null)';
+
+COMMENT ON COLUMN "db remake".coop_bundled.p1_is_host IS 'Is the player blue (atlas), or the host?';
+
+COMMENT ON COLUMN "db remake".coop_bundled.cl_id1 IS 'Changelog ID for the first player.';
+
+COMMENT ON COLUMN "db remake".coop_bundled.cl_id2 IS 'Changelog ID for player 2 (can be NULL)';
+
+CREATE  TABLE "db remake".demos ( 
+	id                   bigserial  NOT NULL ,
+	drive_url            varchar(100)  NOT NULL ,
+	partner_name         varchar(50)   ,
+	parsed_successfully  boolean DEFAULT false NOT NULL ,
+	sar_version          varchar(50)  NOT NULL ,
+	cl_id                bigint  NOT NULL ,
+	CONSTRAINT unq_demos_id UNIQUE ( id ) 
+ );
+
+COMMENT ON COLUMN "db remake".demos.id IS 'Demo ID';
+
+COMMENT ON COLUMN "db remake".demos.drive_url IS 'The URL to the corresponding Drive link';
+
+COMMENT ON COLUMN "db remake".demos.partner_name IS 'NULL if coop';
+
+COMMENT ON COLUMN "db remake".demos.parsed_successfully IS 'Boolean for if the demo was able to parse succesfully.';
+
+COMMENT ON COLUMN "db remake".demos.sar_version IS 'Holds the version of SAR used';
+
+COMMENT ON COLUMN "db remake".demos.cl_id IS 'Changelog ID associated with the demo';
+
+ALTER TABLE "db remake".changelog ADD CONSTRAINT fk_changelog_users FOREIGN KEY ( profile_number ) REFERENCES "db remake".users( profile_number );
+
+ALTER TABLE "db remake".changelog ADD CONSTRAINT fk_changelog_maps FOREIGN KEY ( map_id ) REFERENCES "db remake".maps( steam_id );
+
+ALTER TABLE "db remake".changelog ADD CONSTRAINT fk_changelog_coop_bundled FOREIGN KEY ( coop_id ) REFERENCES "db remake".coop_bundled( id );
+
+ALTER TABLE "db remake".changelog ADD CONSTRAINT fk_changelog_demos FOREIGN KEY ( demo_id ) REFERENCES "db remake".demos( id );
+
+ALTER TABLE "db remake".changelog ADD CONSTRAINT fk_changelog_categories FOREIGN KEY ( category_id ) REFERENCES "db remake".categories( id );
+
+ALTER TABLE "db remake".coop_bundled ADD CONSTRAINT fk_coop_bundled_cl_id1 FOREIGN KEY ( cl_id1 ) REFERENCES "db remake".changelog( id );
+
+ALTER TABLE "db remake".coop_bundled ADD CONSTRAINT fk_coop_bundled_chapters_cl_id2 FOREIGN KEY ( cl_id2 ) REFERENCES "db remake".changelog( id );
+
+ALTER TABLE "db remake".coop_bundled ADD CONSTRAINT fk_coop_bundled_users_u1 FOREIGN KEY ( p_id1 ) REFERENCES "db remake".users( profile_number );
+
+ALTER TABLE "db remake".coop_bundled ADD CONSTRAINT fk_coop_bundled_users_u2 FOREIGN KEY ( p_id2 ) REFERENCES "db remake".users( profile_number );
+
+ALTER TABLE "db remake".demos ADD CONSTRAINT fk_demos_changelog FOREIGN KEY ( cl_id ) REFERENCES "db remake".changelog( id );
+]]></string>
+		</script>
 		<query id="Query_8ec" name="changelog" >
 			<query_table schema="db remake" name="changelog" alias="c1" x="48" y="96" >
 				<column name="timestamp" />
@@ -310,7 +549,7 @@ Can be NULL because of times added after initial creation of DB.]]></comment>
 					<column name="name" />
 					<column name="is_public" />
 					<query_table schema="db remake" name="chapters" alias="c2" x="608" y="304" fk="fk_maps_chapters" type="Inner Join" >
-						<column name="game" />
+						<column name="game_id" />
 					</query_table>
 				</query_table>
 				<query_table schema="db remake" name="categories" alias="c3" x="304" y="304" fk="fk_changelog_categories" type="Inner Join" >
