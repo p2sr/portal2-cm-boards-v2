@@ -77,7 +77,7 @@ CREATE  TABLE "p2boards".coop_bundled (
 	id                   bigserial  NOT NULL ,
 	p_id1                varchar(50)  NOT NULL ,
 	p_id2                varchar(50)   ,
-	p1_is_host           boolean  NOT NULL ,
+	p1_is_host           boolean   ,
 	cl_id1               bigint  NOT NULL ,
 	cl_id2               bigint   ,
 	CONSTRAINT pk_coop_bundled_id PRIMARY KEY ( id )
@@ -88,7 +88,7 @@ CREATE  TABLE "p2boards".demos (
 	drive_url            varchar(100)  NOT NULL ,
 	partner_name         varchar(50)   ,
 	parsed_successfully  boolean DEFAULT false NOT NULL ,
-	sar_version          varchar(50)  NOT NULL ,
+	sar_version          varchar(50)   ,
 	cl_id                bigint  NOT NULL ,
 	CONSTRAINT unq_demos_id UNIQUE ( id ) 
  );

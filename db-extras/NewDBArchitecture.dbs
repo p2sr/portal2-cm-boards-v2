@@ -132,7 +132,7 @@ Can be NULL because of times added after initial creation of DB.]]></comment>
 			<column name="p_id2" type="varchar" length="50" jt="12" >
 				<comment><![CDATA[Profile number for player 2 (can be null)]]></comment>
 			</column>
-			<column name="p1_is_host" prior="is_host" type="boolean" jt="-7" mandatory="y" >
+			<column name="p1_is_host" prior="is_host" type="boolean" jt="-7" >
 				<comment><![CDATA[Is the player blue (atlas), or the host?]]></comment>
 			</column>
 			<column name="cl_id1" type="bigint" jt="-5" mandatory="y" >
@@ -171,7 +171,7 @@ Can be NULL because of times added after initial creation of DB.]]></comment>
 				<defo><![CDATA[false]]></defo>
 				<comment><![CDATA[Boolean for if the demo was able to parse succesfully.]]></comment>
 			</column>
-			<column name="sar_version" type="varchar" length="50" jt="12" mandatory="y" >
+			<column name="sar_version" type="varchar" length="50" jt="12" >
 				<comment><![CDATA[Holds the version of SAR used]]></comment>
 			</column>
 			<column name="cl_id" type="bigint" jt="-5" mandatory="y" >
@@ -518,8 +518,7 @@ ALTER TABLE "db remake".coop_bundled ADD CONSTRAINT fk_coop_bundled_users_u1 FOR
 
 ALTER TABLE "db remake".coop_bundled ADD CONSTRAINT fk_coop_bundled_users_u2 FOREIGN KEY ( p_id2 ) REFERENCES "db remake".users( profile_number );
 
-ALTER TABLE "db remake".demos ADD CONSTRAINT fk_demos_changelog FOREIGN KEY ( cl_id ) REFERENCES "db remake".changelog( id );
-]]></string>
+ALTER TABLE "db remake".demos ADD CONSTRAINT fk_demos_changelog FOREIGN KEY ( cl_id ) REFERENCES "db remake".changelog( id );]]></string>
 		</script>
 		<query id="Query_8ec" name="changelog" >
 			<query_table schema="db remake" name="changelog" alias="c1" x="48" y="96" >
