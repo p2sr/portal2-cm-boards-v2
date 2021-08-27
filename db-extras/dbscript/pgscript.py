@@ -4,13 +4,12 @@ from mysql.connector.errors import Error
 import psycopg2
 
 changelogIDs = []
-coopdict = {}
-
-num_demos = 1
 all_demo_objects = []
 
+coopdict = {}
 category_values = {}
 map_name = {}
+changelog_id_score_map = {}
 
 sp_map_ids = [
     47458,47455,47452,47106,47735,47736,47738,47742,
@@ -31,7 +30,7 @@ coop_map_ids = [
     52711,52714,52715,52717,52735,52738,52740,49341,
     49343,49345,49347,49349,49351,52757,52759,48287
     ]
-  
+
 def get_bool(val):
     if val == 1:
         return True
@@ -182,14 +181,14 @@ class PgSQLChangelog:
         self.profile_number = profile_number
         self.score = score
         self.map_id = map_id
-        self.demo_id = self.make_new_demo_id(has_demo)
-        self.banned = banned
+        self.demo_id = self.make_new_demo_id(map_id, has_demo)
+        self.banned = get_bool(banned)
         self.youtube_id = youtube_id
         self.previous_id = previous_id
         self.coop_id = coopid
         self.post_rank = post_rank
         self.pre_rank = pre_rank
-        self.submission = submission
+        self.submission = get_bool(submission)
         self.note = note
         self.category_id = self.get_category_id(map_id)
         self.score_delta = self.get_score_delta(previous_id, score)
@@ -198,31 +197,33 @@ class PgSQLChangelog:
     def __str__(self):
         return f"{self.id} - {self.time_gained} - {self.profile_number} - {self.score} - {self.note}"
 
-    def make_new_demo_id(self, has_demo):
+    def make_new_demo_id(self, map_id, has_demo):
         if has_demo == 0:
             return None
         elif has_demo == 1:
             # The drive_url is a combination of map name, score, profile_number and the demo_id
             # demo_id is serial, but we want to work around a weird issue with psycopg2 not resetting the serial.
-            map_name_temp = map_name.get(self.map_id).replace(" ", "")
-            drive_url = f"{map_name_temp}_{self.score}_{self.profile_number}_{num_demos}.dem"
-            temp = PgSQLDemos(num_demos, drive_url, None, self.is_verified, "", self.id)
+            map_name_temp = map_name.get(map_id).replace(" ", "")
+            drive_url = f"{map_name_temp}_{self.score}_{self.profile_number}_{len(all_demo_objects)+1}.dem"
+            temp = PgSQLDemos(len(all_demo_objects)+1, drive_url, None, self.is_verified, "", self.id)
             all_demo_objects.append(temp)
-            num_demos += 1
-            return num_demos-1
+            return len(all_demo_objects)
     
     def get_category_id(self, map_id):
         return category_values[int(map_id)]
 
     def is_verified(self, pending):
         if pending == 1:
-            return 0
+            return False
         elif pending == 0:
-            return 1
+            return True
     
     def get_score_delta(self, previous_id, score):
-        # TODO: Select `score` for previous time from MySQL.
-        raise NotImplementedError
+        if previous_id == None:
+            return None
+        else:
+            old_score = changelog_id_score_map[previous_id]
+            return score-old_score 
 
 # Coop bundled
 class PgSQLCoopBundled:
@@ -272,26 +273,27 @@ def main():
     maps(mysql_cursor, pg_cursor)
     changelog(mysql_cursor, pg_cursor) #Demo creation will happen here.
     coop_bundled(mysql_cursor, pg_cursor)
+    demos(pg_cursor)
 
 def coop_bundled(mysql_cursor, pg_cursor):
     get_all_coop = """SELECT
-    changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id, changelog.wr_gain,
-    changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id,
-    changelog.post_rank, changelog.pre_rank, changelog.submission,
-    changelog.note, changelog.pending 
-    FROM changelog 
-    LEFT JOIN maps 
-    ON maps.steam_id=changelog.map_id 
-    LEFT JOIN usersnew
-    ON usersnew.profile_number=changelog.profile_number
-    WHERE maps.is_coop=1
-    AND usersnew.banned=0
-    AND changelog.banned=0
-    AND changelog.time_gained IS NOT NULL"""
+        changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id, changelog.wr_gain,
+        changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id,
+        changelog.post_rank, changelog.pre_rank, changelog.submission,
+        changelog.note, changelog.pending 
+        FROM changelog 
+        LEFT JOIN maps 
+        ON maps.steam_id=changelog.map_id 
+        LEFT JOIN usersnew
+        ON usersnew.profile_number=changelog.profile_number
+        WHERE maps.is_coop=1
+        AND usersnew.banned=0
+        AND changelog.banned=0
+        AND changelog.time_gained IS NOT NULL"""
     mysql_cursor.execute(get_all_coop)
     all_coop = mysql_cursor.fetchall()
     # Adds every coop changelog entry into a class object, and inserts it into a dictionary with id as the key
-    for i, x in enumerate(all_coop):
+    for x in all_coop:
         temp = MySQLChangelog(*x)
         coopdict[temp.id] = temp
         changelogIDs.append(temp.id)
@@ -300,7 +302,6 @@ def coop_bundled(mysql_cursor, pg_cursor):
     while len(changelogIDs) != 0:
         index = len(changelogIDs)-1
         value = coopdict[changelogIDs[index]]
-        #
         get_matching_times = f"SELECT * FROM changelog WHERE time_gained=\"{value.time_gained}\" AND score={value.score} AND map_id={value.map_id}"
         #print(get_matching_times)
         mysql_cursor.execute(get_matching_times)
@@ -310,30 +311,48 @@ def coop_bundled(mysql_cursor, pg_cursor):
             temp2 = MySQLChangelog(*matching_times[1])
             pg_cursor.execute("""INSERT INTO 
                 \"p2boards\".coop_bundled 
-                (p_id1, p_id2, p1_id_host, cl_id1, cl_id2) 
-                VALUES (%s, %s, %s, %s, %s);""",
-                (temp.profile_number, temp2.profile_number, None, temp.id, temp2.id))
-            # TODO: Update both changelog entries to have a coop_bundled ID
-            # TODO: Figure out if this works
-            result = pg_cursor.fetchone()
-            result = PgSQLCoopBundled(*result)
-            print(result)
-            pg_cursor.execute("""
-            
-            """)
-            # These updates should happen on the PG side. I will use the MySQL connection to parse coop information,
-            # but the actual coop_bundle should be created on PG.
-            raise NotImplementedError
+                (id, p_id1, p_id2, p1_id_host, cl_id1, cl_id2) 
+                VALUES (%s, %s, %s, %s, %s, %s);""",
+                (count, temp.profile_number, temp2.profile_number, None, temp.id, temp2.id))
+            # Update both changelogs to include the new bundled information.
+            pg_cursor.execute("""UPDATE \"p2boards\".changelog SET coop_id = %s WHERE id = %s;""", (count, temp.id))
+            pg_cursor.execute("""UPDATE \"p2boards\".changelog SET coop_id = %s WHERE id = %s;""", (count, temp2.id))
+            if count < 10:
+                pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog WHERE id = %s;""", (temp.id,))
+                print(pg_cursor.fetchall())
+                pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog WHERE id = %s;""", (temp2.id,))
+                print(pg_cursor.fetchall())
+            # We want to del on index for better performance, but we need to find the ID for the second entry.
+            # Deletion of first value happens at the end of every loop.
+            if temp.id == changelogIDs[index]:
+                changelogIDs.remove(temp2.id)
+            else:
+                changelogIDs.remove(temp.id)
+            # Used for ID
+            count += 1
         elif len(matching_times) == 1:
-            temp = MySQLChangelog(*matching_times[0])
             # TODO: Set the values for cl_id2 & p_id2 to NULL. 
             # Insert coopbundle to PG, and update PG changelog for cl_id1
-            raise NotImplementedError
+            temp = MySQLChangelog(*matching_times[0])
+            pg_cursor.execute("""INSERT INTO 
+                \"p2boards\".coop_bundled 
+                (id, p_id1, p_id2, p1_id_host, cl_id1, cl_id2) 
+                VALUES (%s, %s, %s, %s, %s, %s);""",
+                (count, temp.profile_number, None, None, temp.id, None))
+            # If value is none, have the server handle logic for a new changelog entry, rather than inserting a blank value.
+            pg_cursor.execute("""UPDATE \"p2boards\".changelog SET coop_id = %s WHERE id = %s;""", (count, temp.id))
+            if count < 10:
+                pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog WHERE id = %s;""", (temp.id,))
+                print(pg_cursor.fetchall())
+            count += 1
         else: # There are more than 2 times.
             temp = MySQLChangelog(*matching_times[0])
             print(f"{temp}") #DEBUG: This case shouldn't be reached.
         #
         del changelogIDs[index]
+    
+    pg_cursor.execute("""SELECT * FROM \"p2boards\".coop_bundled""")
+    print(pg_cursor.fetchall())    
     
 # NEW BLOCK
 def categories(pg_cursor):
@@ -417,7 +436,7 @@ def maps(mysql_cursor, pg_cursor):
         temp = MySQLMap(*map)
         all_maps_object.append(temp)
         # Add map_id & name to dictionary for later use
-        map_name[temp.id] = temp.name
+        map_name[temp.steam_id] = temp.name
     for map in all_maps_object:
         pg_cursor.execute("""INSERT INTO
             \"p2boards\".maps
@@ -436,18 +455,45 @@ def changelog(mysql_cursor, pg_cursor):
     # Class constructor *should* handle all of this logic for us.
     mysql_cursor.execute("SELECT * FROM changelog")
     all_changelogs = mysql_cursor.fetchall()
-    all_changelogs_object = []
+    all_changelogs_local_list = []
+    all_changelogs_new = []
     for changelog in all_changelogs:
         temp = MySQLChangelog(*changelog)
-        temp = PgSQLChangelog(temp.time_gained, temp.profile_number, temp.score, temp.map_id,
-            temp.has_demo, temp.banned, temp.youtube_id, temp.previous_id, temp.id, None, 
-            temp.post_rank, temp.pre_rank, temp.submission, temp.note, temp.pending)
-        all_changelogs_object.append(temp)
-    for changelog in all_changelogs_object:
+        all_changelogs_new.append(temp)
+        changelog_id_score_map[temp.id] = temp.score
+    for changelog in all_changelogs_new:
+        temp = PgSQLChangelog(changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id,
+            changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id, None, 
+            changelog.post_rank, changelog.pre_rank, changelog.submission, changelog.note, changelog.pending)
+        all_changelogs_local_list.append(temp)
+        changelog_id_score_map[temp.id] = temp.score
+    for changelog in all_changelogs_local_list:
+        if changelog.profile_number == "76561197972048348":
+            print("Invalid User")
+        else:
+            pg_cursor.execute("""INSERT INTO
+                \"p2boards\".changelog
+                (id, timestamp, profile_number, score, map_id, demo_id, banned, youtube_id, 
+                previous_id, coop_id, post_rank, pre_rank, submission, note, category_id, 
+                score_delta, verified, admin_note)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);""",
+                (changelog.id, changelog.timestamp, changelog.profile_number, 
+                changelog.score, changelog.map_id, changelog.demo_id, 
+                changelog.banned, changelog.youtube_id, changelog.previous_id, 
+                changelog.coop_id, changelog.post_rank, changelog.pre_rank, 
+                changelog.submission, changelog.note, changelog.category_id, 
+                changelog.score_delta, changelog.verified, changelog.admin_note))      
+    pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog""")
+    print(pg_cursor.fetchall())   
+# TODO: THIS NEEDS TO HAPPEN BEFORE CHANGELOG IS ADDED
+def demos(pg_cursor):
+    for demo in all_demo_objects:
         pg_cursor.execute("""INSERT INTO
-            \"p2boards\".changelog
-            ()
-            VALUES (%s, %s, %s, %s, %s, %s);""",
-            ())      
+            \"p2boards\".demos
+            (id, drive_url, partner_name, parsed_successfully, sar_version, cl_id)
+            VALUSE (%s, %s, %s, %s, %s, %s);""",
+            (demo.id, demo.drive_url, demo.partner_name, demo.parsed_successfully, demo.sar_version, demo.cl_id))
+    pg_cursor.execute("""SELECT * FROM \"p2boards\".demos""")
+    print(pg_cursor.fetchall())   
 
 main()
