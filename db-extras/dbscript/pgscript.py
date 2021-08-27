@@ -467,8 +467,9 @@ def changelog(mysql_cursor, pg_cursor):
             changelog.post_rank, changelog.pre_rank, changelog.submission, changelog.note, changelog.pending)
         all_changelogs_local_list.append(temp)
         changelog_id_score_map[temp.id] = temp.score
+    # TODO: Save the all_changelogs_local_list in a different scope, stage the portion prior to this comment, then do inserts after demos
     for changelog in all_changelogs_local_list:
-        if changelog.profile_number == "76561197972048348":
+        if changelog.profile_number == "76561197972048348": # Someone removed this user from the users table, so it's an exception in the script
             print("Invalid User")
         else:
             pg_cursor.execute("""INSERT INTO
@@ -485,7 +486,7 @@ def changelog(mysql_cursor, pg_cursor):
                 changelog.score_delta, changelog.verified, changelog.admin_note))      
     pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog""")
     print(pg_cursor.fetchall())   
-# TODO: THIS NEEDS TO HAPPEN BEFORE CHANGELOG IS ADDED
+# TODO: THIS NEEDS TO HAPPEN BEFORE CHANGELOG IS ADDED OR WE GET FOREIGN KEY VIOLATIONS
 def demos(pg_cursor):
     for demo in all_demo_objects:
         pg_cursor.execute("""INSERT INTO
