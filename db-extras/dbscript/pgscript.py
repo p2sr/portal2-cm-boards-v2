@@ -265,6 +265,7 @@ def main():
         user="djbates", # TODO: Allow this to be kept in a .secret or .env (pass as cl arg?)
         password=db_password
     )
+    pg_conn.autocommit = True
     pg_cursor = pg_conn.cursor()
     mysql_cursor = mysql_conn.cursor()
     categories(pg_cursor)
@@ -294,7 +295,7 @@ def coop_bundled(mysql_cursor, pg_cursor):
         AND usersnew.banned=0
         AND changelog.banned=0
         AND changelog.time_gained IS NOT NULL
-        ORDER BY time_gained ASC"""
+        ORDER BY time_gained ASC""" #Switch this to DESC (we read through the list in reverse order)
     mysql_cursor.execute(get_all_coop)
     all_coop = mysql_cursor.fetchall()
     # Adds every coop changelog entry into a class object, and inserts it into a dictionary with id as the key
