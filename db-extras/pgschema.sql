@@ -110,5 +110,3 @@ ALTER TABLE "p2boards".coop_bundled ADD CONSTRAINT fk_coop_bundled_chapters_cl_i
 ALTER TABLE "p2boards".coop_bundled ADD CONSTRAINT fk_coop_bundled_users_u1 FOREIGN KEY ( p_id1 ) REFERENCES "p2boards".users( profile_number );
 
 ALTER TABLE "p2boards".coop_bundled ADD CONSTRAINT fk_coop_bundled_users_u2 FOREIGN KEY ( p_id2 ) REFERENCES "p2boards".users( profile_number );
-
-ALTER TABLE "p2boards".demos ADD CONSTRAINT fk_demos_changelog FOREIGN KEY ( cl_id ) REFERENCES "p2boards".changelog( id );

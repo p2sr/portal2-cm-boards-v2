@@ -205,8 +205,9 @@ class PgSQLChangelog:
             # demo_id is serial, but we want to work around a weird issue with psycopg2 not resetting the serial.
             map_name_temp = map_name.get(map_id).replace(" ", "")
             drive_url = f"{map_name_temp}_{self.score}_{self.profile_number}_{len(all_demo_objects)+1}.dem"
-            temp = PgSQLDemos(len(all_demo_objects)+1, drive_url, None, self.is_verified, "", self.id)
+            temp = PgSQLDemos(len(all_demo_objects)+1, drive_url, None, self.verified, "", self.id)
             all_demo_objects.append(temp)
+            #print(temp)
             return len(all_demo_objects)
     
     def get_category_id(self, map_id):
@@ -249,7 +250,7 @@ class PgSQLDemos:
         self.cl_id = cl_id
     
     def __str__(self):
-        return f"{self.id}"
+        return f"{self.id} - {self.drive_url} - {self.partner_name} - {self.parsed_successfully} - {self.sar_version} - {self.cl_id}"
 
 def main():
     mysql_conn = mysql.connector.connect(
@@ -271,9 +272,12 @@ def main():
     users(mysql_cursor, pg_cursor)
     chapters(mysql_cursor, pg_cursor)
     maps(mysql_cursor, pg_cursor)
-    changelog(mysql_cursor, pg_cursor) #Demo creation will happen here.
-    coop_bundled(mysql_cursor, pg_cursor)
+    all_changelogs_local_list = []
+    changelog_from_mysql(mysql_cursor, all_changelogs_local_list) #Demo creation will happen here.
     demos(pg_cursor)
+    changelog_to_pg(pg_cursor, all_changelogs_local_list)
+    coop_bundled(mysql_cursor, pg_cursor)
+
 
 def coop_bundled(mysql_cursor, pg_cursor):
     get_all_coop = """SELECT
@@ -289,7 +293,8 @@ def coop_bundled(mysql_cursor, pg_cursor):
         WHERE maps.is_coop=1
         AND usersnew.banned=0
         AND changelog.banned=0
-        AND changelog.time_gained IS NOT NULL"""
+        AND changelog.time_gained IS NOT NULL
+        ORDER BY time_gained ASC"""
     mysql_cursor.execute(get_all_coop)
     all_coop = mysql_cursor.fetchall()
     # Adds every coop changelog entry into a class object, and inserts it into a dictionary with id as the key
@@ -300,6 +305,9 @@ def coop_bundled(mysql_cursor, pg_cursor):
     # Our query handles checking for banned users, changelog entries, and NULL timestamps
     count = 1
     while len(changelogIDs) != 0:
+        is_bundled = False
+        backup_id = 0
+         
         index = len(changelogIDs)-1
         value = coopdict[changelogIDs[index]]
         get_matching_times = f"SELECT * FROM changelog WHERE time_gained=\"{value.time_gained}\" AND score={value.score} AND map_id={value.map_id}"
@@ -311,7 +319,7 @@ def coop_bundled(mysql_cursor, pg_cursor):
             temp2 = MySQLChangelog(*matching_times[1])
             pg_cursor.execute("""INSERT INTO 
                 \"p2boards\".coop_bundled 
-                (id, p_id1, p_id2, p1_id_host, cl_id1, cl_id2) 
+                (id, p_id1, p_id2, p1_is_host, cl_id1, cl_id2) 
                 VALUES (%s, %s, %s, %s, %s, %s);""",
                 (count, temp.profile_number, temp2.profile_number, None, temp.id, temp2.id))
             # Update both changelogs to include the new bundled information.
@@ -323,20 +331,19 @@ def coop_bundled(mysql_cursor, pg_cursor):
                 pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog WHERE id = %s;""", (temp2.id,))
                 print(pg_cursor.fetchall())
             # We want to del on index for better performance, but we need to find the ID for the second entry.
-            # Deletion of first value happens at the end of every loop.
+            # Deletion of happens at the end of every loop, we save the non-indexed value to `remove`
+            is_bundled = True
             if temp.id == changelogIDs[index]:
-                changelogIDs.remove(temp2.id)
+                backup_id = temp2.id
             else:
-                changelogIDs.remove(temp.id)
-            # Used for ID
-            count += 1
+                backup_id = temp.id            
+            count += 1 # Used for ID
         elif len(matching_times) == 1:
-            # TODO: Set the values for cl_id2 & p_id2 to NULL. 
             # Insert coopbundle to PG, and update PG changelog for cl_id1
             temp = MySQLChangelog(*matching_times[0])
             pg_cursor.execute("""INSERT INTO 
                 \"p2boards\".coop_bundled 
-                (id, p_id1, p_id2, p1_id_host, cl_id1, cl_id2) 
+                (id, p_id1, p_id2, p1_is_host, cl_id1, cl_id2) 
                 VALUES (%s, %s, %s, %s, %s, %s);""",
                 (count, temp.profile_number, None, None, temp.id, None))
             # If value is none, have the server handle logic for a new changelog entry, rather than inserting a blank value.
@@ -349,7 +356,14 @@ def coop_bundled(mysql_cursor, pg_cursor):
             temp = MySQLChangelog(*matching_times[0])
             print(f"{temp}") #DEBUG: This case shouldn't be reached.
         #
+        # print(f"Deleting {changelogIDs[index]}")
         del changelogIDs[index]
+        if is_bundled: # Remove after deletion, as it's not index dependant.
+            #print(f"Deleting backup {backup_id}")  
+            try:
+                changelogIDs.remove(backup_id)
+            except:
+                ()
     
     pg_cursor.execute("""SELECT * FROM \"p2boards\".coop_bundled""")
     print(pg_cursor.fetchall())    
@@ -448,14 +462,14 @@ def maps(mysql_cursor, pg_cursor):
     # print(pg_cursor.fetchall())   
 
 #Demo creation will happen here.
-def changelog(mysql_cursor, pg_cursor):
+def changelog_from_mysql(mysql_cursor, all_changelogs_local_list):
     # `coop_id` & `admin_note` now exists
     # Calculate `score_delta`
     # Invert `pending`
     # Class constructor *should* handle all of this logic for us.
     mysql_cursor.execute("SELECT * FROM changelog")
     all_changelogs = mysql_cursor.fetchall()
-    all_changelogs_local_list = []
+    
     all_changelogs_new = []
     for changelog in all_changelogs:
         temp = MySQLChangelog(*changelog)
@@ -467,7 +481,18 @@ def changelog(mysql_cursor, pg_cursor):
             changelog.post_rank, changelog.pre_rank, changelog.submission, changelog.note, changelog.pending)
         all_changelogs_local_list.append(temp)
         changelog_id_score_map[temp.id] = temp.score
-    # TODO: Save the all_changelogs_local_list in a different scope, stage the portion prior to this comment, then do inserts after demos
+
+def demos(pg_cursor):
+    for demo in all_demo_objects:
+        pg_cursor.execute("""INSERT INTO
+            \"p2boards\".demos
+            (id, drive_url, partner_name, parsed_successfully, sar_version, cl_id)
+            VALUES (%s, %s, %s, %s, %s, %s);""",
+            (demo.id, demo.drive_url, demo.partner_name, demo.parsed_successfully, demo.sar_version, demo.cl_id))
+    #pg_cursor.execute("""SELECT * FROM \"p2boards\".demos""")
+    #print(pg_cursor.fetchall())
+
+def changelog_to_pg(pg_cursor, all_changelogs_local_list):
     for changelog in all_changelogs_local_list:
         if changelog.profile_number == "76561197972048348": # Someone removed this user from the users table, so it's an exception in the script
             print("Invalid User")
@@ -484,17 +509,7 @@ def changelog(mysql_cursor, pg_cursor):
                 changelog.coop_id, changelog.post_rank, changelog.pre_rank, 
                 changelog.submission, changelog.note, changelog.category_id, 
                 changelog.score_delta, changelog.verified, changelog.admin_note))      
-    pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog""")
-    print(pg_cursor.fetchall())   
-# TODO: THIS NEEDS TO HAPPEN BEFORE CHANGELOG IS ADDED OR WE GET FOREIGN KEY VIOLATIONS
-def demos(pg_cursor):
-    for demo in all_demo_objects:
-        pg_cursor.execute("""INSERT INTO
-            \"p2boards\".demos
-            (id, drive_url, partner_name, parsed_successfully, sar_version, cl_id)
-            VALUSE (%s, %s, %s, %s, %s, %s);""",
-            (demo.id, demo.drive_url, demo.partner_name, demo.parsed_successfully, demo.sar_version, demo.cl_id))
-    pg_cursor.execute("""SELECT * FROM \"p2boards\".demos""")
-    print(pg_cursor.fetchall())   
+    # pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog""")
+    # print(pg_cursor.fetchall())   
 
 main()
