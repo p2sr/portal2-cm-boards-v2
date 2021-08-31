@@ -1,0 +1,46 @@
+version: "3.9"
+services:
+  web:
+    image: "rust:1-alpine3.14"
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    volumes: 
+      - ./server:/server
+    environment:
+      - USER=dev
+      - PG_URL=postgresql://postgres:docker@postgres:5432/p2boards
+      - PG_POOL_SIZE=10
+    networks:
+      - library-network
+    ports:
+      - "8080:8080"
+  postgres:
+    image: "postgres:13.4-alpine"
+    environment:
+      PGPASSWORD: "docker"
+    networks:
+      -library-network
+    ports:
+      - "5432:5432"
+  dbmate:
+    build:
+      context: .
+      dockerfile: Dockerfile.dbmate
+    command:
+      - ./db/create_db.sh
+    environment:
+        DATABASE_URL: "postgresql://postgres:docker@postgres:5432/p2boards"
+    depends_on:
+      - postgres
+    links:
+      - postgres
+    networks:
+      - library-network
+    volumes:
+      - ./db:/db
+    
+networks:
+  library-network:
+    driver: bridge
