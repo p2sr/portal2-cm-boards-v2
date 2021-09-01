@@ -268,6 +268,7 @@ def main():
     pg_conn.autocommit = True
     pg_cursor = pg_conn.cursor()
     mysql_cursor = mysql_conn.cursor()
+    # add_garbage(pg_cursor)
     categories(pg_cursor)
     games(pg_cursor)
     users(mysql_cursor, pg_cursor)
@@ -279,6 +280,17 @@ def main():
     changelog_to_pg(pg_cursor, all_changelogs_local_list)
     coop_bundled(mysql_cursor, pg_cursor)
 
+
+def add_garbage(pg_cursor):
+    starting_id = 157806
+    for map in coop_map_ids:
+        if map != 47828:
+            pg_cursor.execute("""INSERT
+                INTO \"p2boards\".changelog
+                (id, profile_number, score, map_id)
+                VALUES (%s, %s, %s, %s)
+                """,(starting_id, 'N/A', 0, str(map)))#Switch this to DESC (we read through the list in reverse order)
+            starting_id += 1
 
 def coop_bundled(mysql_cursor, pg_cursor):
     get_all_coop = """SELECT
