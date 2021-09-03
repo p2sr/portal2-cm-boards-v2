@@ -3,341 +3,224 @@
 
 use std::collections::HashMap;
 use actix_web::{HttpResponse, Error};
+use sqlx::FromRow;
+use sqlx::decode::Decode;
 
-use diesel;
-use diesel::prelude::*;
-use diesel::mysql::MysqlConnection;
 use chrono::NaiveDateTime;
 
-use crate::tools::schema::{changelog, chapters, coopbundled, maps, scores, usersnew};
-use crate::tools::schema::changelog::dsl::changelog as all_changelogs;
-use crate::tools::schema::usersnew::dsl::usersnew as all_users;
-use crate::tools::schema::maps::dsl::maps as all_maps;
-use crate::tools::schema::coopbundled::dsl::coopbundled as all_coops;
-use crate::db::DbPool;
 
-//TODO: Make this cleaner.
-
-// Structs prefixed with the `table_name` attribute are designed to pull raw data from any table in the database.
 /// One-to-one struct for changelog data.
-#[derive(Serialize, Queryable, Debug, Clone, Identifiable, Deserialize)]
-#[table_name = "changelog"]
-pub struct Changelog {
-    pub time_gained: Option<NaiveDateTime>,
+#[derive(Serialize, Deserialize, FromRow, Decode)]
+pub struct Changelog{
+    pub id: i64,
+    pub timestamp: Option<NaiveDateTime>,
     pub profile_number: String,
     pub score: i32,
     pub map_id: String,
-    pub wr_gain: i32,
-    pub has_demo: Option<i32>,
-    pub banned: i32,
+    pub demo_id: Option<i64>,
+    pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i32>,
-    pub id: i32,
-    pub coopid: Option<i32>,
+    pub previous_id: Option<i64>,
+    pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
-    pub submission: i32,
+    pub submission: bool,
     pub note: Option<String>,
-    pub category: Option<String>,
+    pub category_id: i32,
+    pub score_delta: Option<i32>,
+    pub verified: Option<bool>,
+    pub admin_note: Option<String>,
+}
+/// All changelog data except for the ID, for table insertion.
+#[derive(Serialize)]
+pub struct ChangelogInsert{
+    pub timestamp: Option<NaiveDateTime>,
+    pub profile_number: String,
+    pub score: i32,
+    pub map_id: String,
+    pub demo_id: Option<i64>,
+    pub banned: bool,
+    pub youtube_id: Option<String>,
+    pub previous_id: Option<i64>,
+    pub coop_id: Option<i64>,
+    pub post_rank: Option<i32>,
+    pub pre_rank: Option<i32>,
+    pub submission: bool,
+    pub note: Option<String>,
+    pub category_id: i32,
+    pub score_delta: Option<i32>,
+    pub verified: Option<bool>,
+    pub admin_note: Option<String>,
 }
 
-#[derive(Serialize, Debug, Clone, Deserialize, Insertable)]
-#[table_name = "changelog"]
-pub struct ChangelogInsert {
-    pub time_gained: Option<NaiveDateTime>,
-    pub profile_number: String,
-    pub score: i32,
-    pub map_id: String,
-    pub wr_gain: i32,
-    pub has_demo: Option<i32>,
-    pub banned: i32,
-    pub youtube_id: Option<String>,
-    pub previous_id: Option<i32>,
-    pub coopid: Option<i32>,
-    pub post_rank: Option<i32>,
-    pub pre_rank: Option<i32>,
-    pub submission: i32,
-    pub note: Option<String>,
-    pub category: Option<String>,
+/// One-to-one struct for Category data.
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct Categories{
+    pub id: i32,
+    pub name: String,
+    pub map_id: String, 
+    pub rules: String,
 }
 
 /// One-to-one struct for chapter data.
-#[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
-#[table_name = "chapters"]
-pub struct Chapter {
-    pub id: u32,
-    pub chapter_name: Option<String>,
-    pub is_multiplayer: i32,
-}
-// TODO: Cut down on the amount of data stored in coopbundled after aliasing is fixed.
-/// One-to-one struct for coopbundled data.
-#[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
-#[table_name = "coopbundled"]
-pub struct Coopbundled {
-    pub time_gained: Option<NaiveDateTime>,
-    pub profile_number1: String,
-    pub profile_number2: String,
-    pub score: i32,
-    pub map_id: String,
-    pub wr_gain: i32,
-    pub is_blue: Option<i32>,
-    pub has_demo1: Option<i32>,
-    pub has_demo2: Option<i32>,
-    pub banned: i32,
-    pub youtube_id1: Option<String>,
-    pub youtube_id2: Option<String>,
-    pub previous_id1: Option<i32>,
-    pub previous_id2: Option<i32>,
-    pub changelogid1: i32,
-    pub changelogid2: i32,
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct Chapters{
     pub id: i32,
-    pub post_rank1: Option<i32>,
-    pub post_rank2: Option<i32>,
-    pub pre_rank1: Option<i32>,
-    pub pre_rank2: Option<i32>,
-    pub submission1: i32,
-    pub submission2: i32,
-    pub note1: Option<String>,
-    pub note2: Option<String>,
-    pub category: Option<String>,
+    pub chapter_name: Option<String>,
+    pub is_multiplayer: bool,
+    pub game_id: i32,
 }
 
-#[derive(Serialize, Queryable, Debug, Clone, Insertable)]
-#[table_name = "coopbundled"]
-pub struct CoopbundledInsert {
-    pub time_gained: Option<NaiveDateTime>,
-    pub profile_number1: String,
-    pub profile_number2: String,
-    pub score: i32,
-    pub map_id: String,
-    pub wr_gain: i32,
-    pub is_blue: Option<i32>,
-    pub has_demo1: Option<i32>,
-    pub has_demo2: Option<i32>,
-    pub banned: i32,
-    pub youtube_id1: Option<String>,
-    pub youtube_id2: Option<String>,
-    pub previous_id1: Option<i32>,
-    pub previous_id2: Option<i32>,
-    pub changelogid1: i32,
-    pub changelogid2: i32,
-    pub post_rank1: Option<i32>,
-    pub post_rank2: Option<i32>,
-    pub pre_rank1: Option<i32>,
-    pub pre_rank2: Option<i32>,
-    pub submission1: i32,
-    pub submission2: i32,
-    pub note1: Option<String>,
-    pub note2: Option<String>,
-    pub category: Option<String>,
+/// One-to-one struct for coop_bundled data.
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct CoopBundled{
+    pub id: i64,
+    pub p_id1: String,
+    pub p_id2: Option<String>,
+    pub p1_is_host: Option<bool>,
+    pub cl_id1: i64,
+    pub cl_id2: Option<i64>,
 }
 
-/// One-to-one struct for maps data.
-#[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
-#[table_name = "maps"]
-pub struct Map {
+/// One-to-one struct for demo data.
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct Demos{
+    pub id: i64,
+    pub drive_url: String,
+    pub partner_name: Option<String>,
+    pub parsed_successfully: bool,
+    pub sar_version: Option<String>,
+    pub cl_id: i64,
+}
+
+/// One-to-one struct for game data.
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct Games{
+    pub id: i32,
+    pub game_name: String,
+}
+
+/// One-to-one struct for map data.
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct Maps{
     pub id: i32,
     pub steam_id: String,
     pub lp_id: String,
-    pub name: Option<String>,
-    pub type_: String,
-    pub chapter_id: Option<u32>,
-    pub is_coop: i32,
-    pub is_public: i32,
+    pub name: String,
+    pub chapter_id: Option<i32>,
+    pub is_public: bool,
 }
-/// One-to-one struct for scores data.
-#[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
-#[primary_key(changelog_id)]
-#[table_name = "scores"]
-pub struct Score {
+
+/// One-to-one struct for user data.
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct Users{
     pub profile_number: String,
-    pub map_id: String,
-    pub changelog_id: i32,
-}
-/// One-to-one struct for new user (usersnew) data.
-#[derive(Serialize, Queryable, Debug, Clone, Identifiable)]
-#[primary_key(profile_number)]
-#[table_name = "usersnew"]
-pub struct Usersnew {
-    pub profile_number: String,
-    pub boardname: Option<String>,
-    pub steamname: Option<String>,
-    pub banned: i32,
-    pub registered: i32,
+    pub board_name: Option<String>,
+    pub steam_name: Option<String>,
+    pub banned: bool,
+    pub registred: bool,
     pub avatar: Option<String>,
     pub twitch: Option<String>,
     pub youtube: Option<String>,
     pub title: Option<String>,
     pub admin: i32,
     pub donation_amount: Option<String>,
+    pub discord_id: Option<String>,
 }
-
 /// The minimal data we want for SP map pages to lower bandwidth usage.
-#[derive(Queryable, Serialize, Debug, Clone)]
+#[derive(Serialize, FromRow)]
 pub struct SpMap{
-    pub time_gained: Option<NaiveDateTime>,
+    pub timestamp: Option<NaiveDateTime>,
     pub profile_number: String,
     pub score: i32,
     pub has_demo: Option<i32>,
     pub youtube_id: Option<String>,
     pub submission: i32,
     pub note: Option<String>,
-    pub category: Option<String>, 
-    pub boardname: Option<String>,
-    pub steamname: Option<String>,
+    pub category_id: i32, 
+    pub user_name: Option<String>,
     pub avatar: Option<String>,
 }
 
-// TODO: Potentially work boardname and steamname into one field? (Check if boardname exists, if it doesn, keep it, if not, replace it with steamname)
-// NOTE: This struct is a work-around for the issues with aliased queries in diesel, ideally this would be scrapped for an aliased join on usersnew
-// so we could grab both sets of usersnew information in one query.
-/// Work-around table because of diesel limitations with aliases.
-#[derive(Queryable, Serialize, Debug, Clone)]
-pub struct CoopMapPrelude{
-    pub time_gained: Option<NaiveDateTime>,
-    pub profile_number1: String,
-    pub profile_number2: String,
-    pub score: i32,
-    pub is_blue: Option<i32>,
-    pub has_demo1: Option<i32>,
-    pub has_demo2: Option<i32>,
-    pub youtube_id1: Option<String>,
-    pub youtube_id2: Option<String>,
-    pub submission1: i32,
-    pub submission2: i32,
-    pub note1: Option<String>,
-    pub note2: Option<String>,
-    pub category: Option<String>,
-    pub boardname: Option<String>,
-    pub steamname: Option<String>,
-    pub avatar: Option<String>,
-}
-
-/// Big brother struct for `CoopMapPrelude` to handle all of the data. 
-/// 
-/// The overhead on copy all the data is relatively small, 
-/// but ideally we would only need this and not the prelude.
-#[derive(Queryable, Serialize, Debug, Clone)]
+/// The minimal data we want for Coop map pages to lower bandwitch usage.
+#[derive(Serialize, FromRow)]
 pub struct CoopMap{
-    pub time_gained: Option<NaiveDateTime>,
-    pub profile_number1: String,
-    pub profile_number2: String,
-    pub score: i32,
-    pub is_blue: Option<i32>,
-    pub has_demo1: Option<i32>,
-    pub has_demo2: Option<i32>,
-    pub youtube_id1: Option<String>,
-    pub youtube_id2: Option<String>,
-    pub submission1: i32,
-    pub submission2: i32,
-    pub note1: Option<String>,
-    pub note2: Option<String>,
-    pub category: Option<String>,
-    pub boardname1: Option<String>,
-    pub steamname1: Option<String>,
-    pub avatar1: Option<String>,
-    pub boardname2: Option<String>,
-    pub steamname2: Option<String>,
-    pub avatar2: Option<String>,
-}
-// TODO: Potentially work boardname and steamname into one field? (Check if boardname exists, if it doesn, keep it, if not, replace it with steamname).
-/// Essential user information to aid in filling in `CoopMapPrelude`.
-#[derive(Queryable, Serialize, Deserialize, Debug, Clone)]
-pub struct UserMap{
-    pub boardname: Option<String>,
-    pub steamname: Option<String>,
+    pub profile_number: String,
+    pub user_name: String,
     pub avatar: Option<String>,
-}
-/// `SpPreview` and `SpPreviews` grab the preview information for the `/sp` route. 
-#[derive(Queryable, Serialize, Debug, Clone)]
-pub struct SpPreview{
-    pub map_id: String,
-    pub profile_number: String,
-    pub score: i32,
+    pub banned: bool,
+    pub demo_id: Option<i64>,
     pub youtube_id: Option<String>,
-    pub category: Option<String>, 
-    pub boardname: Option<String>,
-    pub steamname: Option<String>,
-}
-/// Wrapper for previewing the top 7 for all SP maps (any%).
-#[derive(Queryable, Serialize, Debug, Clone)]
-pub struct SpPreviews{
-    pub map_name: Option<String>,
-    pub scores: Vec<SpPreview>,
-}
-/// Similar to `CoopMapPrelude`, a work-around for no alias support in diesel.
-#[derive(Queryable, Serialize, Debug, Clone)]
-pub struct CoopPreviewPrelude{
-    pub map_id: String,
-    pub profile_number1: String,
-    pub profile_number2: String,
-    pub score: i32,
-    pub youtube_id1: Option<String>,
-    pub youtube_id2: Option<String>,
-    pub category: Option<String>, 
-    pub boardname: Option<String>,
-    pub steamname: Option<String>,
-}
-/// `CoopPreview` and `CoopPreviews` grab the preview information for the `/coop` route. 
-#[derive(Queryable, Serialize, Debug, Clone)]
-pub struct CoopPreview{
-    pub map_id: String,
-    pub profile_number1: String,
-    pub profile_number2: String,
-    pub score: i32,
-    pub youtube_id1: Option<String>,
-    pub youtube_id2: Option<String>,
-    pub category: Option<String>, 
-    pub boardname1: Option<String>,
-    pub steamname1: Option<String>,
-    pub boardname2: Option<String>,
-    pub steamname2: Option<String>,
-}
-/// Wrapper for prevciewing the top 7 for all Coop maps (any%).
-#[derive(Queryable, Serialize, Debug, Clone)]
-pub struct CoopPreviews{
-    pub map_name: Option<String>,
-    pub scores: Vec<CoopPreview>,
-}
-/// Data needed for the changelog entries on the changelog page.
-#[derive(Serialize, Queryable, Debug, Clone)]
-pub struct ChangelogPage{
-    pub time_gained: Option<NaiveDateTime>,
-    pub profile_number: String,
-    pub score: i32,
-    pub map_id: String,
-    pub wr_gain: i32,
-    pub has_demo: Option<i32>,
-    pub youtube_id: Option<String>,
-    pub previous_id: Option<i32>,
-    pub id: i32,
-    pub coopid: Option<i32>,
-    pub post_rank: Option<i32>,
-    pub pre_rank: Option<i32>,
-    pub submission: i32,
+    pub submission: bool,
     pub note: Option<String>,
-    pub category: Option<String>,
-    pub name: Option<String>,
-    pub boardname: Option<String>,
-    pub steamname: Option<String>,
-    pub avatar: Option<String>,
 }
-
 
 /// Wrapper for the sp map data and the rank/score.
 #[derive(Serialize)]
 pub struct SpRanked{
     pub map_data: SpMap,
     pub rank: i32,
-    pub score: f32,
+    pub points: f32,
 }
 
 /// Wrapper for the coop map data and the rank/score.
 #[derive(Serialize)]
 pub struct CoopRanked{
-    pub map_data: CoopMap,
+    pub map_data1: CoopMap,
+    pub map_data2: CoopMap,
+    pub timestamp: Option<NaiveDateTime>,
+    pub category_id: i32,
+    pub score: i32,
     pub rank: i32,
-    pub score: f32,
+    pub points: f32,
+}
+
+/// The data for the preview page for all SP Maps
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct SpPreview{
+    pub profile_number: String,
+    pub score: i32,
+    pub youtube_id: Option<String>,
+    pub category_id: i32, 
+    pub user_name: String,
+}
+
+/// Wrapper for multiple SpPreviews, prevents repeat data (multiple map_name and map_id copies)
+#[derive(Serialize, Deserialize)]
+pub struct SpPreviews{
+    pub map_name: String,
+    pub map_id: String,
+    pub map_data: Vec<SpPreview>,
+}
+
+/// The data for the preview page for all Coop Maps
+#[derive(Serialize, FromRow)]
+pub struct CoopPreview{
+    pub profile_number1: String,
+    pub profile_number2: Option<String>,
+    pub score: i32,
+    pub youtube_id1: Option<String>,
+    pub youtube_id2: Option<String>,
+    pub category_id: i32, 
+    pub user_name1: String,
+    pub user_name2: Option<String>,
+}
+
+/// Wrapper for prevciewing the top 7 for all Coop maps=.
+#[derive(Serialize)]
+pub struct CoopPreviews{
+    pub map_name: String,
+    pub map_id: String,
+    pub scores: Vec<CoopPreview>,
+}
+
+/// Changelog Wrapper that contains additional information on the changelog page.
+#[derive(Serialize, FromRow)]
+pub struct ChangelogPage{
+    pub cl: Changelog,
+    pub map_name: String,
+    pub user_name: String,
+    pub avatar: String,
 }
 
 /// All the accepted query parameters for the changelog page.
@@ -368,14 +251,14 @@ pub struct ScoreParams{
 }
 
 /// Banned times for SP
-#[derive(Serialize, Queryable, Deserialize, Debug)]
+#[derive(Serialize, FromRow)]
 pub struct SpBanned{
     pub profilenumber: String,
     pub score: i32,
 }
 
 /// Banned times for Coop
-#[derive(Serialize, Queryable, Deserialize, Debug)]
+#[derive(Serialize, FromRow)]
 pub struct CoopBanned{
     pub profilenumber1: String,
     pub profilenumber2: String,
@@ -383,8 +266,9 @@ pub struct CoopBanned{
 }
 
 /// Wrapper for a player's SP PB history.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct SpPbHistory{
-    pub user_info: UserMap,
+    pub user_name: String,
+    pub avatar: Option<String>,
     pub pb_history: Option<Vec<Changelog>>,
 }
