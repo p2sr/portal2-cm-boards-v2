@@ -11,7 +11,7 @@ services:
       - ./server:/server
     environment:
       - USER=dev
-      - PG_URL=postgresql://postgres:docker@postgres:5432/p2boards
+      - PG_URL=postgresql://postgres:docker@postgres:5432/p2boards?sslmode=disable
       - PG_POOL_SIZE=10
     networks:
       - library-network
@@ -21,7 +21,7 @@ services:
   postgres:
     image: "postgres:13.4-alpine"
     environment:
-      PGPASSWORD: "docker"
+      POSTGRES_PASSWORD: "docker"
     networks:
       - library-network
     ports:
@@ -32,9 +32,10 @@ services:
       context: .
       dockerfile: Dockerfile.dbmate
     command:
-      - /db/create_db.sh
+      - ls
+      - create_db.sh
     environment:
-        DATABASE_URL: "postgresql://postgres:docker@postgres:5432/p2boards"
+        DATABASE_URL: "postgresql://postgres:docker@postgres:5432/p2boards?sslmode=disable"
     depends_on:
       - postgres
     links:
