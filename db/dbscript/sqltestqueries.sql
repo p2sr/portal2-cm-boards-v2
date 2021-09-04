@@ -144,7 +144,7 @@ SELECT t.timestamp, t.score, t.steam_name, t.board_name FROM (
 ORDER BY score;
 
 SELECT t.timestamp,
-  t.profile_number, /*Somehow make this non-ambiguous???*/
+  t.profile_number,
   t.score,
   t.demo_id,
   t.youtube_id,
@@ -204,7 +204,7 @@ FROM (SELECT * FROM
   WHERE id IN 
     (SELECT coop_id
     FROM "p2boards".changelog
-    WHERE map_id='47828'
+    WHERE map_id = $1
     AND coop_id IS NOT NULL)) as cb 
   INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
   INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
@@ -273,3 +273,17 @@ AND c2.banned=False
 AND c1.verified=True
 AND c2.verified=True
 ORDER BY score ASC;
+
+
+
+
+
+
+
+
+
+
+
+
+
+

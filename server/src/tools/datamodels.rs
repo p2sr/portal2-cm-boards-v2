@@ -9,20 +9,21 @@ use sqlx::decode::Decode;
 use sqlx::postgres::types::PgRecordDecoder;
 use chrono::NaiveDateTime;
 
+// rustc bug: https://github.com/rust-lang/rust/issues/82219
 // impl<'r> Decode<'r, Postgres> for Changelog
     // where
-    //     i64: Decode<'r, Postgres>,
-    //     i64: Type<Postgres>,
+    //     // i64: Decode<'r, Postgres>,
+    //     // i64: Type<Postgres>,
     //     Option<NaiveDateTime>: Decode<'r, Postgres>,
     //     Option<NaiveDateTime>: Type<Postgres>,
-    //     String: Decode<'r, Postgres>,
-    //     String: Type<Postgres>,
-    //     i32: Decode<'r, Postgres>,
-    //     i32: Type<Postgres>,
+    //     // String: Decode<'r, Postgres>,
+    //     // String: Type<Postgres>,
+    //     // i32: Decode<'r, Postgres>,
+    //     // i32: Type<Postgres>,
     //     Option<String>: Decode<'r, Postgres>,
     //     Option<String>: Type<Postgres>,
-    //     bool: Decode<'r, Postgres>,
-    //     bool: Type<Postgres>,
+    //     // bool: Decode<'r, Postgres>,
+    //     // bool: Type<Postgres>,
     //     Option<i64>: Decode<'r, Postgres>,
     //     Option<i64>: Type<Postgres>,
     //     Option<i32>: Decode<'r, Postgres>,
@@ -32,40 +33,40 @@ use chrono::NaiveDateTime;
     // {
     //     fn decode(value: PgValueRef<'r>) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
     //         let mut decoder = PgRecordDecoder::new(value)?;
-    //         let id = decoder.try_decode::<i64>()?;
+    //         //let id = decoder.try_decode::<i64>()?;
     //         let timestamp = decoder.try_decode::<Option<NaiveDateTime>>()?;
-    //         let profile_number = decoder.try_decode::<String>()?;
-    //         let score = decoder.try_decode::<i32>()?;
-    //         let map_id = decoder.try_decode::<String>()?;
+    //         //let profile_number = decoder.try_decode::<String>()?;
+    //         //let score = decoder.try_decode::<i32>()?;
+    //         //let map_id = decoder.try_decode::<String>()?;
     //         let demo_id = decoder.try_decode::<Option<i64>>()?;
-    //         let banned = decoder.try_decode::<bool>()?;
+    //         //let banned = decoder.try_decode::<bool>()?;
     //         let youtube_id = decoder.try_decode::<Option<String>>()?;
     //         let previous_id = decoder.try_decode::<Option<i64>>()?;
     //         let coop_id = decoder.try_decode::<Option<i64>>()?;
     //         let post_rank = decoder.try_decode::<Option<i32>>()?;
     //         let pre_rank = decoder.try_decode::<Option<i32>>()?;
-    //         let submission = decoder.try_decode::<bool>()?;
+    //         //let submission = decoder.try_decode::<bool>()?;
     //         let note = decoder.try_decode::<Option<String>>()?;
-    //         let category_id = decoder.try_decode::<i32>()?;
+    //         //let category_id = decoder.try_decode::<i32>()?;
     //         let score_delta = decoder.try_decode::<Option<i32>>()?;
     //         let verified = decoder.try_decode::<Option<bool>>()?;
     //         let admin_note = decoder.try_decode::<Option<String>>()?;
     //         Ok(Changelog{
-    //             id,
+    //             // id,
     //             timestamp,
-    //             profile_number,
-    //             score,
-    //             map_id,
+    //             //profile_number,
+    //             // score,
+    //             //map_id,
     //             demo_id,
-    //             banned,
+    //             // banned,
     //             youtube_id,
     //             previous_id,
     //             coop_id,
     //             post_rank,
     //             pre_rank,
-    //             submission,
+    //             // submission,
     //             note,
-    //             category_id,
+    //             // category_id,
     //             score_delta,
     //             verified,
     //             admin_note,
@@ -202,7 +203,7 @@ pub struct SpMap{
     pub score: i32,
     pub demo_id: Option<i64>,
     pub youtube_id: Option<String>,
-    pub submission: i32,
+    pub submission: bool,
     pub note: Option<String>,
     pub category_id: i32, 
     pub user_name: Option<String>,
@@ -212,14 +213,24 @@ pub struct SpMap{
 /// The minimal data we want for Coop map pages to lower bandwitch usage.
 #[derive(Serialize, FromRow)]
 pub struct CoopMap{
-    pub profile_number: String,
-    pub user_name: String,
-    pub avatar: Option<String>,
-    pub banned: bool,
-    pub demo_id: Option<i64>,
-    pub youtube_id: Option<String>,
-    pub submission: bool,
-    pub note: Option<String>,
+    pub time_gained: Option<NaiveDateTime>,
+    pub profile_number1: String,
+    pub profile_number2: String,
+    pub score: i32,
+    pub p1_is_host: Option<bool>,
+    pub demo_id1: Option<i64>,
+    pub demo_id2: Option<i64>,
+    pub youtube_id1: Option<String>,
+    pub youtube_id2: Option<String>,
+    pub submission1: bool,
+    pub submission2: bool,
+    pub note1: Option<String>,
+    pub note2: Option<String>,
+    pub category_id: i32,
+    pub user_name1: String,
+    pub user_name2: Option<String>,
+    pub avatar1: Option<String>,
+    pub avatar2: Option<String>,
 }
 
 /// Wrapper for the sp map data and the rank/score.
@@ -250,12 +261,12 @@ pub struct SpPreview{
     pub youtube_id: Option<String>,
     pub category_id: i32, 
     pub user_name: String,
+    pub map_id: String
 }
 
 /// Wrapper for multiple SpPreviews, prevents repeat data (multiple map_name and map_id copies)
 #[derive(Serialize, Deserialize)]
 pub struct SpPreviews{
-    pub map_name: String,
     pub map_id: String,
     pub map_data: Vec<SpPreview>,
 }
@@ -289,6 +300,7 @@ pub struct CoopPreviews{
 //     pub user_name: String,
 //     pub avatar: String,
 // }
+// TODO: rustc issues.
 #[derive(Serialize, FromRow)]
 pub struct ChangelogPage{
     pub id: i64,

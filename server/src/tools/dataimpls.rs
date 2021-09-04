@@ -94,247 +94,193 @@ use crate::tools::datamodels::*;
 // }
 
 
+impl SpPreviews{
+    /// Gets preview information for top 7 on an SP Map.
+    pub async fn get_sp_previews(pool: &PgPool, map_id: String) -> Result<SpPreviews>{
+        let query = sqlx::query_as::<_, SpPreview>(r#"
+                SELECT t.CL_profile_number, t.score, t.youtube_id, t.category_id,
+                CASE
+                    WHEN t.board_name IS NULL
+                        THEN t.steam_name
+                    WHEN t.board_name IS NOT NULL
+                        THEN t.board_name
+                    END user_name
+                FROM (
+                    SELECT DISTINCT ON (changelog.profile_number) 
+                        changelog.profile_number as CL_profile_number,
+                        users.profile_number as U_profile_number, *
+                    FROM "p2boards".changelog
+                    INNER JOIN "p2boards".users ON (users.profile_number = changelog.profile_number)
+                    WHERE map_id = $1
+                    AND users.banned = False
+                    AND changelog.banned = False
+                    ORDER BY changelog.profile_number, changelog.score ASC
+                ) t
+               ORDER BY score
+               LIMIT 7"#)
+            .bind(map_id.clone())
+            .fetch_all(pool)
+            .await?;
+        Ok(SpPreviews{
+            map_id: map_id,
+            map_data: query, 
+        })
+    }
+}
 
-// impl SpPreview{
-//     // TODO: Improve error handling.
-//     // TODO: Check on distinct_on support or MySQL.
-//     // WHY IS DISTINCT_ON ONLY SUPPORTED FOR POSTGRES?
-//     /// Grabs top 40 times in an SP map. This is a crutch to avoid filtering out too many times for duplicates from one user.
-//     /// We do this rather than using the `DISTINCT_ON` method in diesel & MySQL as it's not currently supported by Diesel, the hope is that this is changed in the future.
-//     pub fn show(conn: &PgPool, mapid: String) -> Vec<SpPreview>{
-//         all_changelogs
-//             .inner_join(all_users)
-//             .select((changelog::map_id, changelog::profile_number, changelog::score, changelog::youtube_id, changelog::category, usersnew::boardname, usersnew::steamname))
-//             .filter(changelog::map_id.eq(mapid))
-//             .filter(changelog::banned.eq(0))
-//             .filter(usersnew::banned.eq(0))
-//             .filter(changelog::category.eq("any%".to_string()))
-//             .order(changelog::score.asc())
-//             .limit(40)
-//             .load::<SpPreview>(conn)
-//             .expect("Error loading map previews for SP.")
-//     } 
-// }
+impl SpBanned{
+    // Returns all profile_numbers and scores associated with banned times on a given map
+    pub async fn get_sp_banned(pool: &PgPool, map_id: String) -> Result<Vec<SpBanned>>{
+        let res = sqlx::query_as::<_, SpBanned>(r#"
+                SELECT changelog.profile_number, changelog.score 
+                    FROM "p2boards".changelog
+                    WHERE changelog.banned = True
+                        AND changelog.map_id = $1
+                    ORDER BY changelog.score ASC
+            "#)
+            .bind(map_id)
+            .fetch_all(pool)
+            .await?;   
+        Ok(res)
+    }
+}
 
-// impl SpPreviews{
-//     /// Makes a call to grab all `map_ids`, grabs the map name off a call to `Map::get_name()` and
-//     /// calls`SpPreview::show()` for all 60 sp maps and filters out top 7 for distinct runners.
-//     // Top 40 to handle duplicates to generate top 7, that number should be safe right?
-//     pub fn show(conn: &PgPool) -> Result<Option<Vec<SpPreviews>>, diesel::result::Error>{
-//         let map_id_vec = Map::all_sp_mapids(&conn);
-//         let mut vec_final = Vec::new();
-//         for mapid in map_id_vec.iter(){
-//             let vec_temp = SpPreview::show(&conn, mapid.to_string());
-//             let mut vec_filtered = Vec::new();
-//             let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(50);
-//             // Yes I know this is stupid, diesel.rs doesn't support distinct_on clauses with MySQL...
-//             for entry in vec_temp{
-//                 match remove_dups.insert(entry.profile_number.clone(), 1){
-//                     Some(_) => (),
-//                     _ =>{
-//                         vec_filtered.push(entry);
-//                     }
-//                 }
-//             }
-//             vec_filtered.truncate(7);
-//             vec_final.push(SpPreviews{ map_name: Map::get_name(&conn, mapid.to_string()), scores: vec_filtered})
-//         }
-//         Ok(Some(vec_final))
-//     }
-// }
+impl CoopBanned{
+    pub async fn get_coop_banned(pool: &PgPool, map_id: String) -> Result<Vec<CoopBanned>>{
+        // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
+        // TODO: How to handle one player in coop not-being banned/unverified but the other is.
+        /// Currently returns two profile_numbers and a score associated with a coop_bundle where one or both times are either banned or unverifed.
+        let res = sqlx::query_as::<_, CoopBanned>(r#"
+                SELECT c1.score, p1.profile_number, p2.profile_number
+                FROM (SELECT * FROM 
+                    "p2boards".coop_bundled 
+                    WHERE id IN 
+                    (SELECT coop_id
+                    FROM "p2boards".changelog
+                    WHERE map_id = $1
+                    AND coop_id IS NOT NULL)) as cb
+                INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
+                INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
+                INNER JOIN "p2boards".users AS p1 ON (p1.profile_number = cb.p_id1)
+                INNER JOIN "p2boards".users AS p2 ON (p2.profile_number = cb.p_id2)
+                    WHERE (c1.banned = True OR c1.verified = False)
+                    OR (c2.banned = True OR c2.verified = False)
+                "#)
+            .bind(map_id)
+            .fetch_all(pool)
+            .await?;
+        Ok(res)
+    }
+}
 
-// impl SpBanned{
-//     pub fn show(conn: &PgPool, mapid: String) -> Result<Vec<SpBanned>, diesel::result::Error>{
-//         let changelog_entries = all_changelogs
-//             .select((changelog::profile_number, changelog::score))
-//             .filter(changelog::banned.eq(1))
-//             .filter(changelog::map_id.eq(mapid))
-//             .order(changelog::score.asc())
-//             .load::<SpBanned>(conn);
-//         if let Ok(changelog_entries) = changelog_entries{
-//             return Ok(changelog_entries);
-//         } else{
-//             return Err(diesel::result::Error::NotFound);
-//         }
-//     }
-// }
+impl Maps{
+    /// Takes in a bool, if true returns ass MP map_ids, if false, returns as SP map_ids
+    pub async fn get_steamids(pool: &PgPool, is_mp: bool) -> Result<Vec<String>>{
+        let res = sqlx::query!(r#"
+                SELECT maps.steam_id FROM "p2boards".maps
+                    INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
+                    WHERE chapters.is_multiplayer = $1
+                "#)
+            .bind(is_mp)
+            .fetch_all(pool)
+            .await?;
+        Ok(res)
+    }
+    /// Returns the map name for a given steam_id.
+    pub async fn get_map_name(pool: &PgPool, map_id: String) -> Result<Option<String>>{
+        let res = sqlx::query!(r#"SELECT maps.name FROM "p2boards".maps WHERE maps.steam_id = $1"#)
+            .bind(map_id)
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
+}
 
-// impl CoopBanned{
-//     pub fn show(conn: &PgPool, mapid: String) ->Result<Vec<CoopBanned>, diesel::result::Error>{
-//         let coopbundled_entries = all_coops
-//             .select((coopbundled::profile_number1, coopbundled::profile_number2, coopbundled::score))
-//             .filter(coopbundled::map_id.eq(mapid))
-//             .filter(coopbundled::banned.eq(1))
-//             .order(coopbundled::score.asc())
-//             .load::<CoopBanned>(conn);
-//         if let Ok(coopbundled_entries) = coopbundled_entries{
-//             return Ok(coopbundled_entries);
-//         } else{
-//             return Err(diesel::result::Error::NotFound);
-//         }
-//     }
-// }
+impl Users{
+    /// Pattern match on a given string to find similar names (supports board/steam names). 
+    pub async fn check_board_name(pool: &PgPool, nick_name: String) -> Result<Option<Vec<String>>>{ // TODO: Check return type of 0 results more carefully
+        let query_nn = format!("%{}%", &nick_name);
+        let res = sqlx::query!(r#"
+                SELECT users.profile_number FROM "p2boards".users
+                WHERE 
+                    CASE
+                        WHEN users.board_name IS NULL
+                            THEN users.steam_name LIKE $1
+                        WHEN users.board_name IS NOT NULL
+                            THEN users.board_name LIKE $1
+                    END
+                "#) 
+            .bind(query_nn)
+            .fetch_all(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    /// Returns a list of all banned players profile_numbers.
+    pub async fn get_banned(pool: &PgPool) -> Result<Vec<String>>{
+        let res = sqlx::query!(r#"SELECT users.profile_number FROM "p2boards".users WHERE users.banned = True"#)
+            .fetch_all(pool)
+            .await?;
+        Ok(res)
+    }
+    /// Returns a boolean based on if the profile number passed is banned or not.
+    pub async fn check_banned(pool: &PgPool, profile_number: String) -> Result<bool>{
+        let res = sqlx::query!(r#"SELECT users.banned FROM "p2boards".users WHERE users.profile_number = $1"#)
+            .fetch_one(pool)
+            .await?;
+        Ok(res)
+    }
+}
 
-// impl Map{
-//     /// Grabs the map at a given steam_id
-//     pub fn show(conn: &PgPool, id: String) -> Vec<Map> {
-//         all_maps
-//             .filter(maps::steam_id.eq(id))
-//             .load::<Map>(conn)
-//             .expect("Error Loading Maps")
-//     }
-//     /// Grabs all steam_ids for single player
-//     pub fn all_sp_mapids(conn: &PgPool) -> Vec<String> {
-//         all_maps
-//             .select(maps::steam_id)
-//             .filter(maps::is_coop.eq(0))
-//             .load::<String>(conn)
-//             .expect("Error loading SP maps")
-//     }
-//     /// Grabs all steam_ids for Cooperative
-//     pub fn all_coop_mapids(conn: &PgPool) -> Vec<String> {
-//         all_maps
-//             .select(maps::steam_id)
-//             .filter(maps::is_coop.eq(1))
-//             .load::<String>(conn)
-//             .expect("Error loading SP maps")
-//     }
-//     /// Grabs all map info and loads it into Map vectors
-//     pub fn all(conn: &PgPool) -> Vec<Map> {
-//         all_maps
-//             .order(maps::id.desc())
-//             .load::<Map>(conn)
-//             .expect("Error loading all maps")
-//     }
-//     /// Grabs the map name for the map at the given steam_id
-//     pub fn get_name(conn: &PgPool, mapid: String) -> Option<String>{
-//         all_maps
-//             .select((maps::name))
-//             .filter(maps::steam_id.eq(mapid))
-//             .first(conn)
-//             .expect("Cannot find mapname")
-//     }
-// }
-
-// impl Usersnew{
-//     /// Gets the boardname, steamname and avatar from the database for a specifc user.
-//     pub fn show(conn: &PgPool, profilenum: String) -> Result<Option<UserMap>, diesel::result::Error>{
-//         let user = all_users
-//             .select((usersnew::boardname.nullable(), usersnew::steamname.nullable(), usersnew::avatar.nullable()))
-//             .find(profilenum)
-//             .first(conn)?;
-//         Ok(Some(user))
-//     }
-//     /// Search function to find if there's a player with a similar boardname in the database.
-//     pub fn check_board_name(conn: &PgPool, nickname: String) -> Result<bool, diesel::result::Error>{
-//         let user = all_users
-//             .filter(usersnew::boardname.like(nickname))
-//             .filter(usersnew::banned.eq(0))
-//             .get_result::<Usersnew>(conn);
-//         // Dear god fix this error handling
-//         if let Ok(user) = user{
-//             return Ok(true);
-//         }
-//         else{
-//             Ok(false)
-//         }
-//     }
-//     pub fn showbanned(conn: &PgPool) -> Result<Vec<String>, diesel::result::Error>{
-//         let user = all_users
-//             .select(usersnew::profile_number)
-//             .filter(usersnew::banned.eq(1))
-//             .load::<String>(conn)?;
-//         Ok(user)
-//     }
-//     pub fn check_banned(conn: &PgPool, profilenum: String) -> Result<bool, diesel::result::Error>{
-//         let user = all_users
-//             .filter(usersnew::profile_number.eq(profilenum))
-//             .get_result::<Usersnew>(conn);
-//         if let Ok(user) = user{
-//             if user.banned == 1{
-//                 return Ok(true)
-//             }
-//             else{
-//                 Ok(false)
-//             }
-//         }
-//         else{
-//             return Err(diesel::result::Error::NotFound);
-//         }
-//     }
-// }
-
-// // TODO: Fix this when diesel adds support for aliased queries.
-// impl CoopMapPrelude{
-//     /// Work-around for lack of alias support, grabs all information except the second user's profile data for the times on a given map.
-//     pub fn show(conn: &PgPool, mapid: String) -> Result<Option<Vec<CoopMapPrelude>>, diesel::result::Error>{
-//         let map = all_coops
-//             .inner_join(all_users)
-//             // Horrific work-around, I'm sorry god.
-//             .select((
-//                 coopbundled::time_gained.nullable(), coopbundled::profile_number1,        coopbundled::profile_number2, 
-//                 coopbundled::score,                  coopbundled::is_blue.nullable(),     coopbundled::has_demo1.nullable(), 
-//                 coopbundled::has_demo2.nullable(),   coopbundled::youtube_id1.nullable(), coopbundled::youtube_id2.nullable(),
-//                 coopbundled::submission1,            coopbundled::submission2, 
-//                 coopbundled::note1.nullable(),       coopbundled::note2.nullable(),       coopbundled::category.nullable(), 
-//                 usersnew::boardname.nullable(),      usersnew::steamname.nullable(),      usersnew::avatar.nullable()))
-//             .filter(coopbundled::map_id.eq(mapid))
-//             .filter(coopbundled::banned.eq(0))
-//             .filter(usersnew::banned.eq(0))
-//             .order(coopbundled::score.asc())
-//             .load::<CoopMapPrelude>(conn)?;
-//         Ok(Some(map))
-//     }
-// }
-
-// /// Returns a result wrapped option that wraps an instance of CoopMap
-// /// Makes calls to both CoopMapPrelude and individual Usernews.println!
-// /// Handles null partners with Option<None>'s.
-// // TODO: Look into non-blocking, concurrent alternatives while we're using this work-around.
-// impl CoopMap{
-//     /// Calls `CoopMapPrelude::show` and `Usersnew::show` to fill in data due to lack of alias support in diesel. Returns all coop map information for a given map.actix_web
-//     pub fn show(conn: &PgPool, mapid: String) -> Result<Option<Vec<CoopMap>>, diesel::result::Error>{
-//         let coop_prelude = CoopMapPrelude::show(&conn, mapid.clone())?;
-//         if let Some(coop_prelude) = coop_prelude {
-//             let mut vec_final = Vec::new();
-//             // Moving ownership to the for loop iteration
-//             for entry in coop_prelude {
-//                 let tempstr = &entry.profile_number2;
-//                 if(tempstr != "")  {
-//                     let user2 = Usersnew::show(&conn, tempstr.to_string())?;
-//                     if let Some(user2) = user2{
-//                         let tempstruct = CoopMap {time_gained: entry.time_gained, profile_number1: entry.profile_number1, profile_number2: entry.profile_number2, score: entry.score, is_blue: entry.is_blue,
-//                             has_demo1: entry.has_demo1, has_demo2: entry.has_demo2, youtube_id1: entry.youtube_id1, youtube_id2: entry.youtube_id2, submission1: entry.submission1, submission2: entry.submission2,
-//                             note1: entry.note1, note2: entry.note2, category: entry.category, boardname1: entry.boardname, steamname1: entry.steamname, avatar1: entry.avatar, boardname2: user2.boardname, 
-//                             steamname2: user2.steamname, avatar2: user2.avatar};
-//                         vec_final.push(tempstruct);
-//                     } else{
-//                         println!("Unexpected Error");
-//                     }
-//                 }
-//                 else{
-//                     let tempstruct = CoopMap {time_gained: entry.time_gained, profile_number1: entry.profile_number1, profile_number2: entry.profile_number2, score: entry.score, is_blue: entry.is_blue,
-//                         has_demo1: entry.has_demo1, has_demo2: entry.has_demo2, youtube_id1: entry.youtube_id1, youtube_id2: entry.youtube_id2, submission1: entry.submission1, submission2: entry.submission2,
-//                         note1: entry.note1, note2: entry.note2, category: entry.category, boardname1: entry.boardname, steamname1: entry.steamname, avatar1: entry.avatar, boardname2: None, 
-//                         steamname2: None, avatar2: None};
-//                     vec_final.push(tempstruct);
-//                 }
-//             }
-//             Ok(Some(vec_final))
-//         } else{
-//             // TODO: FIXME: Awful Error Handling
-//             let vec_final = Vec::new();
-//             Ok(Some(vec_final))
-//         }
-//     }
-// }
+impl CoopMap{
+    pub async fn get_coop_map_page(pool: &PgPool, map_id: String) -> Result<Option<Vec<CoopMap>>> {
+        let res = sqlx::query_as::<_, CoopMap>(r#"
+                SELECT  c1.timestamp, 
+                    c1.score, c1.note, c2.note,
+                    CASE 
+                    WHEN p1.board_name IS NULL
+                        THEN p1.steam_name
+                    WHEN p1.board_name IS NOT NULL
+                        THEN p1.board_name
+                    END p1_username, 
+                    CASE 
+                    WHEN p2.board_name IS NULL
+                        THEN p2.steam_name
+                    WHEN p2.board_name IS NOT NULL
+                        THEN p2.board_name
+                    END p2_username ,
+                    c1.profile_number, c2.profile_number, c1.demo_id, c2.demo_id, c1.youtube_id,
+                    c2.youtube_id, c1.submission, c2.submission, c1.category_id, c2.category_id, p1.avatar, p2.avatar
+                FROM (SELECT * FROM 
+                "p2boards".coop_bundled 
+                WHERE id IN 
+                    (SELECT coop_id
+                    FROM "p2boards".changelog
+                    WHERE map_id = $1
+                    AND coop_id IS NOT NULL)) as cb 
+                INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
+                INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
+                INNER JOIN "p2boards".users AS p1 ON (p1.profile_number = cb.p_id1)
+                INNER JOIN "p2boards".users AS p2 ON (p2.profile_number = cb.p_id2)
+                WHERE p1.banned=False
+                    AND p2.banned=False
+                    AND c1.banned=False
+                    AND c2.banned=False
+                    AND c1.verified=True
+                    AND c2.verified=True
+                ORDER BY score ASC;
+                "#)
+            .bind(map_id)
+            .fetch_all(pool)
+            .await?;
+        Ok(Some(res))
+    }
+}
 
 impl SpMap{
-    // TODO: Fix this query to be non-ambiguous
-    pub async fn get_sp_map(pool: &PgPool, map_id: String) -> Result<Option<Vec<SpMap>>> {
-        let query = sqlx::query_as::<_, SpMap>(r#" 
-                    SELECT t.timestamp,
-                    t.profile_number,
+    pub async fn get_sp_map_page(pool: &PgPool, map_id: String) -> Result<Option<Vec<SpMap>>> {
+        let res = sqlx::query_as::<_, SpMap>(r#" 
+                SELECT t.timestamp,
+                    t.CL_profile_number,
                     t.score,
                     t.demo_id,
                     t.youtube_id,
@@ -349,20 +295,22 @@ impl SpMap{
                     END user_name,
                     t.avatar
                 FROM (
-                    SELECT DISTINCT ON (changelog.profile_number) *
+                    SELECT DISTINCT ON (changelog.profile_number) 
+                        changelog.profile_number as CL_profile_number,
+                        users.profile_number as U_profile_number, *
                     FROM "p2boards".changelog
                     INNER JOIN "p2boards".users ON (users.profile_number = changelog.profile_number)
-                    WHERE map_id = '47763'
-                    AND users.banned = False
-                    AND changelog.verified = True
-                    AND changelog.banned = False
+                        WHERE map_id = '47763'
+                        AND users.banned = False
+                        AND changelog.verified = True
+                        AND changelog.banned = False
                     ORDER BY changelog.profile_number, changelog.score ASC
                 ) t
-                ORDER BY score;"#)
+                ORDER BY score"#) 
             .bind(map_id)
             .fetch_all(pool)
             .await?;
-        Ok(Some(query))
+        Ok(Some(res))
     }
 }
 
@@ -487,27 +435,6 @@ impl ChangelogPage{
 }
 
 // impl ChangelogPage{
-//     /// Returns `limit` number of changelog entries. Handle the joining for map and user data.
-//     pub fn show(conn: &PgPool, limit: i32) -> Result<Option<Vec<ChangelogPage>>, diesel::result::Error>{ 
-//         let cl = all_changelogs
-//             .inner_join(all_users)
-//             .inner_join(all_maps.on(changelog::map_id.eq(maps::steam_id)))
-//             .select((changelog::time_gained.nullable(), changelog::profile_number,
-//             changelog::score, changelog::map_id, changelog::wr_gain, 
-//             changelog::has_demo.nullable(), changelog::youtube_id.nullable(), 
-//             changelog::previous_id.nullable(), changelog::id, changelog::coopid.nullable(),
-//             changelog::post_rank.nullable(), changelog::pre_rank.nullable(),
-//             changelog::submission, changelog::note.nullable(), 
-//             changelog::category.nullable(), maps::name, usersnew::boardname.nullable(), 
-//             usersnew::steamname.nullable(), usersnew::avatar.nullable()))
-//             .order(changelog::time_gained.desc())
-//             //.filter(changelog::time_gained.is_not_null())
-//             .filter(usersnew::banned.eq(0))
-//             .filter(changelog::profile_number.ne("".to_string()))
-//             .limit(limit.into())
-//             .load::<ChangelogPage>(conn)?;
-//         Ok(Some(cl))
-//     }
 //     // TODO: Make this a struct dear god...
 //     /// Filtering options for the changelog through any of the options passed. For more information, checkout `ChangelogQueryParams` in `datamodels.rs`
 //     pub fn show_filtered(conn: &PgPool, nickname: Option<String>, 
