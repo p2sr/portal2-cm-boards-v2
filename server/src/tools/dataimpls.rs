@@ -5,7 +5,6 @@ use std::collections::HashMap;
 use actix_web::{HttpResponse, Error, HttpRequest, Responder};
 use sqlx::postgres::PgRow;
 use sqlx::{FromRow, Row, PgPool};
-use sqlx::prelude::PgQueryAs;
 use futures::future::{ready, Ready};
 use anyhow::Result;
 use chrono::NaiveDateTime;
@@ -330,26 +329,42 @@ use crate::tools::datamodels::*;
 //     }
 // }
 
-// // TODO: Support for `DISTINCT_ON` in the future.
-// impl SpMap{
-//     /// Selects the necessary information for the sp maps page, filters out banned times and users
-//     pub fn show(conn: &PgPool, mapid: String) -> Result<Option<Vec<SpMap>>, diesel::result::Error>{
-//         let map = all_changelogs            
-//             .inner_join(all_users)
-//             .select((changelog::time_gained.nullable(), changelog::profile_number, changelog::score, 
-//                 changelog::has_demo.nullable(), changelog::youtube_id.nullable(), 
-//                 changelog::submission, changelog::note.nullable(), 
-//                 changelog::category.nullable(), usersnew::boardname.nullable(), 
-//                 usersnew::steamname.nullable(), usersnew::avatar.nullable()))
-//             .filter(changelog::map_id.eq(mapid))
-//             .filter(changelog::banned.eq(0))
-//             .filter(usersnew::banned.eq(0))
-//             .order(changelog::score.asc())
-//             .load::<SpMap>(conn)?;
-//         // Wrapping the vector in a result and an option (not necessary but good practice)
-//         Ok(Some(map))
-//     }
-// }
+impl SpMap{
+    // TODO: Fix this query to be non-ambiguous
+    pub async fn get_sp_map(pool: &PgPool, map_id: String) -> Result<Option<Vec<SpMap>>> {
+        let query = sqlx::query_as::<_, SpMap>(r#" 
+                    SELECT t.timestamp,
+                    t.profile_number,
+                    t.score,
+                    t.demo_id,
+                    t.youtube_id,
+                    t.submission,
+                    t.note,
+                    t.category_id,
+                    CASE
+                    WHEN t.board_name IS NULL
+                        THEN t.steam_name
+                    WHEN t.board_name IS NOT NULL
+                        THEN t.board_name
+                    END user_name,
+                    t.avatar
+                FROM (
+                    SELECT DISTINCT ON (changelog.profile_number) *
+                    FROM "p2boards".changelog
+                    INNER JOIN "p2boards".users ON (users.profile_number = changelog.profile_number)
+                    WHERE map_id = '47763'
+                    AND users.banned = False
+                    AND changelog.verified = True
+                    AND changelog.banned = False
+                    ORDER BY changelog.profile_number, changelog.score ASC
+                ) t
+                ORDER BY score;"#)
+            .bind(map_id)
+            .fetch_all(pool)
+            .await?;
+        Ok(Some(query))
+    }
+}
 
 // Implementation of Actix::Responder for Changelog struct so we can return Changelog from action handler
 impl Responder for Changelog {
@@ -465,6 +480,10 @@ impl ChangelogPage{
             
         Ok(Some(vec![]))
     }
+
+    // pub async fn get_cl_page_filtered(pool: &PgPool, ) -> Result<Option<Vec<ChangelogPage>>>{
+
+    // }
 }
 
 // impl ChangelogPage{

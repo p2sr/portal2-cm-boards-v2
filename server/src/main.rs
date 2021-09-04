@@ -4,7 +4,7 @@ extern crate serde_derive;
 use actix_web::{App, HttpServer, middleware::Logger};
 use actix_cors::Cors;
 use sqlx::PgPool;
-use anyhow::Result;
+use anyhow::{Result, Error};
 use env_logger::Env;
 use dotenv::dotenv;
 
@@ -17,16 +17,14 @@ mod tools;
 
 /// Driver code to start and mount all compontents to the webserver we create.
 #[actix_web::main]
-async fn main() -> Result<(), anyhow::Error> {
+async fn main() -> Result<(), Error> {
     dotenv().ok();
     // Use config.rs to extract a configuration struct from .env (See documentation about changing .env.example)
     let config = crate::config::Config::from_env().unwrap();
     // Database pool, uses manager to build new database pool, saved in web::Data.
     // Reference Code: https://github.com/actix/examples/blob/master/database_interactions/diesel/src/main.rs
     
-    let pool = PgPool::new(&config.database.database_url).await?;
-    //let manager = ConnectionManager::<MysqlConnection>::new(config.database.database_url);
-    //let pool = r2d2::Pool::builder().build(manager).expect("Failed to create pool.");
+    let pool = PgPool::connect(&config.database.database_url).await?;
 
     // Initializes Logger with "default" format:  %a %t "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T
     // Remote-IP, Time, First line of request, Response status, Size of response in bytes, Referer, User-Agent, Time to serve
@@ -46,8 +44,9 @@ async fn main() -> Result<(), anyhow::Error> {
             .wrap(Logger::default())
             .data(pool.clone())
             .configure(api::v1::handlers::init::init)
-    })
-    .bind(format!("{}:{}", config.server.host, config.server.port))?
-    .run()
-    .await
+        })
+        .bind(format!("{}:{}", config.server.host, config.server.port))?
+        .run()
+        .await?;
+    Ok(())
 }

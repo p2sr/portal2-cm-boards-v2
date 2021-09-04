@@ -143,6 +143,33 @@ SELECT t.timestamp, t.score, t.steam_name, t.board_name FROM (
 ) t
 ORDER BY score;
 
+SELECT t.timestamp,
+  t.profile_number, /*Somehow make this non-ambiguous???*/
+  t.score,
+  t.demo_id,
+  t.youtube_id,
+  t.submission,
+  t.note,
+  t.category_id,
+  CASE
+    WHEN t.board_name IS NULL
+      THEN t.steam_name
+    WHEN t.board_name IS NOT NULL
+      THEN t.board_name
+  END user_name,
+  t.avatar
+ FROM (
+  SELECT DISTINCT ON (changelog.profile_number) *
+  FROM "p2boards".changelog
+  INNER JOIN "p2boards".users ON (users.profile_number = changelog.profile_number)
+  WHERE map_id = '47763'
+  AND users.banned = False
+  AND changelog.verified = True
+  AND changelog.banned = False
+  ORDER BY changelog.profile_number, changelog.score ASC
+) t
+ORDER BY score;
+
 /*We need to make one filler entry per-coop map, and one users with a garbage profile for placeholder.*/
 SELECT  c1.timestamp, 
         c1.score, 
