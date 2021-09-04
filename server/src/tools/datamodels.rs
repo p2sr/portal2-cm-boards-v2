@@ -3,14 +3,106 @@
 
 use std::collections::HashMap;
 use actix_web::{HttpResponse, Error};
-use sqlx::FromRow;
+use sqlx::{FromRow, Postgres, types::Type};
+use sqlx::postgres::PgValueRef;
 use sqlx::decode::Decode;
-
+use sqlx::postgres::types::PgRecordDecoder;
 use chrono::NaiveDateTime;
 
 
+// use std::error::Error;
+
+// use sqlx::{decode::Decode, postgres::PgValueRef, types::Type, Postgres};
+
+// pub struct Seller {
+//     //username: String,
+//     photo: Option<String>,
+// }
+
+// impl<'r> Decode<'r, Postgres> for Seller
+// where
+//     String: Decode<'r, Postgres>,
+//     String: Type<Postgres>,
+//     Option<String>: Decode<'r, Postgres>,
+//     Option<String>: Type<Postgres>,
+// {
+//     fn decode(value: PgValueRef<'r>) -> Result<Self, Box<dyn Error + 'static + Send + Sync>> {
+//         let mut decoder = sqlx::postgres::types::PgRecordDecoder::new(value)?;
+//         //let username = decoder.try_decode::<String>()?;
+//         let photo = decoder.try_decode::<Option<String>>()?;
+//         Ok(Seller {
+//             // username
+//             photo,
+//         })
+//     }
+// }
+
+impl<'r> Decode<'r, Postgres> for Changelog
+where
+    i64: Decode<'r, Postgres>,
+    i64: Type<Postgres>,
+    Option<NaiveDateTime>: Decode<'r, Postgres>,
+    Option<NaiveDateTime>: Type<Postgres>,
+    String: Decode<'r, Postgres>,
+    String: Type<Postgres>,
+    i32: Decode<'r, Postgres>,
+    i32: Type<Postgres>,
+    Option<String>: Decode<'r, Postgres>,
+    Option<String>: Type<Postgres>,
+    bool: Decode<'r, Postgres>,
+    bool: Type<Postgres>,
+    Option<i64>: Decode<'r, Postgres>,
+    Option<i64>: Type<Postgres>,
+    Option<i32>: Decode<'r, Postgres>,
+    Option<i32>: Type<Postgres>,
+    Option<bool>: Decode<'r, Postgres>,
+    Option<bool>: Type<Postgres>,
+{
+    fn decode(value: PgValueRef<'r>) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
+        let mut decoder = PgRecordDecoder::new(value)?;
+        let id = decoder.try_decode::<i64>()?;
+        let timestamp = decoder.try_decode::<Option<NaiveDateTime>>()?;
+        let profile_number = decoder.try_decode::<String>()?;
+        let score = decoder.try_decode::<i32>()?;
+        let map_id = decoder.try_decode::<String>()?;
+        let demo_id = decoder.try_decode::<Option<i64>>()?;
+        let banned = decoder.try_decode::<bool>()?;
+        let youtube_id = decoder.try_decode::<Option<String>>()?;
+        let previous_id = decoder.try_decode::<Option<i64>>()?;
+        let coop_id = decoder.try_decode::<Option<i64>>()?;
+        let post_rank = decoder.try_decode::<Option<i32>>()?;
+        let pre_rank = decoder.try_decode::<Option<i32>>()?;
+        let submission = decoder.try_decode::<bool>()?;
+        let note = decoder.try_decode::<Option<String>>()?;
+        let category_id = decoder.try_decode::<i32>()?;
+        let score_delta = decoder.try_decode::<Option<i32>>()?;
+        let verified = decoder.try_decode::<Option<bool>>()?;
+        let admin_note = decoder.try_decode::<Option<String>>()?;
+        Ok(Changelog{
+            id,
+            timestamp,
+            profile_number,
+            score,
+            map_id,
+            demo_id,
+            banned,
+            youtube_id,
+            previous_id,
+            coop_id,
+            post_rank,
+            pre_rank,
+            submission,
+            note,
+            category_id,
+            score_delta,
+            verified,
+            admin_note,
+        })
+    }
+}
+
 /// One-to-one struct for changelog data.
-#[derive(Serialize, Deserialize, FromRow, Decode)]
+#[derive(Serialize, Deserialize, FromRow)]
 pub struct Changelog{
     pub id: i64,
     pub timestamp: Option<NaiveDateTime>,
