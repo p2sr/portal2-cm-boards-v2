@@ -232,6 +232,7 @@ impl Users{
 }
 
 impl CoopMap{
+    // TODO: Check to make sure this is filtered when returned (I think it is).
     pub async fn get_coop_map_page(pool: &PgPool, map_id: String) -> Result<Option<Vec<CoopMap>>> {
         let res = sqlx::query_as::<_, CoopMap>(r#"
                 SELECT  c1.timestamp, 
