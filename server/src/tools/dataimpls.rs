@@ -11,8 +11,9 @@ use chrono::NaiveDateTime;
 
 use crate::tools::datamodels::*;
 
-impl CoopPreviews {
-    pub async fn get_sp_previews(pool: &PgPool, map_id: String) -> Result<CoopPreviews>{
+impl CoopPreview {
+    /// Gets the top 7 (unique on player) times on a given Coop Map.
+    pub async fn get_coop_preview(pool: &PgPool, map_id: String) -> Result<Vec<CoopPreview>>{
         // TODO: Open to PRs to contain all this functionality in the SQL statement.
         let query = sqlx::query_as::<_, CoopPreview>(r#"
                 SELECT
@@ -70,16 +71,29 @@ impl CoopPreviews {
             }
         }
         vec_final.truncate(7);
-        Ok(CoopPreviews{
-            map_id: map_id,
-            scores: vec_final
-        })
+        Ok(vec_final)
     }
 }
 
-impl SpPreviews{
+impl CoopPreviews {
+    // Collects the top 7 preview data for all Coop maps.
+    pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<CoopPreviews>>{
+        let map_id_vec = Maps::get_steamids(&pool, true).await?;
+        let mut vec_final = Vec::new();
+        for map_id in map_id_vec.iter(){
+            let vec_temp = CoopPreview::get_coop_preview(&pool, map_id.to_string()).await?;
+            vec_final.push(CoopPreviews{
+                map_id : map_id.clone(),
+                scores : vec_temp,
+            })
+        }
+        Ok(vec_final)      
+    }
+}
+
+impl SpPreview{
     /// Gets preview information for top 7 on an SP Map.
-    pub async fn get_sp_previews(pool: &PgPool, map_id: String) -> Result<SpPreviews>{
+    pub async fn get_sp_preview(pool: &PgPool, map_id: String) -> Result<Vec<SpPreview>>{
         let query = sqlx::query_as::<_, SpPreview>(r#"
                 SELECT t.CL_profile_number, t.score, t.youtube_id, t.category_id,
                 CASE
@@ -104,10 +118,36 @@ impl SpPreviews{
             .bind(map_id.clone())
             .fetch_all(pool)
             .await?;
-        Ok(SpPreviews{
-            map_id: map_id,
-            map_data: query, 
-        })
+        Ok(query)
+    }
+}
+
+impl Responder for SpPreviews {
+    type Error = Error;
+    type Future = Ready<Result<HttpResponse, Error>>;
+
+    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
+        let body = serde_json::to_string(&self).unwrap();
+        // create response and set content type
+        ready(Ok(HttpResponse::Ok()
+            .content_type("application/json")
+            .body(body)))
+    }
+}
+
+impl SpPreviews{
+    // Collects the top 7 preview data for all SP maps.
+    pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<SpPreviews>>{
+        let map_id_vec = Maps::get_steamids(&pool, false).await?;
+        let mut vec_final = Vec::new();
+        for map_id in map_id_vec.iter(){
+            let vec_temp = SpPreview::get_sp_preview(&pool, map_id.to_string()).await?;
+            vec_final.push(SpPreviews{
+                map_id : map_id.clone(),
+                scores : vec_temp,
+            })
+        }
+        Ok(vec_final)
     }
 }
 
@@ -180,6 +220,23 @@ impl Maps{
 }
 
 impl Users{
+    pub async fn get_user_data(pool: &PgPool, profile_number: String) -> Result<UsersPage>{
+        let res = sqlx::query_as::<_, UsersPage>(r#"
+                SELECT            
+                CASE 
+                    WHEN users.board_name IS NULL
+                        THEN users.steam_name
+                    WHEN users.board_name IS NOT NULL
+                        THEN users.board_name
+                    END user_name, users.avatar
+                FROM "p2boards".users
+                WHERE users.profile_number = $1
+                "#)
+            .bind(profile_number)
+            .fetch_one(pool)
+            .await?;
+        Ok(res)
+    }
     /// Pattern match on a given string to find similar names (supports board/steam names). 
     pub async fn check_board_name(pool: &PgPool, nick_name: String) -> Result<Option<Vec<String>>>{ // TODO: Check return type of 0 results more carefully
         let query_nn = format!("%{}%", &nick_name);
@@ -221,16 +278,16 @@ impl CoopMap{
                 SELECT  c1.timestamp, 
                     c1.score, c1.note, c2.note,
                     CASE 
-                    WHEN p1.board_name IS NULL
-                        THEN p1.steam_name
-                    WHEN p1.board_name IS NOT NULL
-                        THEN p1.board_name
-                    END p1_username, 
-                    CASE 
-                    WHEN p2.board_name IS NULL
-                        THEN p2.steam_name
-                    WHEN p2.board_name IS NOT NULL
-                        THEN p2.board_name
+                        WHEN p1.board_name IS NULL
+                            THEN p1.steam_name
+                        WHEN p1.board_name IS NOT NULL
+                            THEN p1.board_name
+                        END p1_username, 
+                        CASE 
+                        WHEN p2.board_name IS NULL
+                            THEN p2.steam_name
+                        WHEN p2.board_name IS NOT NULL
+                            THEN p2.board_name
                     END p2_username ,
                     c1.profile_number, c2.profile_number, c1.demo_id, c2.demo_id, c1.youtube_id,
                     c2.youtube_id, c1.submission, c2.submission, c1.category_id, c2.category_id, p1.avatar, p2.avatar
@@ -259,9 +316,20 @@ impl CoopMap{
         Ok(Some(res))
     }
 }
+impl Responder for SpRanked {
+    type Error = Error;
+    type Future = Ready<Result<HttpResponse, Error>>;
 
+    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
+        let body = serde_json::to_string(&self).unwrap();
+        // create response and set content type
+        ready(Ok(HttpResponse::Ok()
+            .content_type("application/json")
+            .body(body)))
+    }
+}
 impl SpMap{
-    pub async fn get_sp_map_page(pool: &PgPool, map_id: String) -> Result<Option<Vec<SpMap>>> {
+    pub async fn get_sp_map_page(pool: &PgPool, map_id: String) -> Result<Vec<SpMap>> {
         let res = sqlx::query_as::<_, SpMap>(r#" 
                 SELECT t.timestamp,
                     t.CL_profile_number,
@@ -284,17 +352,18 @@ impl SpMap{
                         users.profile_number as U_profile_number, *
                     FROM "p2boards".changelog
                     INNER JOIN "p2boards".users ON (users.profile_number = changelog.profile_number)
-                        WHERE map_id = '47763'
+                        WHERE map_id = $1
                         AND users.banned = False
                         AND changelog.verified = True
                         AND changelog.banned = False
                     ORDER BY changelog.profile_number, changelog.score ASC
                 ) t
-                ORDER BY score"#) 
+                ORDER BY score
+                LIMIT 200"#) 
             .bind(map_id)
             .fetch_all(pool)
             .await?;
-        Ok(Some(res))
+        Ok(res)
     }
 }
 
@@ -315,7 +384,7 @@ impl Responder for Changelog {
 // Implementations of associated functions for Changelog
 impl Changelog{
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
-    /// Returns `true` if there is a value found, `false` if no value or error.
+    /// Returns `true` if there is a value found, `false` if no value, or returns an error.
     pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String) -> Result<bool>{
         // We don't care about the result, we only care if there is a result.
         let query = sqlx::query!(r#" 
@@ -329,24 +398,25 @@ impl Changelog{
             .bind(map_id)
             .bind(profile_number)
             .bind(false);
-        let res = query.fetch_one(pool).await;
+        let res = query.fetch_optional(pool).await;
         match res{
-            Ok(_) => return Ok(true),
-            Err(_) => return Ok(false),
+            Ok(Some(_)) => return Ok(true),
+            Ok(None) => return Ok(false),
+            Err(e) => return Err(e),
         }
     }
     // Returns a vec of changelog for a user's PB history on a given SP map.
-    pub async fn sp_pb_history(pool: &PgPool, map_id: String, profile_number: String) -> Result<Option<Vec<Changelog>>>{
+    pub async fn get_sp_pb_history(pool: &PgPool, map_id: String, profile_number: String) -> Result<Vec<Changelog>>{
         let query = sqlx::query_as::<_, Changelog>(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
                 WHERE changelog.profile_number = $1
                 AND changelog.map_id = $2
-                ORDER BY changelog.score ASC"#)
+                ORDER BY changelog.timestamp DESC"#)
             .bind(profile_number)
             .bind(map_id);
         let res: Vec<Changelog> = query.fetch_all(pool).await?;
-        Ok(Some(res))
+        Ok(res)
     }
     /// Insert a new changelog entry.
     pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64>{
@@ -386,6 +456,19 @@ impl Changelog{
             .fetch_one(pool)
             .await?;
         Ok(res)
+    }
+}
+// Implementation of Actix::Responder for Changelog struct so we can return Changelog from action handler
+impl Responder for ChangelogPage {
+    type Error = Error;
+    type Future = Ready<Result<HttpResponse, Error>>;
+
+    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
+        let body = serde_json::to_string(&self).unwrap();
+        // create response and set content type
+        ready(Ok(HttpResponse::Ok()
+            .content_type("application/json")
+            .body(body)))
     }
 }
 

@@ -9,75 +9,7 @@ use sqlx::decode::Decode;
 use sqlx::postgres::types::PgRecordDecoder;
 use chrono::NaiveDateTime;
 
-// rustc bug: https://github.com/rust-lang/rust/issues/82219
-// impl<'r> Decode<'r, Postgres> for Changelog
-    // where
-    //     // i64: Decode<'r, Postgres>,
-    //     // i64: Type<Postgres>,
-    //     Option<NaiveDateTime>: Decode<'r, Postgres>,
-    //     Option<NaiveDateTime>: Type<Postgres>,
-    //     // String: Decode<'r, Postgres>,
-    //     // String: Type<Postgres>,
-    //     // i32: Decode<'r, Postgres>,
-    //     // i32: Type<Postgres>,
-    //     Option<String>: Decode<'r, Postgres>,
-    //     Option<String>: Type<Postgres>,
-    //     // bool: Decode<'r, Postgres>,
-    //     // bool: Type<Postgres>,
-    //     Option<i64>: Decode<'r, Postgres>,
-    //     Option<i64>: Type<Postgres>,
-    //     Option<i32>: Decode<'r, Postgres>,
-    //     Option<i32>: Type<Postgres>,
-    //     Option<bool>: Decode<'r, Postgres>,
-    //     Option<bool>: Type<Postgres>,
-    // {
-    //     fn decode(value: PgValueRef<'r>) -> Result<Self, Box<dyn std::error::Error + 'static + Send + Sync>> {
-    //         let mut decoder = PgRecordDecoder::new(value)?;
-    //         //let id = decoder.try_decode::<i64>()?;
-    //         let timestamp = decoder.try_decode::<Option<NaiveDateTime>>()?;
-    //         //let profile_number = decoder.try_decode::<String>()?;
-    //         //let score = decoder.try_decode::<i32>()?;
-    //         //let map_id = decoder.try_decode::<String>()?;
-    //         let demo_id = decoder.try_decode::<Option<i64>>()?;
-    //         //let banned = decoder.try_decode::<bool>()?;
-    //         let youtube_id = decoder.try_decode::<Option<String>>()?;
-    //         let previous_id = decoder.try_decode::<Option<i64>>()?;
-    //         let coop_id = decoder.try_decode::<Option<i64>>()?;
-    //         let post_rank = decoder.try_decode::<Option<i32>>()?;
-    //         let pre_rank = decoder.try_decode::<Option<i32>>()?;
-    //         //let submission = decoder.try_decode::<bool>()?;
-    //         let note = decoder.try_decode::<Option<String>>()?;
-    //         //let category_id = decoder.try_decode::<i32>()?;
-    //         let score_delta = decoder.try_decode::<Option<i32>>()?;
-    //         let verified = decoder.try_decode::<Option<bool>>()?;
-    //         let admin_note = decoder.try_decode::<Option<String>>()?;
-    //         Ok(Changelog{
-    //             // id,
-    //             timestamp,
-    //             //profile_number,
-    //             // score,
-    //             //map_id,
-    //             demo_id,
-    //             // banned,
-    //             youtube_id,
-    //             previous_id,
-    //             coop_id,
-    //             post_rank,
-    //             pre_rank,
-    //             // submission,
-    //             note,
-    //             // category_id,
-    //             score_delta,
-    //             verified,
-    //             admin_note,
-    //         })
-    //     }
-    // }
-
-
-    /// One-to-one struct for changelog data.
-
-
+/// One-to-one struct for changelog data.
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct Changelog{
     pub id: i64,
@@ -195,6 +127,13 @@ pub struct Users{
     pub donation_amount: Option<String>,
     pub discord_id: Option<String>,
 }
+
+#[derive(Serialize, FromRow, Clone)]
+pub struct UsersPage{
+    pub users_name: String,
+    pub avatar: String,
+}
+
 /// The minimal data we want for SP map pages to lower bandwidth usage.
 #[derive(Serialize, FromRow)]
 pub struct SpMap{
@@ -268,7 +207,7 @@ pub struct SpPreview{
 #[derive(Serialize, Deserialize)]
 pub struct SpPreviews{
     pub map_id: String,
-    pub map_data: Vec<SpPreview>,
+    pub scores: Vec<SpPreview>,
 }
 
 /// The data for the preview page for all Coop Maps
@@ -343,28 +282,28 @@ pub struct ChangelogQueryParams{
 /// Wrapper to send a profile number as a search result
 #[derive(Deserialize, Debug)]
 pub struct UserParams{
-    pub profilenumber: String,
+    pub profile_number: String,
 }
 
 /// Wrapper to send a profile number as a search result
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ScoreParams{
-    pub profilenumber: String,
+    pub profile_number: String,
     pub score: i32,
 }
 
 /// Banned times for SP
 #[derive(Serialize, FromRow)]
 pub struct SpBanned{
-    pub profilenumber: String,
+    pub profile_number: String,
     pub score: i32,
 }
 
 /// Banned times for Coop
 #[derive(Serialize, FromRow)]
 pub struct CoopBanned{
-    pub profilenumber1: String,
-    pub profilenumber2: String,
+    pub profile_number1: String,
+    pub profile_number2: String,
     pub score: i32,
 }
 
