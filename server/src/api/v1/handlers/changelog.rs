@@ -1,6 +1,5 @@
 use actix_web::{get, post, web, HttpResponse, Error};
 
-use crate::db::DbPool;
 use crate::tools::datamodels::ChangelogPage;
 use crate::tools::datamodels::ChangelogQueryParams;
 

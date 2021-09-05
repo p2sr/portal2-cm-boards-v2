@@ -11,88 +11,71 @@ use chrono::NaiveDateTime;
 
 use crate::tools::datamodels::*;
 
-// impl CoopPreviewPrelude{
-//     /// Only used internally by the `CoopPreview::show` method.
-//     /// Grabs the top 40 times on a Coop map. Used as a prelude because of limitations with diesel and aliases.
-//     pub fn show(conn: &PgPool, mapid: String) -> Vec<CoopPreviewPrelude>{
-//         all_coops
-//             .inner_join(all_users)
-//             .select((coopbundled::map_id, coopbundled::profile_number1, coopbundled::profile_number2, coopbundled::score, coopbundled::youtube_id1, coopbundled::youtube_id2, coopbundled::category, usersnew::boardname, usersnew::steamname))
-//             .filter(coopbundled::map_id.eq(mapid))
-//             .filter(coopbundled::banned.eq(0))
-//             .filter(usersnew::banned.eq(0))
-//             .filter(coopbundled::category.eq("any%".to_string()))
-//             .order(coopbundled::score.asc())
-//             .limit(40)
-//             .load::<CoopPreviewPrelude>(conn)
-//             .expect("Error loading map previews for SP.")
-//     }
-// }
+impl CoopPreviews {
+    pub async fn get_sp_previews(pool: &PgPool, map_id: String) -> Result<CoopPreviews>{
+        // TODO: Open to PRs to contain all this functionality in the SQL statement.
+        let query = sqlx::query_as::<_, CoopPreview>(r#"
+                SELECT
+                    c1.profile_number, c2.profile_number, c1.score, c1.youtube_id, c2.youtube_id, c1.category_id,
+                    CASE 
+                    WHEN p1.board_name IS NULL
+                        THEN p1.steam_name
+                    WHEN p1.board_name IS NOT NULL
+                        THEN p1.board_name
+                    END p1_username, 
+                    CASE 
+                    WHEN p2.board_name IS NULL
+                        THEN p2.steam_name
+                    WHEN p2.board_name IS NOT NULL
+                        THEN p2.board_name
+                    END p2_username
+                FROM (SELECT * FROM 
+                "p2boards".coop_bundled 
+                WHERE id IN 
+                    (SELECT coop_id
+                    FROM "p2boards".changelog
+                    WHERE map_id = '47825'
+                    AND coop_id IS NOT NULL)) as cb 
+                INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
+                INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
+                INNER JOIN "p2boards".users AS p1 ON (p1.profile_number = cb.p_id1)
+                INNER JOIN "p2boards".users AS p2 ON (p2.profile_number = cb.p_id2)
+                WHERE p1.banned=False
+                    AND p2.banned=False
+                    AND c1.banned=False
+                    AND c2.banned=False
+                    AND c1.verified=True
+                    AND c2.verified=True
+                ORDER BY score ASC
+                LIMIT 40
+                "#)
+            .bind(map_id.clone())
+            .fetch_all(pool)
+            .await?;
 
-// impl CoopPreview{
-//     /// Only used internally by the `CoopPreviews::show` method.
-//     /// Joins user information for a given set of scores for a map.
-//     pub fn show(conn: &PgPool, mapid: String) -> Result<Option<Vec<CoopPreview>>, diesel::result::Error>{
-//         let coop_prelude = CoopPreviewPrelude::show(&conn, mapid.clone());
-//         let mut vec_joined = Vec::new();
-//         // Moving ownership to the for loop iteration
-//         for entry in coop_prelude {
-//             let tempstr = &entry.profile_number2;
-//             if(tempstr != ""){
-//                 let user2 = Usersnew::show(&conn, tempstr.to_string())?;
-//                 if let Some(user2) = user2{
-//                     let tempstruct = CoopPreview {map_id: entry.map_id, profile_number1: entry.profile_number1,
-//                          profile_number2: entry.profile_number2, score: entry.score, youtube_id1: entry.youtube_id1, 
-//                          youtube_id2: entry.youtube_id2, category: entry.category, boardname1: entry.boardname, 
-//                          steamname1: entry.steamname, boardname2: user2.boardname, steamname2: user2.steamname};
-//                     vec_joined.push(tempstruct)
-//                 } else{
-//                     println!("Unexpected Error.")
-//                 }
-//             } else{
-//                 let tempstruct = CoopPreview {map_id: entry.map_id, profile_number1: entry.profile_number1,
-//                     profile_number2: entry.profile_number2, score: entry.score, youtube_id1: entry.youtube_id1, 
-//                     youtube_id2: entry.youtube_id2, category: entry.category, boardname1: entry.boardname, 
-//                     steamname1: entry.steamname, boardname2: None, steamname2: None};
-//                 vec_joined.push(tempstruct)
-//             }
-//         }
-//         Ok(Some(vec_joined))
-//     }
-// }
-
-// impl CoopPreviews{
-//     /// Calls two internal functions to gather the necessary information, and truncates excess information.
-//     /// Uses manual filtering through hashmaps to eliminate duplicate times by players in accordance to how cooperative handles "carrying".
-//     /// The logic is slightly more complicated, and nearly identical to the logic in the handler for coop maps.
-//     pub fn show(conn: &PgPool) -> Result<Option<Vec<CoopPreviews>>, diesel::result::Error>{
-//         let map_id_vec = Map::all_coop_mapids(&conn);
-//         let mut vec_final = Vec::new();
-//         for mapid in map_id_vec.iter(){
-//             let vec_temp = CoopPreview::show(&conn, mapid.to_string())?;
-//             if let Some(vec_temp) = vec_temp{
-//                 let mut vec_filtered = Vec::new();
-//                 let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(100);
-//                 for entry in vec_temp{
-//                     match remove_dups.insert(entry.profile_number1.clone(), 1){
-//                         Some(_) => match remove_dups.insert(entry.profile_number2.clone(), 1){
-//                             Some(_) => (),
-//                             _ => vec_filtered.push(entry),
-//                         }
-//                         _ => match remove_dups.insert(entry.profile_number2.clone(), 1){
-//                             Some(_) => vec_filtered.push(entry),
-//                             _ => vec_filtered.push(entry),
-//                         }    
-//                     }
-//                 }
-//                 vec_filtered.truncate(7);
-//                 vec_final.push(CoopPreviews{ map_name: Map::get_name(&conn, mapid.to_string()), scores: vec_filtered});
-//             } else{println!("Unexpected Error");}
-//         }
-//         Ok(Some(vec_final))
-//     }
-// }
-
+        // TODO: Maybe remove unwrap(), it assumes that the profile_number2 will not be None.
+        let mut vec_final = Vec::new();
+        let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(80);
+        remove_dups.insert("N/A".to_string(), 1);
+        for entry in query{
+            match remove_dups.insert(entry.profile_number1.clone(), 1){
+                Some(_) => match remove_dups.insert(entry.profile_number2.clone().unwrap(), 1){
+                    Some(_) => (),
+                    _ => vec_final.push(entry),
+                }
+                _ => match remove_dups.insert(entry.profile_number2.clone().unwrap(), 1){
+                    Some(_) => vec_final.push(entry),
+                    _ => vec_final.push(entry),
+                }    
+            }
+        }
+        vec_final.truncate(7);
+        Ok(CoopPreviews{
+            map_id: map_id,
+            scores: vec_final
+        })
+    }
+}
 
 impl SpPreviews{
     /// Gets preview information for top 7 on an SP Map.
@@ -268,7 +251,7 @@ impl CoopMap{
                     AND c2.banned=False
                     AND c1.verified=True
                     AND c2.verified=True
-                ORDER BY score ASC;
+                ORDER BY score ASC
                 "#)
             .bind(map_id)
             .fetch_all(pool)
@@ -407,6 +390,8 @@ impl Changelog{
 }
 
 impl ChangelogPage{
+    // Gets as many changelog entries as the limit passed.
+    // TODO: Base this on time rather than a hard limit??
     pub async fn get_cl_page(pool: &PgPool, limit: i32) -> Result<Option<Vec<ChangelogPage>>>{
         let query = sqlx::query_as::<_, ChangelogPage>(r#" 
                 SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
@@ -429,65 +414,78 @@ impl ChangelogPage{
             
         Ok(Some(vec![]))
     }
-
-    // pub async fn get_cl_page_filtered(pool: &PgPool, ) -> Result<Option<Vec<ChangelogPage>>>{
-
-    // }
+    // Handles filtering out changelog by different criteria.
+    pub async fn get_cl_page_filtered(pool: &PgPool, params: ChangelogQueryParams) -> Result<Option<Vec<ChangelogPage>>>{
+        // TODO: Decide if we want Chapter name
+        let mut query_string: String = String::from(r#" 
+        SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
+        cl.youtube_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
+        cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name, 
+        CASE
+            WHEN user.board_name IS NULL
+                THEN user.steam_name
+            WHEN user.board_name IS NOT NULL
+                THEN user.board.name
+        END user_name, user.avatar
+        FROM "p2boards".changelog AS cl
+        INNER JOIN "p2boards".users AS user ON (user.profile_number = cl.profile_number
+        INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
+        INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapters.id"#);
+        if !params.coop{
+            query_string = format!("{} WHERE chapters.is_multiplayer = False", &query_string);
+        } else if !params.sp{
+            query_string = format!("{} WHERE chapters.is_multiplayer = True", &query_string);
+        }
+        if let Some(has_demo) = params.has_demo{
+            if has_demo{
+                query_string = format!("{} WHERE cl.demo_id IS NOT NULL", &query_string);
+            } else{
+                query_string = format!("{} WHERE cl.demo_id IS NULL", &query_string);
+            }
+        }
+        if let Some(yt) = params.yt{
+            if yt{
+                query_string = format!("{} WHERE cl.youtube_id IS NOT NULL", &query_string);
+            } else{
+                query_string = format!("{} WHERE cl.youtube_id IS NULL", &query_string);
+            }
+        }
+        if let Some(wr_gain) = params.wr_gain{
+            if wr_gain{
+                query_string = format!("{} WHERE cl.post_rank = 1", &query_string);
+            }
+        }
+        if let Some(chamber) = params.chamber{
+            query_string = format!("{} WHERE cl.map_id = {}", &query_string, &chamber);
+        }
+        if let Some(profile_number) = params.profile_number{
+            query_string = format!("{} WHERE cl.profile_number = {}", &query_string, &profile_number);
+        }
+        //#[allow(irrefutable_let_patterns)]
+        if let Some(nick_name) = params.nick_name{
+            if let Some(profile_numbers) = Users::check_board_name(&pool, nick_name.clone()).await?.as_mut(){
+                if profile_numbers.len() == 1{
+                    query_string = format!("{} WHERE cl.profile_number = {}", &query_string, &profile_numbers[0]);
+                } else{
+                    query_string = format!("{} WHERE cl.profile_number = {}", &query_string, &profile_numbers[0]);
+                    profile_numbers.remove(0);
+                    for num in profile_numbers.iter(){
+                        query_string = format!("{} OR cl.profile_number = {}", &query_string, num);
+                    }
+                }
+            }
+            else{
+                // TODO: Construct an Error
+            }
+        }
+        //TODO: Maybe allow for custom order params????
+        query_string = format!("{} ORDER BY changelog.timestamp DESC", &query_string);
+        if let Some(limit) = params.limit{
+            query_string = format!("{} LIMIT {}", &query_string, limit);
+        } else{ // Default limit
+            query_string = format!("{} LMIT 1000", &query_string)
+        }
+        let res = sqlx::query_as::<_, ChangelogPage>(&query_string).fetch_all(pool).await?;
+        Ok(Some(res))
+    }
 }
-
-// impl ChangelogPage{
-//     // TODO: Make this a struct dear god...
-//     /// Filtering options for the changelog through any of the options passed. For more information, checkout `ChangelogQueryParams` in `datamodels.rs`
-//     pub fn show_filtered(conn: &PgPool, nickname: Option<String>, 
-//         profilenumber: Option<String>, chamber: Option<String>,  sp: Option<i32>, 
-//         coop: Option<i32>, wrgain: Option<i32>, hasdemo: Option<i32>, hasvideo: Option<i32>,
-//         limit: i32) ->  Result<Option<Vec<ChangelogPage>>, diesel::result::Error>
-//         {
-//         let mut query = all_changelogs
-//         .inner_join(all_users)
-//         .inner_join(all_maps.on(changelog::map_id.eq(maps::steam_id)))
-//         .select((changelog::time_gained.nullable(), changelog::profile_number,
-//         changelog::score, changelog::map_id, changelog::wr_gain, 
-//         changelog::has_demo.nullable(), changelog::youtube_id.nullable(), 
-//         changelog::previous_id.nullable(), changelog::id, changelog::coopid.nullable(),
-//         changelog::post_rank.nullable(), changelog::pre_rank.nullable(),
-//         changelog::submission, changelog::note.nullable(), 
-//         changelog::category.nullable(), maps::name, usersnew::boardname.nullable(), 
-//         usersnew::steamname.nullable(), usersnew::avatar.nullable()))
-//         .order(changelog::time_gained.desc())
-//         .filter(usersnew::banned.eq(0))
-//         .into_boxed();
-//         if let Some(sp) = sp{
-//             query = query.filter(maps::is_coop.ne(sp));
-//         }
-//         else if let Some(coop) = coop{
-//             query = query.filter(maps::is_coop.eq(coop));
-//         }
-//         if let Some(hasdemo) = hasdemo{
-//             query = query.filter(changelog::has_demo.eq(1));
-//         }
-//         if let Some(hasvideo) = hasvideo{
-//             query = query.filter(changelog::youtube_id.is_not_null());
-//         }
-//         if let Some(wrgain) = wrgain{
-//             query = query.filter(changelog::wr_gain.eq(1));
-//         }
-//         if let Some(chamber) = chamber{
-//             query = query.filter(changelog::map_id.eq(chamber));
-//         }
-//         if let Some(profilenumber) = profilenumber{
-//             query = query.filter(changelog::profile_number.eq(profilenumber));
-//         }
-//         #[allow(irrefutable_let_patterns)]
-//         if let Some(nickname) = nickname{
-//             if let namecheck = Usersnew::check_board_name(&conn, nickname.clone()){
-//                 query = query.filter(usersnew::boardname.eq(nickname.clone()));
-//             }else{
-//                 query = query.filter(usersnew::steamname.eq(nickname));
-//             }
-//         }
-//         let result = query.limit(limit.into())
-//             .load::<ChangelogPage>(conn)?;
-//         Ok(Some(result))
-//     }
-// }

@@ -1,7 +1,6 @@
 use actix_web::{get, post, web, HttpResponse, Error};
 use std::collections::HashMap;
 
-use crate::db::DbPool;
 use crate::tools::datamodels::{Changelog, ScoreParams, CoopMap, CoopBanned, CoopPreviews, CoopRanked};
 use crate::tools::calc::score;
 

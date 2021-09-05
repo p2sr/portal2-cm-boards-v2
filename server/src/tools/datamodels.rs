@@ -272,7 +272,7 @@ pub struct SpPreviews{
 }
 
 /// The data for the preview page for all Coop Maps
-#[derive(Serialize, FromRow)]
+#[derive(Serialize, FromRow, Clone)]
 pub struct CoopPreview{
     pub profile_number1: String,
     pub profile_number2: Option<String>,
@@ -282,12 +282,12 @@ pub struct CoopPreview{
     pub category_id: i32, 
     pub user_name1: String,
     pub user_name2: Option<String>,
+
 }
 
 /// Wrapper for prevciewing the top 7 for all Coop maps=.
 #[derive(Serialize)]
 pub struct CoopPreviews{
-    pub map_name: String,
     pub map_id: String,
     pub scores: Vec<CoopPreview>,
 }
@@ -329,15 +329,15 @@ pub struct ChangelogPage{
 /// All the accepted query parameters for the changelog page.
 #[derive(Deserialize, Debug)]
 pub struct ChangelogQueryParams{
-    pub limit: i32,
-    pub nickname: Option<String>,
-    pub profilenumber: Option<String>,
+    pub limit: Option<u64>,
+    pub nick_name: Option<String>,
+    pub profile_number: Option<String>,
     pub chamber: Option<String>,
-    pub sp: Option<i32>,
-    pub coop: Option<i32>,
-    pub wrgain: Option<i32>,
-    pub hasdemo: Option<i32>,
-    pub yt: Option<i32>,
+    pub sp: bool,
+    pub coop: bool,
+    pub wr_gain: Option<bool>,
+    pub has_demo: Option<bool>,
+    pub yt: Option<bool>,
 }
 
 /// Wrapper to send a profile number as a search result

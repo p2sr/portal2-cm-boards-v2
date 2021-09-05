@@ -4,5 +4,3 @@ pub mod datamodels;
 pub mod dataimpls;
 /// Arithmatic calculation functions for the board.
 pub mod calc;
-/// Auto-generated database schema for our database.
-pub mod schema;
