@@ -122,18 +122,18 @@ impl SpPreview{
     }
 }
 
-impl Responder for SpPreviews {
-    type Error = Error;
-    type Future = Ready<Result<HttpResponse, Error>>;
+// impl Responder for SpPreviews {
+//     type Error = Error;
+//     type Future = Ready<Result<HttpResponse, Error>>;
 
-    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-        let body = serde_json::to_string(&self).unwrap();
-        // create response and set content type
-        ready(Ok(HttpResponse::Ok()
-            .content_type("application/json")
-            .body(body)))
-    }
-}
+//     fn respond_to(self, _req: &HttpRequest) -> Self::Future {
+//         let body = serde_json::to_string(&self).unwrap();
+//         // create response and set content type
+//         ready(Ok(HttpResponse::Ok()
+//             .content_type("application/json")
+//             .body(body)))
+//     }
+// }
 
 impl SpPreviews{
     // Collects the top 7 preview data for all SP maps.
@@ -273,7 +273,7 @@ impl Users{
 
 impl CoopMap{
     // TODO: Check to make sure this is filtered when returned (I think it is).
-    pub async fn get_coop_map_page(pool: &PgPool, map_id: String) -> Result<Option<Vec<CoopMap>>> {
+    pub async fn get_coop_map_page(pool: &PgPool, map_id: String) -> Result<Vec<CoopMap>> {
         let res = sqlx::query_as::<_, CoopMap>(r#"
                 SELECT  c1.timestamp, 
                     c1.score, c1.note, c2.note,
@@ -313,21 +313,21 @@ impl CoopMap{
             .bind(map_id)
             .fetch_all(pool)
             .await?;
-        Ok(Some(res))
+        Ok(res)
     }
 }
-impl Responder for SpRanked {
-    type Error = Error;
-    type Future = Ready<Result<HttpResponse, Error>>;
+// impl Responder for SpRanked {
+//     type Error = Error;
+//     type Future = Ready<Result<HttpResponse, Error>>;
 
-    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-        let body = serde_json::to_string(&self).unwrap();
-        // create response and set content type
-        ready(Ok(HttpResponse::Ok()
-            .content_type("application/json")
-            .body(body)))
-    }
-}
+//     fn respond_to(self, _req: &HttpRequest) -> Self::Future {
+//         let body = serde_json::to_string(&self).unwrap();
+//         // create response and set content type
+//         ready(Ok(HttpResponse::Ok()
+//             .content_type("application/json")
+//             .body(body)))
+//     }
+// }
 impl SpMap{
     pub async fn get_sp_map_page(pool: &PgPool, map_id: String) -> Result<Vec<SpMap>> {
         let res = sqlx::query_as::<_, SpMap>(r#" 
@@ -367,19 +367,19 @@ impl SpMap{
     }
 }
 
-// Implementation of Actix::Responder for Changelog struct so we can return Changelog from action handler
-impl Responder for Changelog {
-    type Error = Error;
-    type Future = Ready<Result<HttpResponse, Error>>;
+// // Implementation of Actix::Responder for Changelog struct so we can return Changelog from action handler
+// impl Responder for Changelog {
+//     type Error = Error;
+//     type Future = Ready<Result<HttpResponse, Error>>;
 
-    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-        let body = serde_json::to_string(&self).unwrap();
-        // create response and set content type
-        ready(Ok(HttpResponse::Ok()
-            .content_type("application/json")
-            .body(body)))
-    }
-}
+//     fn respond_to(self, _req: &HttpRequest) -> Self::Future {
+//         let body = serde_json::to_string(&self).unwrap();
+//         // create response and set content type
+//         ready(Ok(HttpResponse::Ok()
+//             .content_type("application/json")
+//             .body(body)))
+//     }
+// }
 
 // Implementations of associated functions for Changelog
 impl Changelog{
@@ -459,18 +459,18 @@ impl Changelog{
     }
 }
 // Implementation of Actix::Responder for Changelog struct so we can return Changelog from action handler
-impl Responder for ChangelogPage {
-    type Error = Error;
-    type Future = Ready<Result<HttpResponse, Error>>;
+// impl Responder for ChangelogPage {
+//     type Error = Error;
+//     type Future = Ready<Result<HttpResponse, Error>>;
 
-    fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-        let body = serde_json::to_string(&self).unwrap();
-        // create response and set content type
-        ready(Ok(HttpResponse::Ok()
-            .content_type("application/json")
-            .body(body)))
-    }
-}
+//     fn respond_to(self, _req: &HttpRequest) -> Self::Future {
+//         let body = serde_json::to_string(&self).unwrap();
+//         // create response and set content type
+//         ready(Ok(HttpResponse::Ok()
+//             .content_type("application/json")
+//             .body(body)))
+//     }
+// }
 
 impl ChangelogPage{
     // Gets as many changelog entries as the limit passed.

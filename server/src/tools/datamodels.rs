@@ -32,7 +32,7 @@ pub struct Changelog{
     pub admin_note: Option<String>,
 }
 /// All changelog data except for the ID, for table insertion.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ChangelogInsert{
     pub timestamp: Option<NaiveDateTime>,
     pub profile_number: String,
@@ -150,7 +150,7 @@ pub struct SpMap{
 }
 
 /// The minimal data we want for Coop map pages to lower bandwitch usage.
-#[derive(Serialize, FromRow)]
+#[derive(Serialize, FromRow, Clone)]
 pub struct CoopMap{
     pub time_gained: Option<NaiveDateTime>,
     pub profile_number1: String,
@@ -181,13 +181,10 @@ pub struct SpRanked{
 }
 
 /// Wrapper for the coop map data and the rank/score.
+// TODO: Could have nested map_data values that have less info
 #[derive(Serialize)]
 pub struct CoopRanked{
-    pub map_data1: CoopMap,
-    pub map_data2: CoopMap,
-    pub timestamp: Option<NaiveDateTime>,
-    pub category_id: i32,
-    pub score: i32,
+    pub map_data: CoopMap,
     pub rank: i32,
     pub points: f32,
 }

@@ -24,7 +24,7 @@ async fn main() -> Result<(), Error> {
     // Database pool, uses manager to build new database pool, saved in web::Data.
     // Reference Code: https://github.com/actix/examples/blob/master/database_interactions/diesel/src/main.rs
     
-    let pool = PgPool::connect(&config.database.database_url).await?;
+    let pool = PgPool::connect(&config.database_url).await?;
 
     // Initializes Logger with "default" format:  %a %t "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T
     // Remote-IP, Time, First line of request, Response status, Size of response in bytes, Referer, User-Agent, Time to serve

@@ -86,25 +86,20 @@ async fn get_sp_pbs(info: web::Path<(i32, i32)>, pool: web::Data<PgPool>) -> imp
 async fn post_score_sp(params: web::Json<ChangelogInsert>, pool: web::Data<PgPool>) -> impl Responder{
     // TODO: Handle demo uploads.
     // TODO: Differentiate scores pulled from Steam vs manual submissions.
-    web::block(move || Changelog::insert_changelog(&conn, params.0))
-        .await
-        .map_err(|e|{
-            eprintln!("{}", e);
-            HttpResponse::InternalServerError().finish()
-        })?;
-    Ok(HttpResponse::Ok().json(true))
+    let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
+    match res{
+        Ok(id) => HttpResponse::Ok().json(id),
+        _ => HttpResponse::NotFound().body("Error adding new score to database."),
+    }
 }
 
 /// Receives new data to update an existing score.
 #[put("/maps/sp/update")]
 async fn put_score_sp(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> impl Responder{
     // TODO: Handle demo uploads.
-    let res = web::block(move || Changelog::update_changelog(&conn, params.0))
-        .await
-        .map_err(|e|{
-            eprintln!("{}", e);
-            HttpResponse::InternalServerError().finish()
-        })?;
-
-    Ok(HttpResponse::Ok().json(res))
+    let res = Changelog::update_changelog(pool.get_ref(), params.0).await;
+    match res{
+        Ok(changelog_entry) => HttpResponse::Ok().json(changelog_entry),
+        _ => HttpResponse::NotFound().body("Error updating score."),
+    }
 }
