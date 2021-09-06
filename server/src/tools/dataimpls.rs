@@ -8,6 +8,8 @@ use sqlx::{FromRow, Row, PgPool};
 use futures::future::{ready, Ready};
 use anyhow::Result;
 use chrono::NaiveDateTime;
+use log::{debug};
+
 
 use crate::tools::datamodels::*;
 
@@ -17,19 +19,21 @@ impl CoopPreview {
         // TODO: Open to PRs to contain all this functionality in the SQL statement.
         let query = sqlx::query_as::<_, CoopPreview>(r#"
                 SELECT
-                    c1.profile_number, c2.profile_number, c1.score, c1.youtube_id, c2.youtube_id, c1.category_id,
+                    c1.profile_number AS profile_number1, c2.profile_number AS profile_number2,
+                    c1.score,
+                    c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2, c1.category_id,
                     CASE 
                     WHEN p1.board_name IS NULL
                         THEN p1.steam_name
                     WHEN p1.board_name IS NOT NULL
                         THEN p1.board_name
-                    END p1_username, 
+                    END user_name1, 
                     CASE 
                     WHEN p2.board_name IS NULL
                         THEN p2.steam_name
                     WHEN p2.board_name IS NOT NULL
                         THEN p2.board_name
-                    END p2_username
+                    END user_name2
                 FROM (SELECT * FROM 
                 "p2boards".coop_bundled 
                 WHERE id IN 
@@ -52,13 +56,19 @@ impl CoopPreview {
                 "#)
             .bind(map_id.clone())
             .fetch_all(pool)
-            .await?;
-
+            .await;
+        match query{
+            Ok(_) => (),
+            Err(e) => {
+                eprintln!("{}", e);
+                return Err(anyhow::Error::new(e).context("Error with SP Previews"))
+            }
+        }
         // TODO: Maybe remove unwrap(), it assumes that the profile_number2 will not be None.
         let mut vec_final = Vec::new();
         let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(80);
         remove_dups.insert("N/A".to_string(), 1);
-        for entry in query{
+        for entry in query.unwrap(){
             match remove_dups.insert(entry.profile_number1.clone(), 1){
                 Some(_) => match remove_dups.insert(entry.profile_number2.clone().unwrap(), 1){
                     Some(_) => (),
@@ -94,14 +104,14 @@ impl CoopPreviews {
 impl SpPreview{
     /// Gets preview information for top 7 on an SP Map.
     pub async fn get_sp_preview(pool: &PgPool, map_id: String) -> Result<Vec<SpPreview>>{
-        let query = sqlx::query_as::<_, SpPreview>(r#"
+        let res = sqlx::query_as::<_, SpPreview>(r#"
                 SELECT t.CL_profile_number, t.score, t.youtube_id, t.category_id,
                 CASE
                     WHEN t.board_name IS NULL
                         THEN t.steam_name
                     WHEN t.board_name IS NOT NULL
                         THEN t.board_name
-                    END user_name
+                    END user_name, t.map_id
                 FROM (
                     SELECT DISTINCT ON (changelog.profile_number) 
                         changelog.profile_number as CL_profile_number,
@@ -117,23 +127,16 @@ impl SpPreview{
                LIMIT 7"#)
             .bind(map_id.clone())
             .fetch_all(pool)
-            .await?;
-        Ok(query)
+            .await;
+        match res{
+            Ok(sp_previews) => Ok(sp_previews),
+            Err(e) => {
+                eprintln!("{}", e);
+                return Err(anyhow::Error::new(e).context("Error with SP Previews"))
+            }
+        }
     }
 }
-
-// impl Responder for SpPreviews {
-//     type Error = Error;
-//     type Future = Ready<Result<HttpResponse, Error>>;
-
-//     fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-//         let body = serde_json::to_string(&self).unwrap();
-//         // create response and set content type
-//         ready(Ok(HttpResponse::Ok()
-//             .content_type("application/json")
-//             .body(body)))
-//     }
-// }
 
 impl SpPreviews{
     // Collects the top 7 preview data for all SP maps.
@@ -281,21 +284,24 @@ impl CoopMap{
     pub async fn get_coop_map_page(pool: &PgPool, map_id: String) -> Result<Vec<CoopMap>> {
         let res = sqlx::query_as::<_, CoopMap>(r#"
                 SELECT  c1.timestamp, 
-                    c1.score, c1.note, c2.note,
+                    c1.score, cb.p1_is_host, c1.note AS note1, c2.note AS note2,
                     CASE 
                         WHEN p1.board_name IS NULL
                             THEN p1.steam_name
                         WHEN p1.board_name IS NOT NULL
                             THEN p1.board_name
-                        END p1_username, 
+                    END user_name1, 
                         CASE 
                         WHEN p2.board_name IS NULL
                             THEN p2.steam_name
                         WHEN p2.board_name IS NOT NULL
                             THEN p2.board_name
-                    END p2_username ,
-                    c1.profile_number, c2.profile_number, c1.demo_id, c2.demo_id, c1.youtube_id,
-                    c2.youtube_id, c1.submission, c2.submission, c1.category_id, c2.category_id, p1.avatar, p2.avatar
+                    END user_name2,
+                    c1.profile_number AS profile_number1, c2.profile_number AS profile_number2, 
+                    c1.demo_id AS demo_id1, c2.demo_id AS demo_id2, 
+                    c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2,
+                    c1.submission AS submission1, c2.submission AS submission2, 
+                    c1.category_id, p1.avatar AS avatar1, p2.avatar AS avatar2
                 FROM (SELECT * FROM 
                 "p2boards".coop_bundled 
                 WHERE id IN 
@@ -317,22 +323,16 @@ impl CoopMap{
                 "#)
             .bind(map_id)
             .fetch_all(pool)
-            .await?;
-        Ok(res)
+            .await;
+        match res{
+            Ok(res) => return Ok(res),
+            Err(e) => {
+                eprintln!("{}", e);
+                return Err(anyhow::Error::new(e).context("Error with SP Maps"))
+            },
+        }
     }
 }
-// impl Responder for SpRanked {
-//     type Error = Error;
-//     type Future = Ready<Result<HttpResponse, Error>>;
-
-//     fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-//         let body = serde_json::to_string(&self).unwrap();
-//         // create response and set content type
-//         ready(Ok(HttpResponse::Ok()
-//             .content_type("application/json")
-//             .body(body)))
-//     }
-// }
 impl SpMap{
     pub async fn get_sp_map_page(pool: &PgPool, map_id: String) -> Result<Vec<SpMap>> {
         let res = sqlx::query_as::<_, SpMap>(r#" 
@@ -364,27 +364,20 @@ impl SpMap{
                     ORDER BY changelog.profile_number, changelog.score ASC
                 ) t
                 ORDER BY score
-                LIMIT 200"#) 
+                LIMIT 200"#)
             .bind(map_id)
             .fetch_all(pool)
-            .await?;
-        Ok(res)
+            .await;
+        match res{
+            Ok(res) => return Ok(res),
+            Err(e) => {
+                eprintln!("{}", e);
+                return Err(anyhow::Error::new(e).context("Error with SP Maps"))
+            },
+        }
+        //Ok(res)
     }
 }
-
-// // Implementation of Actix::Responder for Changelog struct so we can return Changelog from action handler
-// impl Responder for Changelog {
-//     type Error = Error;
-//     type Future = Ready<Result<HttpResponse, Error>>;
-
-//     fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-//         let body = serde_json::to_string(&self).unwrap();
-//         // create response and set content type
-//         ready(Ok(HttpResponse::Ok()
-//             .content_type("application/json")
-//             .body(body)))
-//     }
-// }
 
 // Implementations of associated functions for Changelog
 impl Changelog{
@@ -416,7 +409,7 @@ impl Changelog{
                 FROM "p2boards".changelog
                 WHERE changelog.profile_number = $1
                 AND changelog.map_id = $2
-                ORDER BY changelog.timestamp DESC"#)
+                ORDER BY changelog.timestamp DESC NULLS LAST"#)
             .bind(profile_number)
             .bind(map_id);
         let res: Vec<Changelog> = query.fetch_all(pool).await?;
@@ -460,62 +453,56 @@ impl Changelog{
         Ok(res)
     }
 }
-// Implementation of Actix::Responder for Changelog struct so we can return Changelog from action handler
-// impl Responder for ChangelogPage {
-//     type Error = Error;
-//     type Future = Ready<Result<HttpResponse, Error>>;
-
-//     fn respond_to(self, _req: &HttpRequest) -> Self::Future {
-//         let body = serde_json::to_string(&self).unwrap();
-//         // create response and set content type
-//         ready(Ok(HttpResponse::Ok()
-//             .content_type("application/json")
-//             .body(body)))
-//     }
-// }
 
 impl ChangelogPage{
     // Gets as many changelog entries as the limit passed.
     // TODO: Base this on time rather than a hard limit??
     pub async fn get_cl_page(pool: &PgPool, limit: i32) -> Result<Option<Vec<ChangelogPage>>>{
-        let query = sqlx::query_as::<_, ChangelogPage>(r#" 
+        let res = sqlx::query_as::<_, ChangelogPage>(r#" 
                 SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
-                cl.youtube_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
-                cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name, 
+                cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
+                cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name AS map_name, 
                 CASE
-                    WHEN user.board_name IS NULL
-                        THEN user.steam_name
-                    WHEN user.board_name IS NOT NULL
-                        THEN user.board.name
-                END user_name, user.avatar
+                    WHEN u.board_name IS NULL
+                        THEN u.steam_name
+                    WHEN u.board_name IS NOT NULL
+                        THEN u.board_name
+                END user_name,
+                u.avatar
                 FROM "p2boards".changelog AS cl
-                INNER JOIN "p2boards".users AS user ON (user.profile_number = cl.profile_number
+                INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
                 INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
-                ORDER BY cl.timestamp DESC
+                ORDER BY cl.timestamp DESC NULLS LAST
                 LIMIT $1"#)
             .bind(limit)
             .fetch_all(pool)
-            .await?;
-            
-        Ok(Some(vec![]))
+            .await;
+        match res{
+            Ok(res) => return Ok(Some(res)),
+            Err(e) => {
+                eprintln!("{}", e);
+                return Err(anyhow::Error::new(e).context("Error with SP Maps"))
+            },
+        }
     }
     // Handles filtering out changelog by different criteria.
     pub async fn get_cl_page_filtered(pool: &PgPool, params: ChangelogQueryParams) -> Result<Option<Vec<ChangelogPage>>>{
         // TODO: Decide if we want Chapter name
         let mut query_string: String = String::from(r#" 
         SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
-        cl.youtube_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
-        cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name, 
+        cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
+        cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name AS map_name,  
         CASE
-            WHEN user.board_name IS NULL
-                THEN user.steam_name
-            WHEN user.board_name IS NOT NULL
-                THEN user.board.name
-        END user_name, user.avatar
+            WHEN u.board_name IS NULL
+                THEN u.steam_name
+            WHEN u.board_name IS NOT NULL
+                THEN u.board_name
+        END user_name,
+        u.avatar
         FROM "p2boards".changelog AS cl
-        INNER JOIN "p2boards".users AS user ON (user.profile_number = cl.profile_number
+        INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
         INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
-        INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapters.id"#);
+        INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)"#);
         if !params.coop{
             query_string = format!("{} WHERE chapters.is_multiplayer = False", &query_string);
         } else if !params.sp{
@@ -548,14 +535,15 @@ impl ChangelogPage{
         }
         //#[allow(irrefutable_let_patterns)]
         if let Some(nick_name) = params.nick_name{
+            //eprintln!("{}", nick_name);
             if let Some(profile_numbers) = Users::check_board_name(&pool, nick_name.clone()).await?.as_mut(){
                 if profile_numbers.len() == 1{
-                    query_string = format!("{} WHERE cl.profile_number = {}", &query_string, &profile_numbers[0]);
+                    query_string = format!("{} WHERE cl.profile_number = '{}'", &query_string, &profile_numbers[0].to_string());
                 } else{
-                    query_string = format!("{} WHERE cl.profile_number = {}", &query_string, &profile_numbers[0]);
+                    query_string = format!("{} WHERE cl.profile_number = '{}'", &query_string, &profile_numbers[0].to_string());
                     profile_numbers.remove(0);
                     for num in profile_numbers.iter(){
-                        query_string = format!("{} OR cl.profile_number = {}", &query_string, num);
+                        query_string = format!("{} OR cl.profile_number = '{}'", &query_string, num);
                     }
                 }
             }
@@ -564,13 +552,21 @@ impl ChangelogPage{
             }
         }
         //TODO: Maybe allow for custom order params????
-        query_string = format!("{} ORDER BY changelog.timestamp DESC", &query_string);
+        query_string = format!("{} ORDER BY cl.timestamp DESC NULLS LAST", &query_string);
         if let Some(limit) = params.limit{
             query_string = format!("{} LIMIT {}", &query_string, limit);
         } else{ // Default limit
             query_string = format!("{} LMIT 1000", &query_string)
         }
-        let res = sqlx::query_as::<_, ChangelogPage>(&query_string).fetch_all(pool).await?;
-        Ok(Some(res))
+        //eprintln!("{}", query_string);
+        let res = sqlx::query_as::<_, ChangelogPage>(&query_string).fetch_all(pool).await;
+        match res{
+            Ok(changelog_filtered) => Ok(Some(changelog_filtered)),
+            Err(e) => {
+                eprintln!("{}", e);
+                return Err(anyhow::Error::new(e).context("Error with SP Maps"))
+            },
+        }
+        // Ok(Some(res))
     }
 }

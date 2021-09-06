@@ -20,7 +20,7 @@ pub struct Changelog{
     pub demo_id: Option<i64>,
     pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i64>,
+    pub previous_id: Option<i32>,
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
@@ -41,7 +41,7 @@ pub struct ChangelogInsert{
     pub demo_id: Option<i64>,
     pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i64>,
+    pub previous_id: Option<i32>,
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
@@ -138,6 +138,7 @@ pub struct UsersPage{
 #[derive(Serialize, FromRow)]
 pub struct SpMap{
     pub timestamp: Option<NaiveDateTime>,
+    #[sqlx(rename = "cl_profile_number")]
     pub profile_number: String,
     pub score: i32,
     pub demo_id: Option<i64>,
@@ -152,7 +153,7 @@ pub struct SpMap{
 /// The minimal data we want for Coop map pages to lower bandwitch usage.
 #[derive(Serialize, FromRow, Clone)]
 pub struct CoopMap{
-    pub time_gained: Option<NaiveDateTime>,
+    pub timestamp: Option<NaiveDateTime>,
     pub profile_number1: String,
     pub profile_number2: String,
     pub score: i32,
@@ -192,6 +193,7 @@ pub struct CoopRanked{
 /// The data for the preview page for all SP Maps
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct SpPreview{
+    #[sqlx(rename = "cl_profile_number")]
     pub profile_number: String,
     pub score: i32,
     pub youtube_id: Option<String>,
@@ -247,7 +249,7 @@ pub struct ChangelogPage{
     pub demo_id: Option<i64>,
     pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i64>,
+    pub previous_id: Option<i32>,
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,

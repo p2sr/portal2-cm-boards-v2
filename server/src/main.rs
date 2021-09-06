@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate serde_derive;
 
-use actix_web::{App, HttpServer, middleware::Logger};
+use actix_web::{web, App, HttpServer, middleware::Logger};
 use actix_cors::Cors;
 use sqlx::PgPool;
 use anyhow::{Result, Error};
@@ -28,6 +28,7 @@ async fn main() -> Result<(), Error> {
 
     // Initializes Logger with "default" format:  %a %t "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T
     // Remote-IP, Time, First line of request, Response status, Size of response in bytes, Referer, User-Agent, Time to serve
+    std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::Builder::from_env(Env::default()
         .default_filter_or("info"))
         .init();
@@ -42,7 +43,7 @@ async fn main() -> Result<(), Error> {
         App::new()
             .wrap(cors)
             .wrap(Logger::default())
-            .data(pool.clone())
+            .app_data(web::Data::new(pool.clone()))
             .configure(api::v1::handlers::init::init)
         })
         .bind(format!("{}:{}", config.server.host, config.server.port))?
