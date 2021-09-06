@@ -1,0 +1,5 @@
+FROM rust:1.54
+
+WORKDIR /server
+
+RUN cargo install cargo-watch

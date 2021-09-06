@@ -2,28 +2,38 @@ version: "3.9"
 services:
   web-server:
     container_name: "web-server"
-    image: "rust:1.54"
+    command: cargo watch -x 'run'
+    build:
+        dockerfile: Dockerfile.dev
+        context: .
+        cache_from:
+          - rust:1.54
     links:
       - postgres
-    depends_on:
-      - postgres
-    volumes: 
-      - ./server:/server
     environment:
       - USER=dev
       - PG_URL=postgresql://postgres:docker@postgres:5432/p2boards?sslmode=disable
       - PG_POOL_SIZE=10
     networks:
-      - library-network
+      - boards-network
+    depends_on:
+      - postgres
+    tty: true
+    volumes: 
+      - type: bind
+        source: ./server
+        target: /server
     ports:
       - "8080:8080"
 
   postgres:
-    image: "postgres:13.4-alpine"
+    build:
+      dockerfile: Dockerfile.db
+      context: .
     environment:
       POSTGRES_PASSWORD: "docker"
     networks:
-      - library-network
+      - boards-network
     ports:
       - "5432:5432"
   
@@ -41,10 +51,10 @@ services:
     links:
       - postgres
     networks:
-      - library-network
+      - boards-network
     volumes:
       - ./db:/db
     
 networks:
-  library-network:
+  boards-network:
     driver: bridge
