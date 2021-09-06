@@ -199,20 +199,22 @@ impl CoopBanned{
 impl Maps{
     /// Takes in a bool, if true returns ass MP map_ids, if false, returns as SP map_ids
     pub async fn get_steamids(pool: &PgPool, is_mp: bool) -> Result<Vec<String>>{
-        let res = sqlx::query!(r#"
+        let res = sqlx::query(r#"
                 SELECT maps.steam_id FROM "p2boards".maps
                     INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
                     WHERE chapters.is_multiplayer = $1
                 "#)
             .bind(is_mp)
+            .map(|row: PgRow|{row.get(0)})
             .fetch_all(pool)
             .await?;
         Ok(res)
     }
     /// Returns the map name for a given steam_id.
     pub async fn get_map_name(pool: &PgPool, map_id: String) -> Result<Option<String>>{
-        let res = sqlx::query!(r#"SELECT maps.name FROM "p2boards".maps WHERE maps.steam_id = $1"#)
+        let res = sqlx::query(r#"SELECT maps.name FROM "p2boards".maps WHERE maps.steam_id = $1"#)
             .bind(map_id)
+            .map(|row: PgRow|{row.get(0)})
             .fetch_one(pool)
             .await?;
         Ok(Some(res))
@@ -240,7 +242,7 @@ impl Users{
     /// Pattern match on a given string to find similar names (supports board/steam names). 
     pub async fn check_board_name(pool: &PgPool, nick_name: String) -> Result<Option<Vec<String>>>{ // TODO: Check return type of 0 results more carefully
         let query_nn = format!("%{}%", &nick_name);
-        let res = sqlx::query!(r#"
+        let res = sqlx::query(r#"
                 SELECT users.profile_number FROM "p2boards".users
                 WHERE 
                     CASE
@@ -251,20 +253,23 @@ impl Users{
                     END
                 "#) 
             .bind(query_nn)
+            .map(|row: PgRow|{row.get(0)})
             .fetch_all(pool)
             .await?;
         Ok(Some(res))
     }
     /// Returns a list of all banned players profile_numbers.
     pub async fn get_banned(pool: &PgPool) -> Result<Vec<String>>{
-        let res = sqlx::query!(r#"SELECT users.profile_number FROM "p2boards".users WHERE users.banned = True"#)
+        let res = sqlx::query(r#"SELECT users.profile_number FROM "p2boards".users WHERE users.banned = True"#)
+            .map(|row: PgRow|{row.get(0)})    
             .fetch_all(pool)
             .await?;
         Ok(res)
     }
     /// Returns a boolean based on if the profile number passed is banned or not.
     pub async fn check_banned(pool: &PgPool, profile_number: String) -> Result<bool>{
-        let res = sqlx::query!(r#"SELECT users.banned FROM "p2boards".users WHERE users.profile_number = $1"#)
+        let res = sqlx::query(r#"SELECT users.banned FROM "p2boards".users WHERE users.profile_number = $1"#)
+            .map(|row: PgRow| {row.get(0)})
             .fetch_one(pool)
             .await?;
         Ok(res)
@@ -387,7 +392,7 @@ impl Changelog{
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
     pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String) -> Result<bool>{
         // We don't care about the result, we only care if there is a result.
-        let query = sqlx::query!(r#" 
+        let query = sqlx::query(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
                 WHERE changelog.score = $1
@@ -398,11 +403,10 @@ impl Changelog{
             .bind(map_id)
             .bind(profile_number)
             .bind(false);
-        let res = query.fetch_optional(pool).await;
+        let res = query.fetch_optional(pool).await?;
         match res{
-            Ok(Some(_)) => return Ok(true),
-            Ok(None) => return Ok(false),
-            Err(e) => return Err(e),
+            Some(_) => return Ok(true),
+            None => return Ok(false),
         }
     }
     // Returns a vec of changelog for a user's PB history on a given SP map.
@@ -432,9 +436,7 @@ impl Changelog{
             .bind(cl.demo_id).bind(cl.banned).bind(cl.youtube_id).bind(cl.coop_id).bind(cl.post_rank)
             .bind(cl.pre_rank).bind(cl.submission).bind(cl.note).bind(cl.category_id)
             .bind(cl.score_delta).bind(cl.verified).bind(cl.admin_note)
-            .map(|row: PgRow|{
-                res = row.get(0)
-            })
+            .map(|row: PgRow|{res = row.get(0)})
             .fetch_one(pool)
             .await?;
             Ok(res)

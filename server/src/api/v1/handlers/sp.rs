@@ -59,18 +59,18 @@ async fn get_sp_pbs(info: web::Path<(i32, i32)>, pool: web::Data<PgPool>) -> imp
     
     // This is gross but Rust was being dumb so I had to do a bunch of weird working around.
     let new_info = info.0;
-    let map_id = new_info.0.to_string();
-    let profile_number = new_info.1.to_string();
+    let map_id = new_info.to_string();
+    let profile_number = new_info.to_string();
     let map_id_copy = map_id.clone();
     let user_data: UsersPage;
     // Get information for the player (user_name and avatar).
     let res = Users::get_user_data(pool.get_ref(), profile_number.clone()).await;
     match res{
-        Ok(res) => user_data = res.clone(),
+        Ok(res) => user_data = res,
         _ => return HttpResponse::NotFound().body("Error fetching User Data on given user."),
     }
     // Get Changelog data for all previous times.
-    let res = Changelog::get_sp_pb_history(pool.get_ref(), profile_number.clone(), map_id.clone()).await;
+    let res = Changelog::get_sp_pb_history(pool.get_ref(), profile_number.clone(), map_id_copy).await;
     match res{
         Ok(changelog_data) => HttpResponse::Ok().json(SpPbHistory{
             user_name: user_data.users_name,
