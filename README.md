@@ -34,10 +34,10 @@ The code is being re-writen to no longer use Diesel.rs and MySQL. More informati
 DATABASE.DATABASE_URL=postgresql://username:password@postgres:5432/p2boards
 SERVER.HOST=127.0.0.1
 SERVER.PORT=8080
-RUST_LOG=1
-RUST_LOG="actix_web=info"
 PROOF.DEMO=80
 PROOF.VIDEO=100
+RUST_LOG=1
+RUST_LOG="actix_web=info"
 ```
 
 #### Features:
