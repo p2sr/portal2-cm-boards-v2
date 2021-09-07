@@ -70,7 +70,7 @@ async fn get_cooperative_maps(map_id: web::Path<u64>, pool: web::Data<PgPool>) -
 
 /// Returns two profile numbers and the score for all banned times on a coop map.
 #[get("/maps/coop/banned/{map_id}")]
-async fn get_banned_scores(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder{
+async fn get_banned_scores_coop(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder{
     let res = CoopBanned::get_coop_banned(pool.get_ref(), map_id.to_string()).await;
     match res{
         Ok(banned_entries) => HttpResponse::Ok().json(banned_entries),
@@ -81,7 +81,7 @@ async fn get_banned_scores(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> i
 // TODO: Probably should still improve error handling, but now the call is web::block()ing
 /// Gives the profile number and score for all banned times on a given Coop map. Same as SP for now
 #[post("/maps/coop/banned/{map_id}")]
-async fn post_banned_scores(map_id: web::Path<u64>, params: web::Json<ScoreParams>, pool: web::Data<PgPool>) -> impl Responder{
+async fn post_banned_scores_coop(map_id: web::Path<u64>, params: web::Json<ScoreParams>, pool: web::Data<PgPool>) -> impl Responder{
     // Potentially check for a valid coop map_id before spawning a thread to query the database.
     let res = Changelog::check_banned_scores(pool.get_ref(), map_id.to_string(), params.score, params.profile_number.clone()).await;
     match res{

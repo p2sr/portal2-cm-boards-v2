@@ -35,7 +35,7 @@ async fn get_singleplayer_maps(map_id: web::Path<u64>, pool: web::Data<PgPool>) 
 }
 /// Gives the profile number and score for all banned times on a given SP map
 #[get("/maps/sp/banned/{map_id}")]
-async fn get_banned_scores(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder{
+async fn get_banned_scores_sp(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder{
     let res = SpBanned::get_sp_banned(pool.get_ref(), map_id.to_string()).await;
     match res{
         Ok(banned_entries) => HttpResponse::Ok().json(banned_entries),
@@ -45,7 +45,7 @@ async fn get_banned_scores(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> i
 
 /// Gives the profile number and score for all banned times on a given SP map
 #[post("/maps/sp/banned/{map_id}")]
-async fn post_banned_scores(map_id: web::Path<u64>, params: web::Json<ScoreParams>, pool: web::Data<PgPool>) -> impl Responder{
+async fn post_banned_scores_sp(map_id: web::Path<u64>, params: web::Json<ScoreParams>, pool: web::Data<PgPool>) -> impl Responder{
     let res = Changelog::check_banned_scores(pool.get_ref(), map_id.to_string(), params.score, params.profile_number.clone()).await;
     match res{
         Ok(banned_bool) => HttpResponse::Ok().json(banned_bool),
@@ -55,13 +55,9 @@ async fn post_banned_scores(map_id: web::Path<u64>, params: web::Json<ScoreParam
 
 /// Returns a players PB history on an SP map
 #[get("/maps/sp/{map_id}/{profile_number}")]
-async fn get_sp_pbs(info: web::Path<(i32, i32)>, pool: web::Data<PgPool>) -> impl Responder{
-    
-    // This is gross but Rust was being dumb so I had to do a bunch of weird working around.
-    let new_info = info.0;
-    let map_id = new_info.to_string();
-    let profile_number = new_info.to_string();
-    let map_id_copy = map_id.clone();
+async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) -> impl Responder{
+    let map_id = info.0.clone();
+    let profile_number = info.1.clone();
     let user_data: UsersPage;
     // Get information for the player (user_name and avatar).
     let res = Users::get_user_data(pool.get_ref(), profile_number.clone()).await;
@@ -70,10 +66,10 @@ async fn get_sp_pbs(info: web::Path<(i32, i32)>, pool: web::Data<PgPool>) -> imp
         _ => return HttpResponse::NotFound().body("Error fetching User Data on given user."),
     }
     // Get Changelog data for all previous times.
-    let res = Changelog::get_sp_pb_history(pool.get_ref(), profile_number.clone(), map_id_copy).await;
+    let res = Changelog::get_sp_pb_history(pool.get_ref(), profile_number.clone(), map_id.clone()).await;
     match res{
         Ok(changelog_data) => HttpResponse::Ok().json(SpPbHistory{
-            user_name: user_data.users_name,
+            user_name: user_data.user_name,
             avatar: Some(user_data.avatar),
             pb_history: Some(changelog_data),
         }),

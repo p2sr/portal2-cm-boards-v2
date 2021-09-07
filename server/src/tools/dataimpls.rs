@@ -166,8 +166,14 @@ impl SpBanned{
             "#)
             .bind(map_id)
             .fetch_all(pool)
-            .await?;   
-        Ok(res)
+            .await;   
+        match res{
+            Ok(sp_banned) => Ok(sp_banned),
+            Err(e) => {
+                eprintln!("{}", e);
+                return Err(anyhow::Error::new(e).context("Error with SP Banned."))
+            }
+        }
     }
 }
 
@@ -239,8 +245,14 @@ impl Users{
                 "#)
             .bind(profile_number)
             .fetch_one(pool)
-            .await?;
-        Ok(res)
+            .await;
+        match res{
+            Ok(user_data) => Ok(user_data),
+            Err(e) => {
+                eprintln!("Error with get_user_data {}", e);
+                return Err(anyhow::Error::new(e).context("Error with SP Banned."))
+            }
+        }
     }
     /// Pattern match on a given string to find similar names (supports board/steam names). 
     pub async fn check_board_name(pool: &PgPool, nick_name: String) -> Result<Option<Vec<String>>>{ // TODO: Check return type of 0 results more carefully
@@ -272,6 +284,7 @@ impl Users{
     /// Returns a boolean based on if the profile number passed is banned or not.
     pub async fn check_banned(pool: &PgPool, profile_number: String) -> Result<bool>{
         let res = sqlx::query(r#"SELECT users.banned FROM "p2boards".users WHERE users.profile_number = $1"#)
+            .bind(profile_number)
             .map(|row: PgRow| {row.get(0)})
             .fetch_one(pool)
             .await?;
@@ -395,7 +408,7 @@ impl Changelog{
             .bind(score)
             .bind(map_id)
             .bind(profile_number)
-            .bind(false);
+            .bind(true);
         let res = query.fetch_optional(pool).await?;
         match res{
             Some(_) => return Ok(true),
@@ -403,17 +416,24 @@ impl Changelog{
         }
     }
     // Returns a vec of changelog for a user's PB history on a given SP map.
-    pub async fn get_sp_pb_history(pool: &PgPool, map_id: String, profile_number: String) -> Result<Vec<Changelog>>{
-        let query = sqlx::query_as::<_, Changelog>(r#" 
+    pub async fn get_sp_pb_history(pool: &PgPool, profile_number: String, map_id: String) -> Result<Vec<Changelog>>{
+        let res = sqlx::query_as::<_, Changelog>(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
                 WHERE changelog.profile_number = $1
                 AND changelog.map_id = $2
                 ORDER BY changelog.timestamp DESC NULLS LAST"#)
             .bind(profile_number)
-            .bind(map_id);
-        let res: Vec<Changelog> = query.fetch_all(pool).await?;
-        Ok(res)
+            .bind(map_id)
+            .fetch_all(pool)
+            .await;
+        match res{
+            Ok(pb_history) => return Ok(pb_history),
+            Err(e) => {
+                eprintln!("Error with get_sp_pb_history {}", e);
+                return Err(anyhow::Error::new(e).context("Error with SP Maps"))
+            },
+        }
     }
     /// Insert a new changelog entry.
     pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64>{

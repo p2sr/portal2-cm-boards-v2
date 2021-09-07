@@ -130,7 +130,7 @@ pub struct Users{
 
 #[derive(Serialize, FromRow, Clone)]
 pub struct UsersPage{
-    pub users_name: String,
+    pub user_name: String,
     pub avatar: String,
 }
 
