@@ -4,25 +4,20 @@ services:
     container_name: "web-server"
     command: cargo watch -x 'run'
     build:
-        dockerfile: Dockerfile.dev
-        context: .
-        cache_from:
-          - rust:1.54
-    links:
-      - postgres
-    environment:
-      - USER=dev
-      - PG_URL=postgresql://postgres:docker@postgres:5432/p2boards?sslmode=disable
-      - PG_POOL_SIZE=10
-    networks:
-      - boards-network
+      dockerfile: Dockerfile.server
+      context: .
+      cache_from:
+        - rust:1.54
     depends_on:
       - postgres
-    tty: true
+    environment: 
+    - DATABASE_URL=postgresql://docker:docker@localhost:5432/p2boards
+    - SERVER.HOST=127.0.0.1
+    - SERVER.PORT=8080
+    - PROOF.DEMO=80
+    - PROOF.VIDEO=100
     volumes: 
-      - type: bind
-        source: ./server
-        target: /server
+        - ./server:/server
     ports:
       - "8080:8080"
 
@@ -31,30 +26,9 @@ services:
       dockerfile: Dockerfile.db
       context: .
     environment:
-      POSTGRES_PASSWORD: "docker"
-    networks:
-      - boards-network
+      - POSTGRES_DB=p2boards
+      - POSTGRES_PASSWORD=docker
+      - POSTGRES_USER=docker
+    restart: always
     ports:
       - "5432:5432"
-  
-  dbmate:
-    build:
-      context: .
-      dockerfile: Dockerfile.dbmate
-    command:
-      - ls
-      - create_db.sh
-    environment:
-        DATABASE_URL: "postgresql://postgres:docker@postgres:5432/p2boards?sslmode=disable"
-    depends_on:
-      - postgres
-    links:
-      - postgres
-    networks:
-      - boards-network
-    volumes:
-      - ./db:/db
-    
-networks:
-  boards-network:
-    driver: bridge
