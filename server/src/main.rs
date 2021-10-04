@@ -21,6 +21,7 @@ async fn main() -> Result<(), Error> {
     dotenv().ok();
     // Use config.rs to extract a configuration struct from .env (See documentation about changing .env.example)
     let config = crate::config::Config::from_env().unwrap();
+    println!("{:#?}", config);
     // Database pool, uses manager to build new database pool, saved in web::Data.
     // Reference Code: https://github.com/actix/examples/blob/master/database_interactions/diesel/src/main.rs
     

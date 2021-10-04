@@ -2,7 +2,7 @@ use serde::Deserialize;
 use config::ConfigError;
 
 /// Server hosting information for mounting the webserver.
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ServerConfig{
     pub host: String,
     pub port: i32,
@@ -13,12 +13,12 @@ pub struct ServerConfig{
 //     pub database_url: String
 // }
 /// The proof standards, update based on the mod tools desired.
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ProofConfig{
     pub demo: i32,
     pub video: i32,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Config{
     pub database_url: String,
     pub server: ServerConfig,

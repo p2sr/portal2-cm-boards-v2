@@ -10,9 +10,11 @@ services:
         - rust:1.54
     depends_on:
       - postgres
+    links:
+      - postgres
     environment: 
     - DATABASE_URL=postgresql://docker:docker@localhost:5432/p2boards
-    - SERVER.HOST=127.0.0.1
+    - SERVER.HOST=0.0.0.0
     - SERVER.PORT=8080
     - PROOF.DEMO=80
     - PROOF.VIDEO=100
@@ -20,6 +22,8 @@ services:
         - ./server:/server
     ports:
       - "8080:8080"
+
+
 
   postgres:
     build:
