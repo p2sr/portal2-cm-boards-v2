@@ -98,7 +98,7 @@ pub fn filter_entries_sp(id: i32, start: i32, end: i32, timestamp: NaiveDateTime
             .send()
             .expect("Error querying our local API")
             .json()
-            .expect("Error converting to json");
+            .expect("Error converting to json"); //TODO: Fix the endpoint, or change expectations
         match res{
             true => println!("The time was found, so the time is banned. Ignore"),
             false => {

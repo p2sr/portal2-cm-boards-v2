@@ -6,5 +6,7 @@ pub mod coop;
 pub mod changelog;
 /// User-related endpoints
 pub mod users;
+/// Chapter-related endpoints
+pub mod chapters;
 /// Mounting of the endpoints.
 pub mod init;

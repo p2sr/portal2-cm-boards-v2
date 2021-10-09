@@ -101,6 +101,18 @@ impl CoopPreviews {
     }
 }
 
+impl Chapters{
+    pub async fn get_map_ids(pool: &PgPool, chapter_id: i32) -> Result<Option<Vec<String>>>{
+        let res = sqlx::query(r#"SELECT maps.steam_id FROM p2boards.maps WHERE chapter_id=$1"#)
+            .bind(chapter_id)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_all(pool)
+            .await?;
+        Ok(Some(res)) //We're not going to handle error cases I'm tired
+        // TODO: Do this better
+    }
+}
+
 impl SpPreview{
     /// Gets preview information for top 7 on an SP Map.
     pub async fn get_sp_preview(pool: &PgPool, map_id: String) -> Result<Vec<SpPreview>>{

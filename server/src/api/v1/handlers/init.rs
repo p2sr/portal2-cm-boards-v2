@@ -4,6 +4,7 @@ use crate::api::v1::handlers::sp::*;
 use crate::api::v1::handlers::coop::*;
 use crate::api::v1::handlers::changelog::*;
 use crate::api::v1::handlers::users::*;
+use crate::api::v1::handlers::chapters::*;
 
 /// Mounts the routes to /api/..
 pub fn init(cfg: &mut web::ServiceConfig){
@@ -24,5 +25,6 @@ pub fn init(cfg: &mut web::ServiceConfig){
             .service(post_changelog_filtered)
             .service(check_ban_status) // Users
             .service(get_banned_users)
+            .service(get_map_ids_by_chapter) // Chapters
     );
 }

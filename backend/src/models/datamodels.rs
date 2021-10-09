@@ -92,16 +92,15 @@ pub struct CoopbundledInsert {
 /// This struct handles the minimal information we want for SP map pages. We want to limit the amount of data we need to transfer.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SpMap{
-    pub time_gained: Option<NaiveDateTime>,
+    pub timestamp: Option<NaiveDateTime>,
     pub profile_number: String,
     pub score: i32,
-    pub has_demo: Option<i32>,
+    pub demo_id: Option<i64>,
     pub youtube_id: Option<String>,
-    pub submission: i32,
+    pub submission: bool,
     pub note: Option<String>,
-    pub category: Option<String>, 
-    pub boardname: Option<String>,
-    pub steamname: Option<String>,
+    pub category_id: i32, 
+    pub user_name: Option<String>,
     pub avatar: Option<String>,
 }
 
@@ -109,7 +108,7 @@ pub struct SpMap{
 pub struct SpRanked{
     pub map_data: SpMap,
     pub rank: i32,
-    pub score: f32,
+    pub points: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
