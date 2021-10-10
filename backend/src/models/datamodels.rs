@@ -113,25 +113,23 @@ pub struct SpRanked{
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CoopMap{
-    pub time_gained: Option<NaiveDateTime>,
+    pub timestamp: Option<NaiveDateTime>,
     pub profile_number1: String,
     pub profile_number2: String,
     pub score: i32,
-    pub is_blue: Option<i32>,
-    pub has_demo1: Option<i32>,
-    pub has_demo2: Option<i32>,
+    pub p1_is_host: Option<bool>,
+    pub demo_id1: Option<i64>,
+    pub demo_id2: Option<i64>,
     pub youtube_id1: Option<String>,
     pub youtube_id2: Option<String>,
-    pub submission1: i32,
-    pub submission2: i32,
+    pub submission1: bool,
+    pub submission2: bool,
     pub note1: Option<String>,
     pub note2: Option<String>,
-    pub category: Option<String>,
-    pub boardname1: Option<String>,
-    pub steamname1: Option<String>,
+    pub category_id: i32,
+    pub user_name1: String,
+    pub user_name2: Option<String>,
     pub avatar1: Option<String>,
-    pub boardname2: Option<String>,
-    pub steamname2: Option<String>,
     pub avatar2: Option<String>,
 }
 
@@ -140,7 +138,7 @@ pub struct CoopMap{
 pub struct CoopRanked{
     pub map_data: CoopMap,
     pub rank: i32,
-    pub score: f32,
+    pub points: f32,
 }
 
 /// To deserialize banned SP entries from the webserver API calls.

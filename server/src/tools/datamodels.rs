@@ -190,6 +190,7 @@ pub struct CoopRanked{
     pub points: f32,
 }
 
+
 /// The data for the preview page for all SP Maps
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct SpPreview{

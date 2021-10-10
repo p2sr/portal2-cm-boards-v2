@@ -21,6 +21,9 @@ mod stages;
 use stages::exporting::*;
 use stages::fetching::*;
 
+mod points;
+use points::*;
+
 mod models;
 
 fn main() {
@@ -107,47 +110,5 @@ fn fetch_sp(map_id: String){
 fn fetch_cp(map_id: String){
     let utc = Utc::now().naive_utc();
     let res_coop = fetch_entries(map_id.parse().expect("Error parsing map_id"), 0, 800, utc, true);
-
-}
-fn calc_points(maps_altered: Vec<i32>){
-    // NOTE: We could just recalculate points on a set of impacted chapters. We can reuse the cached values for unaffected chapters.
-    // If a score update comes in for btg only, we only need to recalc aggtime/aggpoints in chapter 3. But we would still need to update all user profiles? This might save a small amount of time.
-    // Additionally, we could also ignore players that do not have scores in that give chapter (very limited # of players, might not be worth the effort). 
-
-    // par_iter hit endpoint for each chapter (1-6 coop, 7-15 sp)
-    let all_maps_per_chapter: Vec<Vec<String>> =vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].into_par_iter().map(|chapter_id|{
-        let url = format!("http://localhost:8080/api/chapters/{}", chapter_id);
-        reqwest::blocking::get(&url)
-            .expect("Error in query to our local API (Make sure the webserver is running")
-            .json()
-            .expect("Error in converting our API values to JSON")
-        }).collect();
-    
-
-// Algorithm (TO BE IMPROVED)    
-    // Scores: Pull all top 200 score data for current maps, break into different threads by chapter.
-        // Chapter:
-            // Create a hashmap, with key profile_number, value is a struct that contains data for all chapters (each chapter has a score and time).
-            // NOTE: For concurrency, we might need to unsafe wrap, or do other shit to ensure that we can mutate the same struct instance accross multiple threads.
-            // In theory, this should be okay, because each thread will only have mutable access to specific compontents of the struct.
-        // Overall: 
-            // SP
-                // Sum all sp chapters.
-            // Coop
-                // Sum all coop chapters.
-            // Overall
-                // Sum both sp/coop.
-// Cache     
-    // Player Profile / Stats:
-        // Stats    
-            // # wrs
-            // Points
-            // Position
-            // Avg placement
-            // Best/worst
-            // Newest/oldest
-        // Scores
-            // All score history (break this into smaller calls?), all aggregated time/points history.
-    
 
 }
