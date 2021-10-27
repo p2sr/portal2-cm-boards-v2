@@ -274,9 +274,9 @@ impl Users{
                 WHERE 
                     CASE
                         WHEN users.board_name IS NULL
-                            THEN users.steam_name LIKE $1
+                            THEN LOWER(users.steam_name) LIKE LOWER($1)
                         WHEN users.board_name IS NOT NULL
-                            THEN users.board_name LIKE $1
+                            THEN LOWER(users.board_name) LIKE LOWER($1)
                     END
                 "#) 
             .bind(query_nn)
