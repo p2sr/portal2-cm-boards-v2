@@ -1,16 +1,7 @@
 # Portal 2 Leaderboards Revision (board.portal2.sr)
 
-
-## Docker Setup
-1. Pull this repo into a local directory. (Set up .env, see .env Example below)
-2. Have docker installed.
-3. Run `docker-compose up -d`, this should setup a db migration and start a psql db container.
-4. Run `docker-compose run --rm web-server`, should connect you to the Linux container that hosts the Rust development environment.
-    1. Inside of this container, you can `cd` into the `server` directory, and build the webserver with `cargo run`
-    2. The `/server` folder is mounted, meaning you can edit your local repo (using your favorite editor), and the changes will propagate. 
-
 ## Backend
-### Building (Without Docker)
+### Building
 The backend binary can be build by using `cargo build` in the `backend` directory. With Rust installed, it should download all dependancies and compile the binary for you.
 #### Features
 * Pulling Official Single Player Map data from Steam, caching that data to avoid needing to re-parse/compare.
@@ -22,8 +13,14 @@ Steam Leaderboards, as well as to calculate and cache profile data for all playe
 
 The purpose of keeping this backend seperate from the web-server is to off-load some more computationally heavy tasks to an entirely different process for modularity. None of this design is final
 
+## Database
+### Building
+* Install `postgres` and setup a user (reference the `DATABASE_URL` bellow.
+* Open psql console, `CREATE DATABASE p2boards;`
+* Load the latest dump from `/db/dbdump` with `psql p2boards < most_recent_dump_file_name.sql`
+
 ## Server
-### Building (Without Docker)
+### Building
 The code is being re-writen to no longer use Diesel.rs and MySQL. More information to come.
 
 **Be sure to copy the `.env.example` file, remove `.example` from the file name, and change the contents of the file to suite your usecase.**
@@ -31,7 +28,7 @@ The code is being re-writen to no longer use Diesel.rs and MySQL. More informati
 #### .env Example
 
 ```
-DATABASE.DATABASE_URL=postgresql://username:password@postgres:5432/p2boards
+DATABASE_URL=postgresql://username:password@postgres:5432/p2boards
 SERVER.HOST=127.0.0.1
 SERVER.PORT=8080
 PROOF.DEMO=80
@@ -53,7 +50,7 @@ RUST_LOG="actix_web=info"
 * Player Profiles.
 
 ## Front-end
-### Building (Without Docker)
+### Building
 The front-end build can be done with `npm install` in the `/board-portal-2` folder and once dependancies are installed, the client server can be started with `npm start`
 #### Features
 * Supports querying a running webserver on it's given endpoints for changelog, preview pages, sp maps and coop maps.
