@@ -27,6 +27,7 @@ use points::*;
 mod models;
 
 fn main() {
+    // Look into clap? https://docs.rs/clap/2.33.3/clap/
     let args: Vec<String> = env::args().collect();
     
     // Arg mapping
