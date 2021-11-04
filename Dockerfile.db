@@ -1,3 +1,0 @@
-FROM postgres:13.4-alpine
-
-COPY ./db/dbdump/2021.9.1_PG_Dump1.sql /docker-entrypoint-initdb.d/
