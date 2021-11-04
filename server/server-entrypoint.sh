@@ -1,5 +1,9 @@
 #!/bin/bash
 
+cd $PATH_TO_VOLUME
+cargo build
+cargo install cargo-watch
+
 if [ "$DATABASE" = "postgres" ]
 then
     echo "Waiting for postgres..."
@@ -10,5 +14,6 @@ then
 
     echo "PostgreSQL started"
 fi
+
 
 exec "$@"

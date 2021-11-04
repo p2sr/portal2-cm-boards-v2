@@ -6,16 +6,18 @@ services:
     command: cargo watch -x 'run'
     depends_on:
       - postgres
-    # environment: 
-    # - DATABASE_URL=postgresql://docker:docker@postgres/p2boards
-    # - SERVER.HOST=0.0.0.0
-    # - SERVER.PORT=8080
-    # - PROOF.DEMO=80
-    # - PROOF.VIDEO=100
     env_file:
       ./server/.env.entrypoint.dev
     ports:
       - "8080:8080"
+    volumes:
+      - type: bind
+        source: ./server/container-volume
+        target: /opt/server
+      - type: volume
+        source: cargo_home
+        target: /opt/cargo
+
 
   postgres:
     build: ./db
@@ -23,3 +25,9 @@ services:
       - POSTGRES_DB=p2boards
       - POSTGRES_PASSWORD=docker
       - POSTGRES_USER=docker
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+volumes:
+  cargo_home:
+  postgres_data:
