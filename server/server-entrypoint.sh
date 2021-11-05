@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd $PATH_TO_VOLUME
-cargo build
+#cargo build
 cargo install cargo-watch
 
 if [ "$DATABASE" = "postgres" ]
