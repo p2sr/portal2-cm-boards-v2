@@ -4,8 +4,6 @@ services:
     container_name: "web-server"
     build: ./server
     command: cargo watch -x 'run'
-    depends_on:
-      - postgres
     env_file:
       ./server/.env.entrypoint.dev
     ports:
