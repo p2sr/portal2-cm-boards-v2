@@ -12,7 +12,7 @@ services:
       - "8080:8080"
     volumes:
       - type: bind
-        source: ./server/container-volume
+        source: ./server
         target: /opt/server
       - type: volume
         source: cargo_home
