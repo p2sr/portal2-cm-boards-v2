@@ -1,5 +1,44 @@
 # Portal 2 Leaderboards Revision (board.portal2.sr)
 
+## Docker (Backend and Database)
+### Prerequisites
+1. Docker
+    1. https://docs.docker.com/get-docker/
+    1. Optional Post-Installation Steps:
+        - Linux: https://docs.docker.com/engine/install/linux-postinstall/
+1. Have docker-compose available (Linux only, comes bundled with Docker desktop for Mac and Windows):
+    - https://docs.docker.com/compose/cli-command/#install-on-linux
+    - Short Version: 
+        ```bash
+        mkdir -p ~/.docker/cli-plugins/
+        sudo curl -L "https://github.com/docker/compose/releases/download/v2.1.0/docker-compose-$(uname -s)-$(uname -m)" -o ~/.docker/cli-plugins/docker-compose
+        sudo chmod +x ~/.docker/cli-plugins
+        ```
+        - Note: v2.1.0 is the latest release at the time of writing this. All releases visible at: https://github.com/docker/compose/releases/
+    - Shortest Version: https://gist.github.com/cesarila/a58504fbc3924bcef6ae8ce83a652071
+
+### Building
+Assuming you've satisfied the prerequisites, you can build the containers from the root directory of this repo with:
+`docker compose build`
+This only needs to be done on changes to entrypoint scripts, dockerfiles, and docker-compose.yaml. This includes changes made by people other than you. If you don't want to think about it, always rebuild your containers after pulling from the repo.
+
+### Running
+Run containers in the foreground:
+`docker compose up`
+Run containers in the background with logging visible:
+`docker compose up &`
+Run containers detatched from the current shell (no logging visible):
+`docker compose up -d`
+
+### Troubleshooting Database
+To rebuild the database volume from the database dump, do the following:
+```bash
+docker compose down #make sure all containers are stopped
+docker volume rm portal2-cm-boards-v2_postgres_data
+docker compose build
+docker compose up
+```
+If this doesn't work for any reason, one thing to check is that the file copied in db/Dockerfile is the same as the dump in db/dbdump. If these files don't match, make them match, save your changes, and try the above steps again.
 ## Backend
 ### Building
 The backend binary can be build by using `cargo build` in the `backend` directory. With Rust installed, it should download all dependancies and compile the binary for you.
