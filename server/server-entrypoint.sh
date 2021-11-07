@@ -1,19 +1,25 @@
 #!/bin/bash
 
+function timed_echo () {
+  echo -e "$(date -u +'%F %T.%3N %Z'):\t${@}"
+}
+
+timed_echo "Entrypoint Script Started"
 cd $PATH_TO_VOLUME
-#cargo build
-cargo install cargo-watch
+cargo install cargo-watch && cargo build &
 
 if [ "$DATABASE" = "postgres" ]
 then
-    echo "Waiting for postgres..."
+    timed_echo "Waiting for postgres..."
 
     while ! nc -z $SQL_HOST $SQL_PORT; do
       sleep 0.1
     done
 
-    echo "PostgreSQL started"
+    timed_echo "PostgreSQL started"
 fi
 
+wait
+timed_echo "Background commands finished"
 
 exec "$@"
