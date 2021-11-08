@@ -1,6 +1,17 @@
 # Portal 2 Leaderboards Revision (board.portal2.sr)
 
-## Docker (Backend and Database)
+A re-write of the original Portal 2 Challenge Mode Leaderboards designed to take advantage of modern web technology and allow for the community to take a more active role in developing the leadboards.
+
+## Should I set up this environment with Docker? Or set it up locally?
+
+[@cesarila](https://github.com/cesarila) has contributed a working Docker solution to building the boards. 
+For those unfamiliar with Docker, it allows you to run different container environments that act similar to to lightweigth Virtual Machines, where you can define ahead of time what is installed on the containers when they're built. 
+This means minimal technical knowledge needed outside of learning to use Docker (details below). The main drawback of this is that you have less direct control over your environment, and the performance is much worse. 
+
+If you're familiar with development on Linux/WSL, I would recommend installing Postgres, Rust and Node locally, but if you're looking to mess around and learn as a beginner, or only want to work on the Front-end, I would recommend using Docker.
+Additionally, if you want to focus on entirely front-end contributions, contact Daniel for information on a publicaly accessible IP you can use to hit the backend API endpoints without needing to build it on your machine.
+
+## Docker Setup Guide (Web-Server & Database)
 ### Prerequisites
 1. Docker
     1. https://docs.docker.com/get-docker/
@@ -20,15 +31,32 @@
 ### Building
 Assuming you've satisfied the prerequisites, you can build the containers from the root directory of this repo with:
 `docker compose build`
-This only needs to be done on changes to entrypoint scripts, dockerfiles, and docker-compose.yaml. This includes changes made by people other than you. If you don't want to think about it, always rebuild your containers after pulling from the repo.
+This only needs to be done on changes to entrypoint scripts, dockerfiles, and docker-compose.yaml. This includes changes made by people other than you. 
+If you don't want to think about it, always rebuild your containers after pulling from the repo.
 
 ### Running
 Run containers in the foreground:
-`docker compose up`
+* `docker compose up`
+
 Run containers in the background with logging visible:
-`docker compose up &`
+* `docker compose up &`
+
 Run containers detatched from the current shell (no logging visible):
-`docker compose up -d`
+* `docker compose up -d`
+
+### .env for Docker
+Copy the `.env.example` file in the `/server` folder, and rename it to `.env`, change the contents to follow the convention below.
+The `DATABASE_URL` field should be identical if the docker files are unchanged, and the `SERVER.HOST` should bind to `0.0.0.0` rather than `127.0.0.1` for running in a Docker container.
+
+```
+DATABASE_URL=postgresql://docker:docker@postgres/p2boards
+SERVER.HOST=0.0.0.0
+SERVER.PORT=8080
+PROOF.DEMO=80
+PROOF.VIDEO=100
+RUST_LOG=1
+RUST_LOG="actix_web=info"
+```
 
 ### Troubleshooting Database
 To rebuild the database volume from the database dump, do the following:
@@ -39,6 +67,9 @@ docker compose build
 docker compose up
 ```
 If this doesn't work for any reason, one thing to check is that the file copied in db/Dockerfile is the same as the dump in db/dbdump. If these files don't match, make them match, save your changes, and try the above steps again.
+
+## Local Setup & More Information
+
 ## Backend
 ### Building
 The backend binary can be build by using `cargo build` in the `backend` directory. With Rust installed, it should download all dependancies and compile the binary for you.
@@ -64,7 +95,7 @@ The code is being re-writen to no longer use Diesel.rs and MySQL. More informati
 
 **Be sure to copy the `.env.example` file, remove `.example` from the file name, and change the contents of the file to suite your usecase.**
 
-#### .env Example
+#### Local .env Example
 
 ```
 DATABASE_URL=postgresql://username:password@postgres:5432/p2boards
