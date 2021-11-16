@@ -1,6 +1,0 @@
-FROM rust:1.54
-
-WORKDIR /server
-ENV SQLX_OFFLINE true
-RUN cargo build --release
-RUN cargo install cargo-watch

@@ -2,37 +2,30 @@ version: "3.9"
 services:
   web-server:
     container_name: "web-server"
+    build: ./server
     command: cargo watch -x 'run'
-    build:
-      dockerfile: Dockerfile.server
-      context: .
-      cache_from:
-        - rust:1.54
-    depends_on:
-      - postgres
-    links:
-      - postgres
-    environment: 
-    - DATABASE_URL=postgresql://docker:docker@localhost:5432/p2boards
-    - SERVER.HOST=0.0.0.0
-    - SERVER.PORT=8080
-    - PROOF.DEMO=80
-    - PROOF.VIDEO=100
-    volumes: 
-        - ./server:/server
+    env_file:
+      ./server/.env.entrypoint.dev
     ports:
       - "8080:8080"
-
+    volumes:
+      - type: bind
+        source: ./server
+        target: /opt/server
+      - type: volume
+        source: cargo_home
+        target: /opt/cargo
 
 
   postgres:
-    build:
-      dockerfile: Dockerfile.db
-      context: .
+    build: ./db
     environment:
       - POSTGRES_DB=p2boards
       - POSTGRES_PASSWORD=docker
       - POSTGRES_USER=docker
-    restart: always
-    ports:
-      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+volumes:
+  cargo_home:
+  postgres_data:
