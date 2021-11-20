@@ -19,16 +19,9 @@ jobs:
             target: "/home/boards/boards-v2"
     
     build-server:
+        needs: transfer
         runs-on: ubuntu-latest
         steps:
-        - name: Move to folder
-          uses: appleboy/ssh-action@master
-          with:
-            host: ${{ secrets.HOST }}
-            USERNAME: ${{ secrets.USERNAME }}
-            PORT: ${{ secrets.PORT }}
-            KEY: ${{ secrets.SSHKEY }}
-            script: cd "boards-v2"
         - name: Docker Compose Build
           uses: appleboy/ssh-action@master
           with:
@@ -36,4 +29,6 @@ jobs:
             USERNAME: ${{ secrets.USERNAME }}
             PORT: ${{ secrets.PORT }}
             KEY: ${{ secrets.SSHKEY }}
-            script: docker compose build
+            script: |
+                cd boards-v2
+                docker compose build
