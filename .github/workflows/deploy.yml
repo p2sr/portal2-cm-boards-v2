@@ -38,7 +38,7 @@ jobs:
         needs: build-backend-server
         runs-on: ubuntu-latest
         steps:
-        - name: Docker Compose Build
+        - name: Docker Compose Up
           uses: appleboy/ssh-action@master
           with:
             host: ${{ secrets.HOST }}
@@ -47,4 +47,4 @@ jobs:
             KEY: ${{ secrets.SSHKEY }}
             script: |
                 cd boards-v2
-                docker compose up -d
+                docker compose up -d --force-recreate
