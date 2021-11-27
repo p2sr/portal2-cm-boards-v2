@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate serde_derive;
-
 use actix_web::{web, App, HttpServer, middleware::Logger};
 use actix_cors::Cors;
 use sqlx::PgPool;

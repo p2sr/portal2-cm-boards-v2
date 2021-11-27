@@ -5,8 +5,8 @@ use std::collections::HashMap;
 use actix_web::{HttpResponse, Error};
 use sqlx::{FromRow, Postgres, types::Type};
 use sqlx::postgres::PgValueRef;
-use sqlx::decode::Decode;
-use sqlx::postgres::types::PgRecordDecoder;
+// use sqlx::decode::Decode;
+// use sqlx::postgres::types::PgRecordDecoder;
 use chrono::NaiveDateTime;
 
 /// One-to-one struct for changelog data.

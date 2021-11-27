@@ -1,0 +1,30 @@
+sudo apt update -y
+sudo apt upgrade -y
+sudo apt install build-essential libssl-dev -y
+sudo apt install postgresql -y
+sudo apt install postgresql-client -y
+sudo systemctl enable postgresql
+sudo -u postgres psql template1
+CREATE USER ubuntu;
+ALTER USER ubuntu with encrypted password '123'; ALTER USER ubuntu WITH SUPERUSER;
+\q
+sudo systemctl restart postgresql.service
+psql postgres
+CREATE DATABASE p2boards;
+\q
+sudo git clone https://github.com/p2sr/portal2-cm-boards-v2
+sudo chown -R ubuntu portal2-cm-boards-v2
+cd portal2-cm-boards-v2/db/dbdump
+psql p2boards < 2021.9.1_PG_Dump1.sql
+cd ../portal2-cm-boards-v2/server
+cp .env.example .env
+# Edit the .env and remove the first line
+# Change the DATABASE_URL to follow this basic structure:
+# DATABASE_URL=postgresql://ubuntu:123@localhost/p2boards
+# Edit proof values
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Select 1 for default installation
+source $HOME/.cargo/env
+cargo -V
+rustc -V
+cargo run
