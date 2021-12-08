@@ -92,10 +92,10 @@ fn fetch_all(){
     let utc = Utc::now().naive_utc();
     let res_sp: Vec<_> = official_sp.into_par_iter().map(|map_id|{
         // TODO: Pass values like # of results as args to the binary
-        fetch_entries(*map_id, 0, 450, utc, false)
+        fetch_entries(map_id, 0, 450, utc, false)
     }).collect();
     let res_cp: Vec<_> = official_coop.into_par_iter().map(|map_id|{
-        fetch_entries(*map_id, 0, 800, utc, true)
+        fetch_entries(map_id, 0, 800, utc, true)
     }).collect();
 
     // What do we do with the leaderboards...
