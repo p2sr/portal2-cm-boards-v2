@@ -63,7 +63,6 @@ fn main() {
     else if args.len() == 3{
         match args.get(1){
             Some(a) =>{
-                let start = PreciseTime::now();
                 match a.as_str(){
                     "ssp" => fetch_sp(args.get(2).expect("Invalid map_id for arg #2").to_string()),
                     "scp" => fetch_cp(args.get(2).expect("Invalid map_id for arg #2").to_string()),
