@@ -10,6 +10,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
+use time::PreciseTime;
 use std::env;
 
 use dotenv::dotenv;
@@ -42,7 +43,7 @@ fn main() {
     
     // TODO: Stage point computation??
     // TODO: Handle caching of point information.
-    
+    let mut start = PreciseTime::now();
     dotenv().ok();
     if args.len() == 1{
         unimplemented!();
@@ -52,7 +53,7 @@ fn main() {
         match args.get(1){
             Some(a) =>{
                 match a.as_str(){
-                    "rcp" => calc_points(vec![]),
+                    "rcp" => calc_points(None),
                     _ => panic!("Incorrect value"),
                 }
             }
@@ -62,11 +63,11 @@ fn main() {
     else if args.len() == 3{
         match args.get(1){
             Some(a) =>{
-                println!("{:?}", a);
+                let start = PreciseTime::now();
                 match a.as_str(){
                     "ssp" => fetch_sp(args.get(2).expect("Invalid map_id for arg #2").to_string()),
                     "scp" => fetch_cp(args.get(2).expect("Invalid map_id for arg #2").to_string()),
-                    "rcp" => calc_points(vec![]),
+                    "rcp" => calc_points(None),
                     _ => panic!("Incorrect value"),
                 }
             },
@@ -76,6 +77,8 @@ fn main() {
     else {
         panic!("Incorrect arg #");
     }
+    let end = PreciseTime::now();
+    println!("{}", start.to(end));
 }
 
 fn fetch_all(){

@@ -9,16 +9,16 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
     if maps_altered == None {
         // Contains a vector of tuples, each hashmap stores the total points for each player, per chapter. Chapters are denoted by the i32 in the tuple.
         // NOTE: The par_iter means we could have the chapters finish calculating in any order, and thus the ordering can not be assumed.
-        let hm_vec: Vec<(i32, HashMap<String, (f32, i32)>)> = Vec::with_capacity(15);
+        let mut hm_vec = Vec::with_capacity(15);
         // par_iter hit endpoint for each chapter (1-6 coop, 7-15 sp)
-        vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].into_par_iter().map(|chapter_id|{
+        hm_vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].into_par_iter().map(|chapter_id|{
             let url = format!("http://localhost:8080/api/chapters/{}", &chapter_id);
             let map_ids: Vec<String> = reqwest::blocking::get(&url)
                 .expect("Error in query to our local API (Make sure the webserver is running")
                 .json()
                 .expect("Error in converting our API values to JSON");
-            hm_vec.push(calc_chapter(map_ids, chapter_id));
-        });
+            calc_chapter(map_ids, chapter_id)
+        }).collect();
     } else {
         ()
     }
@@ -27,41 +27,43 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
 /// Function to go chapter-by-chapter to calculate points.
 pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> (i32, HashMap<String, (f32, i32)>) {
     // Keep track of total points/score (time) per chapter
-    let final_hm: HashMap<String, (f32, i32)> = HashMap::with_capacity(10 * 200);
+    let mut final_hm: HashMap<String, (f32, i32)> = HashMap::with_capacity(10 * 200);
     // Make sure to track which players have a score already on a given map (coop)
-    let coop_hm: HashMap<String, i32> = HashMap::with_capacity(200);
+    let mut coop_hm: HashMap<String, i32> = HashMap::with_capacity(200);
     for map in map_ids.iter() {
         // Grab top X from the web-server for each map.
         if chapter_id > 6 { // SP
-            let res: Vec<SpRanked> = reqwest::blocking::get(format!("http://localhost:8080/api/maps/sp/{}", &map)) // Assumes all top 200
+            let url = format!("http://localhost:8080/api/maps/sp/{}", &map).to_string();
+            let res: Vec<SpRanked> = reqwest::blocking::get(&url) // Assumes all top 200
                 .expect("Error in query to our local API (Make sure the webserver is running")
                 .json()
                 .expect("Error in converting our API values to JSON");
             for score in res { // If an entry exists, add this new value to the old value, if not, keep only new value.
-                match final_hm.insert(score.map_data.profile_number, (score.points, score.map_data.score)){
+                match final_hm.insert(score.map_data.profile_number.clone(), (score.points, score.map_data.score)){
                     Some((old_points, old_score)) => {final_hm.insert(score.map_data.profile_number, (score.points + old_points, score.map_data.score + old_score));},
                     None => (),
                 }
             }
         } else{ // Coop
-            let res: Vec<CoopRanked> = reqwest::blocking::get(format!("http://localhost:8080/api/maps/coop/{}", &map)) // Assumes all top 200
+            let url = format!("http://localhost:8080/api/maps/coop/{}", &map);
+            let res: Vec<CoopRanked> = reqwest::blocking::get(&url) // Assumes all top 200
                 .expect("Error in query to our local API (Make sure the webserver is running")
                 .json()
                 .expect("Error in converting our API values to JSON");
             for score in res {
                 // Do checks for both player 1 and player2, if one has an entry in the hashmap already, we ignore the points we would add.
-                match coop_hm.insert(score.map_data.profile_number1, 1){
+                match coop_hm.insert(score.map_data.profile_number1.clone(), 1){
                     Some(_) => (),
                     None => {
-                        match final_hm.insert(score.map_data.profile_number1, (score.points, score.map_data.score)){
+                        match final_hm.insert(score.map_data.profile_number1.clone(), (score.points, score.map_data.score)){
                             Some((old_points, old_score)) => {final_hm.insert(score.map_data.profile_number1, (score.points + old_points, score.map_data.score + old_score));},
                             None => (),
                         }
                     },
-                } match coop_hm.insert(score.map_data.profile_number2, 1){
+                } match coop_hm.insert(score.map_data.profile_number2.clone(), 1){
                     Some(_) => (),
                     None => {
-                        match final_hm.insert(score.map_data.profile_number2, (score.points, score.map_data.score)){
+                        match final_hm.insert(score.map_data.profile_number2.clone(), (score.points, score.map_data.score)){
                             Some((old_points, old_score)) => {final_hm.insert(score.map_data.profile_number2, (score.points + old_points, score.map_data.score + old_score));},
                             None => (),
                         }
@@ -73,7 +75,7 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> (i32, HashMap<Stri
         }
     }
     // Have this be a map, map all the values into one big hashmap.
-    println!("{:#?}", final_hm);
+    //println!("{:#?}", final_hm.get("76561198039230536"));
     (chapter_id, final_hm)
 }
 
