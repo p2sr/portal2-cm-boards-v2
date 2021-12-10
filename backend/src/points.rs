@@ -67,6 +67,9 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         }).collect();
         // TODO: Send the points over to the webserver for the webserver to cache before consuming the vector for the overall calculations.
 
+        // TODO: Sp & coop
+        // TODO: Send the sp & coop over to webserver.
+
         // Generate aggregated overall.
         for (chapter, chapter_hm) in hm_vec {
             for (profile_number, new_points) in chapter_hm {
