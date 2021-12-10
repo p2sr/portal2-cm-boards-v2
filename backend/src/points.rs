@@ -33,17 +33,10 @@ impl Points{
     }
 }
 
-// NOTE: Find a better way to do this...
-pub fn score_calc(score: i32) -> (i32, i32, i32) {
-    let score_str = score.to_string();
-    let (seconds, ms) = score_str.split_at(score_str.len()-2);
-    let mut seconds = seconds.parse::<i32>().unwrap();
-    let ms = ms.parse::<i32>().unwrap();
-    let mut minutes = 0;
-    while seconds >= 60{
-        minutes += 1;
-        seconds -= 60;
-    }
+pub fn score_calc(score: i32) -> (i32, i32, i32) { //lol
+    let ms = (score % 100) * 10;
+    let seconds = (score / 100) % 60;
+    let minutes = score / 100 / 60;
     (minutes, seconds, ms)
 }
 
@@ -51,6 +44,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
     // NOTE: We could just recalculate points on a set of impacted chapters. We can reuse the cached values for unaffected chapters.
     // If a score update comes in for btg only, we only need to recalc aggtime/aggpoints in chapter 3. But we would still need to update all user profiles? This might save a small amount of time.
     // Additionally, we could also ignore players that do not have scores in that give chapter (very limited # of players, might not be worth the effort). 
+    //println!("{:#?}", score_calc(16493));
     let mut overall_vec : HashMap<String, Points> = HashMap::with_capacity(50 * 200);
     if maps_altered == None {
         // Contains a vector of tuples, each hashmap stores the total points for each player, per chapter. Chapters are denoted by the i32 in the tuple.
