@@ -2,20 +2,56 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use crate::models::datamodels::{SpMap, SpRanked, CoopMap, CoopRanked};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Points{
     points: f32,
     score: i32,
     num_scores: i32,
     total_rank_sum: i32,
-    worst: (i32, String),
+    worst: (i32, String), 
     best: (i32, String),
+}
+
+impl Points{
+    pub fn sum(self, new_points: &Points) -> Points{
+        Points{
+            points: self.points + new_points.points,
+            score: self.score + new_points.score,
+            num_scores: self.num_scores + new_points.num_scores,
+            total_rank_sum: self.total_rank_sum + new_points.total_rank_sum,
+            worst: if new_points.worst.0 > self.worst.0 { // TODO: When there are multiple that are equal, have a state for "multiple times"
+                (new_points.worst.0, new_points.worst.1.clone())
+            } else{
+                self.worst
+            },
+            best: if new_points.best.0 < self.best.0{
+                (new_points.best.0, new_points.best.1.clone())
+            }else {
+                self.best
+            },
+        }
+    }
+}
+
+// NOTE: Find a better way to do this...
+pub fn score_calc(score: i32) -> (i32, i32, i32) {
+    let score_str = score.to_string();
+    let (seconds, ms) = score_str.split_at(score_str.len()-2);
+    let mut seconds = seconds.parse::<i32>().unwrap();
+    let ms = ms.parse::<i32>().unwrap();
+    let mut minutes = 0;
+    while seconds >= 60{
+        minutes += 1;
+        seconds -= 60;
+    }
+    (minutes, seconds, ms)
 }
 
 pub fn calc_points(maps_altered: Option<Vec<i32>>) {
     // NOTE: We could just recalculate points on a set of impacted chapters. We can reuse the cached values for unaffected chapters.
     // If a score update comes in for btg only, we only need to recalc aggtime/aggpoints in chapter 3. But we would still need to update all user profiles? This might save a small amount of time.
     // Additionally, we could also ignore players that do not have scores in that give chapter (very limited # of players, might not be worth the effort). 
+    let mut overall_vec : HashMap<String, Points> = HashMap::with_capacity(50 * 200);
     if maps_altered == None {
         // Contains a vector of tuples, each hashmap stores the total points for each player, per chapter. Chapters are denoted by the i32 in the tuple.
         // NOTE: The par_iter means we could have the chapters finish calculating in any order, and thus the ordering can not be assumed.
@@ -29,6 +65,30 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
                 .expect("Error in converting our API values to JSON");
             calc_chapter(map_ids, chapter_id)
         }).collect();
+        // TODO: Send the points over to the webserver for the webserver to cache before consuming the vector for the overall calculations.
+
+        // Generate aggregated overall.
+        for (chapter, chapter_hm) in hm_vec {
+            for (profile_number, new_points) in chapter_hm {
+                // Might need to switch this pattern.
+                match overall_vec.get(&profile_number){
+                    Some(old_points) => {
+                        match overall_vec.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
+                            Some(_) => (),
+                            None => unreachable!(),
+                        }
+                    },
+                    None => {
+                        match overall_vec.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
+                            Some(_) => unreachable!(),
+                            None => (),
+                        }
+                    },
+                }
+
+            }
+        }
+        println!("{:#?}", overall_vec.get("76561198039230536"));
     } else {
         ()
     }
@@ -151,9 +211,10 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> (i32, HashMap<Stri
         }
     }
     // Have this be a map, map all the values into one big hashmap.
-    println!("{:#?}", final_hm.get("76561198039230536"));
+    // println!("{:#?}", final_hm.get("76561198039230536"));
     (chapter_id, final_hm)
 }
+
 
 // Algorithm (TO BE IMPROVED)    
     // Scores: Pull all top 200 score data for current maps, break into different threads by chapter.
