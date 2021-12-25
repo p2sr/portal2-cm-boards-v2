@@ -19,14 +19,19 @@ impl Points{
             score: self.score + new_points.score,
             num_scores: self.num_scores + new_points.num_scores,
             total_rank_sum: self.total_rank_sum + new_points.total_rank_sum,
-            worst: if new_points.worst.0 > self.worst.0 { // TODO: When there are multiple that are equal, have a state for "multiple times"
+            worst: if new_points.worst.0 > self.worst.0 {
                 (new_points.worst.0, new_points.worst.1.clone())
-            } else{
+            } else if new_points.worst.0 >= self.worst.0 {
+                (self.worst.0, "Multiple".to_string())
+            } else {
                 self.worst
             },
-            best: if new_points.best.0 < self.best.0{
+            best: if new_points.best.0 < self.best.0 {
                 (new_points.best.0, new_points.best.1.clone())
-            }else {
+            } else if new_points.best.0 <= self.best.0 {
+                (self.best.0, "Multiple".to_string())
+            } 
+            else {
                 self.best
             },
         }
