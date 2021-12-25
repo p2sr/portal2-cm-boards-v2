@@ -5,7 +5,7 @@ use crate::models::datamodels::{SpMap, SpRanked, CoopMap, CoopRanked};
 #[derive(Debug, Clone)]
 pub struct Points{
     points: f32,
-    score: i32,
+    score: i32, // TODO: Need to change the format to support SAR timing
     num_scores: i32,
     total_rank_sum: i32,
     worst: (i32, String), 
@@ -107,7 +107,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
                 }
             }
         }
-        println!("{:#?}", sp_hm.get("76561198039230536"));
+        // println!("{:#?}", sp_hm.get("76561198039230536"));
 
 
         // TODO: Send the sp & coop over to webserver.
@@ -147,28 +147,10 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
                 },
             }
         }
-        // for (chapter, chapter_hm) in hm_vec {
-        //     for (profile_number, new_points) in chapter_hm {
-        //         // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
-        //         match overall_hm.get(&profile_number){
-        //             Some(old_points) => {
-        //                 match overall_hm.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
-        //                     Some(_) => (),
-        //                     None => unreachable!(),
-        //                 }
-        //             },
-        //             None => {
-        //                 match overall_hm.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
-        //                     Some(_) => unreachable!(),
-        //                     None => (),
-        //                 }
-        //             },
-        //         }
-
-        //     }
-        // }
-        println!("{:#?}", overall_hm.get("76561198039230536"));
+        //println!("{:#?}", overall_hm.get("76561198039230536"));
     } else {
+        // Go through all of the maps altered, and refresh points for just those maps.
+        // Point calculation certainly doesn't really support being broken up rn.
         ()
     }
 }
