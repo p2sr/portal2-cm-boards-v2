@@ -43,7 +43,7 @@ fn main() {
     
     // TODO: Stage point computation??
     // TODO: Handle caching of point information.
-    let mut start = PreciseTime::now();
+    let start = PreciseTime::now();
     dotenv().ok();
     if args.len() == 1{
         unimplemented!();

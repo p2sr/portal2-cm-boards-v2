@@ -49,8 +49,9 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
     // NOTE: We could just recalculate points on a set of impacted chapters. We can reuse the cached values for unaffected chapters.
     // If a score update comes in for btg only, we only need to recalc aggtime/aggpoints in chapter 3. But we would still need to update all user profiles? This might save a small amount of time.
     // Additionally, we could also ignore players that do not have scores in that give chapter (very limited # of players, might not be worth the effort). 
-    //println!("{:#?}", score_calc(16493));
-    let mut overall_vec : HashMap<String, Points> = HashMap::with_capacity(50 * 200);
+    let mut overall_hm : HashMap<String, Points> = HashMap::with_capacity(50 * 200);
+    let mut sp_hm : HashMap<String, Points> = HashMap::with_capacity(25* 200);
+    let mut coop_hm : HashMap<String, Points> = HashMap::with_capacity(25* 200);
     if maps_altered == None {
         // Contains a vector of tuples, each hashmap stores the total points for each player, per chapter. Chapters are denoted by the i32 in the tuple.
         // NOTE: The par_iter means we could have the chapters finish calculating in any order, and thus the ordering can not be assumed.
@@ -67,30 +68,106 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         // TODO: Send the points over to the webserver for the webserver to cache before consuming the vector for the overall calculations.
 
         // TODO: Sp & coop
+        for (chapter, chapter_hm) in hm_vec {
+            if chapter > 6 { // SP
+                for (profile_number, new_points) in chapter_hm {
+                    // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
+                    match sp_hm.get(&profile_number){
+                        Some(old_points) => {
+                            match sp_hm.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
+                                Some(_) => (),
+                                None => unreachable!(),
+                            }
+                        },
+                        None => {
+                            match sp_hm.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
+                                Some(_) => unreachable!(),
+                                None => (),
+                            }
+                        },
+                    }
+                }
+            } else { // Coop
+                for (profile_number, new_points) in chapter_hm {
+                    // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
+                    match coop_hm.get(&profile_number){
+                        Some(old_points) => {
+                            match coop_hm.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
+                                Some(_) => (),
+                                None => unreachable!(),
+                            }
+                        },
+                        None => {
+                            match coop_hm.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
+                                Some(_) => unreachable!(),
+                                None => (),
+                            }
+                        },
+                    }
+                }
+            }
+        }
+        println!("{:#?}", sp_hm.get("76561198039230536"));
+
+
         // TODO: Send the sp & coop over to webserver.
 
         // Generate aggregated overall.
-        for (chapter, chapter_hm) in hm_vec {
-            for (profile_number, new_points) in chapter_hm {
-                // Might need to switch this pattern.
-                match overall_vec.get(&profile_number){
-                    Some(old_points) => {
-                        match overall_vec.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
-                            Some(_) => (),
-                            None => unreachable!(),
-                        }
-                    },
-                    None => {
-                        match overall_vec.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
-                            Some(_) => unreachable!(),
-                            None => (),
-                        }
-                    },
-                }
-
+        for (profile_number, new_points) in sp_hm {
+            // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
+            match overall_hm.get(&profile_number){
+                Some(old_points) => {
+                    match overall_hm.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
+                        Some(_) => (),
+                        None => unreachable!(),
+                    }
+                },
+                None => {
+                    match overall_hm.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
+                        Some(_) => unreachable!(),
+                        None => (),
+                    }
+                },
             }
         }
-        println!("{:#?}", overall_vec.get("76561198039230536"));
+        for (profile_number, new_points) in coop_hm {
+            // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
+            match overall_hm.get(&profile_number){
+                Some(old_points) => {
+                    match overall_hm.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
+                        Some(_) => (),
+                        None => unreachable!(),
+                    }
+                },
+                None => {
+                    match overall_hm.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
+                        Some(_) => unreachable!(),
+                        None => (),
+                    }
+                },
+            }
+        }
+        // for (chapter, chapter_hm) in hm_vec {
+        //     for (profile_number, new_points) in chapter_hm {
+        //         // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
+        //         match overall_hm.get(&profile_number){
+        //             Some(old_points) => {
+        //                 match overall_hm.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
+        //                     Some(_) => (),
+        //                     None => unreachable!(),
+        //                 }
+        //             },
+        //             None => {
+        //                 match overall_hm.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
+        //                     Some(_) => unreachable!(),
+        //                     None => (),
+        //                 }
+        //             },
+        //         }
+
+        //     }
+        // }
+        println!("{:#?}", overall_hm.get("76561198039230536"));
     } else {
         ()
     }
@@ -111,6 +188,7 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> (i32, HashMap<Stri
                 .json()
                 .expect("Error in converting our API values to JSON");
             for score in res { // If an entry exists, add this new value to the old value, if not, keep only new value.
+                //  score_calc(score.map_data.score);
                 match final_hm.insert(score.map_data.profile_number.clone(), Points{
                     points: score.points,
                     score: score.map_data.score,
@@ -145,6 +223,7 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> (i32, HashMap<Stri
                 .json()
                 .expect("Error in converting our API values to JSON");
             for score in res {
+                //score_calc(score.map_data.score);
                 // Do checks for both player 1 and player2, if one has an entry in the hashmap already, we ignore the points we would add.
                 match coop_hm.insert(score.map_data.profile_number1.clone(), 1){
                     Some(_) => (),
