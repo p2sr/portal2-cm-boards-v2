@@ -3,6 +3,7 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(unused_assignments)]
+#![allow(mutable_borrow_reservation_conflict)]
 
 #[macro_use]
 extern crate dotenv;

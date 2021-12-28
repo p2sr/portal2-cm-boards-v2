@@ -2,7 +2,13 @@ use rayon::prelude::*;
 use std::collections::HashMap;
 use crate::models::datamodels::{SpMap, SpRanked, CoopMap, CoopRanked};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PointsWrapper {
+    id: Option<i32>,
+    points: HashMap<String, Points>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Points{
     points: f32,
     score: i32, // TODO: Need to change the format to support SAR timing
@@ -67,10 +73,12 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         }).collect();
         // TODO: Send the points over to the webserver for the webserver to cache before consuming the vector for the overall calculations.
 
-        // TODO: Sp & coop
-        for (chapter, chapter_hm) in hm_vec {
-            if chapter > 6 { // SP
-                for (profile_number, new_points) in chapter_hm {
+        // Post all chapters to the webserver
+
+        // Sp & coop
+        for x in hm_vec {
+            if x.id.unwrap() > 6 { // SP
+                for (profile_number, new_points) in x.points {
                     // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
                     match sp_hm.get(&profile_number){
                         Some(old_points) => {
@@ -88,7 +96,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
                     }
                 }
             } else { // Coop
-                for (profile_number, new_points) in chapter_hm {
+                for (profile_number, new_points) in x.points {
                     // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
                     match coop_hm.get(&profile_number){
                         Some(old_points) => {
@@ -109,8 +117,21 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         }
         // println!("{:#?}", sp_hm.get("76561198039230536"));
 
-
         // TODO: Send the sp & coop over to webserver.
+        let client = reqwest::blocking::Client::new();
+        let url = "http://localhost:8080/api/points/sp".to_string();
+        client
+            .post(&url)
+            .json(&PointsWrapper{id: None, points: sp_hm.clone()})
+            .send()
+            .expect("Error querying our local API");
+        let client = reqwest::blocking::Client::new();
+        let url = "http://localhost:8080/api/points/coop".to_string();
+        client
+            .post(&url)
+            .json(&PointsWrapper{id: None, points: coop_hm.clone()})
+            .send()
+            .expect("Error querying our local API");
 
         // Generate aggregated overall.
         for (profile_number, new_points) in sp_hm {
@@ -156,7 +177,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
 }
 
 /// Function to go chapter-by-chapter to calculate points.
-pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> (i32, HashMap<String, Points>) {
+pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
     // Keep track of total points/score (time) per chapter
     let mut final_hm: HashMap<String, Points> = HashMap::with_capacity(10 * 200);
     // Make sure to track which players have a score already on a given map (coop)
@@ -275,7 +296,7 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> (i32, HashMap<Stri
     }
     // Have this be a map, map all the values into one big hashmap.
     // println!("{:#?}", final_hm.get("76561198039230536"));
-    (chapter_id, final_hm)
+    PointsWrapper{id: Some(chapter_id), points: final_hm}
 }
 
 

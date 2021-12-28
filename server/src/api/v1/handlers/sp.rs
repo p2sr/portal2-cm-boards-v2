@@ -73,7 +73,7 @@ async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) 
             avatar: Some(user_data.avatar),
             pb_history: Some(changelog_data),
         }),
-        _ => return HttpResponse::NotFound().body("Error fetching Changelog data on given user."),
+        _ => HttpResponse::NotFound().body("Error fetching Changelog data on given user."),
     }
 }
 
