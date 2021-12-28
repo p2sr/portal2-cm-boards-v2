@@ -74,7 +74,15 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         // TODO: Send the points over to the webserver for the webserver to cache before consuming the vector for the overall calculations.
 
         // Post all chapters to the webserver
-
+        for chapter in hm_vec.iter() {
+            let client = reqwest::blocking::Client::new();
+            let url = "http://localhost:8080/api/points/chapter".to_string();
+            client
+                .post(&url)
+                .json(chapter)
+                .send()
+                .expect("Error querying our local API");
+        }
         // Sp & coop
         for x in hm_vec {
             if x.id.unwrap() > 6 { // SP
@@ -116,8 +124,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
             }
         }
         // println!("{:#?}", sp_hm.get("76561198039230536"));
-
-        // TODO: Send the sp & coop over to webserver.
+        // TODO: Error Handling
         let client = reqwest::blocking::Client::new();
         let url = "http://localhost:8080/api/points/sp".to_string();
         client
@@ -125,6 +132,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
             .json(&PointsWrapper{id: None, points: sp_hm.clone()})
             .send()
             .expect("Error querying our local API");
+        // TODO: Error Handling
         let client = reqwest::blocking::Client::new();
         let url = "http://localhost:8080/api/points/coop".to_string();
         client
@@ -168,6 +176,13 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
                 },
             }
         }
+        let client = reqwest::blocking::Client::new();
+        let url = "http://localhost:8080/api/points/overall".to_string();
+        client
+            .post(&url)
+            .json(&PointsWrapper{id: None, points: overall_hm})
+            .send()
+            .expect("Error querying our local API");
         //println!("{:#?}", overall_hm.get("76561198039230536"));
     } else {
         // Go through all of the maps altered, and refresh points for just those maps.

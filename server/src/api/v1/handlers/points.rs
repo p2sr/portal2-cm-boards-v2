@@ -46,7 +46,7 @@ async fn post_points_sp(data: web::Json<PointsWrapper>) -> impl Responder {
     // Cache data in .json files
     match write_to_file("sp", data).await {
         Ok(_) => HttpResponse::Ok().body("Success"), // TODO: Fix error handling (return values?)
-        _ => HttpResponse::NotFound().body("No changelog entries found."),
+        _ => HttpResponse::NotFound().body("Error updaing score entries for sp"),
     }
 }
 
@@ -55,7 +55,7 @@ async fn get_points_sp() -> impl Responder {
     let res = read_from_file("sp").await;
     match res {
         Ok(sp_points) => HttpResponse::Ok().json(sp_points),
-        _ => HttpResponse::NotFound().body("No changelog entries found."),
+        _ => HttpResponse::NotFound().body("No score entries found."),
     }
 }
 
@@ -64,7 +64,7 @@ async fn post_points_coop(data: web::Json<PointsWrapper>) -> impl Responder {
     // Cache data in .json files
     match write_to_file("coop", data).await {
         Ok(_) => HttpResponse::Ok().body("Success"), // TODO: Fix error handling (return values?)
-        _ => HttpResponse::NotFound().body("No changelog entries found."),
+        _ => HttpResponse::NotFound().body("Error updaing score entries for coop"),
     }
 }
 
@@ -73,6 +73,40 @@ async fn get_points_coop() -> impl Responder {
     let res = read_from_file("coop").await;
     match res {
         Ok(coop_points) => HttpResponse::Ok().json(coop_points),
-        _ => HttpResponse::NotFound().body("No changelog entries found."),
+        _ => HttpResponse::NotFound().body("No score entries found."),
+    }
+}
+
+#[post("/points/chapter")]
+async fn post_points_chapter(data: web::Json<PointsWrapper>) -> impl Responder {
+    match write_to_file(&data.id.expect("No chapter ID for chapter").to_string(), data).await {
+        Ok(_) => HttpResponse::Ok().body("Success"), // TODO: Fix error handling (return values?)
+        _ => HttpResponse::NotFound().body("Error updaing score entries for chapter"),
+    }
+}
+
+#[get("points/chapter")]
+async fn get_points_chapter(data: web::Json<i32>) -> impl Responder {
+    let res = read_from_file(&data.to_string()).await;
+    match res {
+        Ok(chapter_points) => HttpResponse::Ok().json(chapter_points),
+        _ => HttpResponse::NotFound().body("No score entries found."),
+    }
+}
+
+#[post("/points/overall")]
+async fn post_points_overall(data: web::Json<PointsWrapper>) -> impl Responder {
+    match write_to_file("overall", data).await {
+        Ok(_) => HttpResponse::Ok().body("Success"), // TODO: Fix error handling (return values?)
+        _ => HttpResponse::NotFound().body("Error updaing score entries for overall"),
+    }
+}
+
+#[get("points/overall")]
+async fn get_points_overall() -> impl Responder {
+    let res = read_from_file("overall").await;
+    match res {
+        Ok(overall_points) => HttpResponse::Ok().json(overall_points),
+        _ => HttpResponse::NotFound().body("No score entries found."),
     }
 }

@@ -29,7 +29,11 @@ pub fn init(cfg: &mut web::ServiceConfig){
             .service(get_map_ids_by_chapter) // Chapters
             .service(get_points_sp) // Points
             .service(post_points_sp)
-            .service(get_points_coop) // Points
+            .service(get_points_coop)
             .service(post_points_coop)
+            .service(get_points_chapter)
+            .service(post_points_chapter)
+            .service(get_points_overall)
+            .service(post_points_overall)
     );
 }

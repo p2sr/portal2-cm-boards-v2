@@ -79,7 +79,7 @@ typings/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
-.json
+server/points/*
 
 # Next.js build output
 .next
