@@ -240,6 +240,7 @@ pub struct CoopPreviews{
 //     pub avatar: String,
 // }
 // TODO: rustc issues.
+// TODO: Name ChangelogPageEntry
 #[derive(Serialize, FromRow)]
 pub struct ChangelogPage{
     pub id: i64,

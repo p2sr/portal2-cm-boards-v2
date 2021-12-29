@@ -521,20 +521,20 @@ impl ChangelogPage{
     pub async fn get_cl_page_filtered(pool: &PgPool, params: ChangelogQueryParams) -> Result<Option<Vec<ChangelogPage>>>{
         // TODO: Decide if we want Chapter name
         let mut query_string: String = String::from(r#" 
-        SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
-        cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
-        cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name AS map_name,  
-        CASE
-            WHEN u.board_name IS NULL
-                THEN u.steam_name
-            WHEN u.board_name IS NOT NULL
-                THEN u.board_name
-        END user_name,
-        u.avatar
-        FROM "p2boards".changelog AS cl
-        INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
-        INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
-        INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)"#);
+            SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
+            cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
+            cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name AS map_name,  
+            CASE
+                WHEN u.board_name IS NULL
+                    THEN u.steam_name
+                WHEN u.board_name IS NOT NULL
+                    THEN u.board_name
+            END user_name,
+            u.avatar
+            FROM "p2boards".changelog AS cl
+            INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
+            INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
+            INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)"#);
         if !params.coop{
             query_string = format!("{} WHERE chapters.is_multiplayer = False", &query_string);
         } else if !params.sp{

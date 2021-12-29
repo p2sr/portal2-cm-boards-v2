@@ -5,7 +5,6 @@ use std::fs::File;
 use std::path::Path;
 use std::io::Read;
 
-
 pub async fn write_to_file(id: &str, data: web::Json<PointsWrapper>) -> Result<(), Error> {
     let path_str = format!("./points/{}.json", id.to_string());
     let path = Path::new(&path_str);
@@ -14,15 +13,14 @@ pub async fn write_to_file(id: &str, data: web::Json<PointsWrapper>) -> Result<(
         .map_err(|err| err.into())
 }
 
-pub async fn read_from_file(file_name: &str) -> Result<Vec<PointsWrapper>, Error> {
+pub async fn read_from_file(file_name: &str) -> Result<PointsWrapper, Error> {
     let path_str = format!("./points/{}.json", file_name.to_string());
     let path = Path::new(&path_str);
-    
     let mut file = File::open(path)?;
     let mut buff = String::new();
     file.read_to_string(&mut buff)?;
-    let pw: Vec<PointsWrapper> = serde_json::from_str(&buff)?;
-    Ok(pw)
+    let res: PointsWrapper = serde_json::from_str(&buff)?;
+    Ok(res)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,7 +53,7 @@ async fn get_points_sp() -> impl Responder {
     let res = read_from_file("sp").await;
     match res {
         Ok(sp_points) => HttpResponse::Ok().json(sp_points),
-        _ => HttpResponse::NotFound().body("No score entries found."),
+        _ => HttpResponse::NotFound().body("No score entries for SP found."),
     }
 }
 
@@ -85,12 +83,13 @@ async fn post_points_chapter(data: web::Json<PointsWrapper>) -> impl Responder {
     }
 }
 
-#[get("points/chapter")]
-async fn get_points_chapter(data: web::Json<i32>) -> impl Responder {
-    let res = read_from_file(&data.to_string()).await;
+// This is stupid
+#[get("points/chapter/{id}")]
+async fn get_points_chapter(id: web::Path<u64>) -> impl Responder {
+    let res = read_from_file(&id.to_string()).await;
     match res {
         Ok(chapter_points) => HttpResponse::Ok().json(chapter_points),
-        _ => HttpResponse::NotFound().body("No score entries found."),
+        _ => HttpResponse::NotFound().body("No coop score entries found."),
     }
 }
 
