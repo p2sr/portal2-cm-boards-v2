@@ -7,11 +7,6 @@ pub struct ServerConfig{
     pub host: String,
     pub port: i32,
 }
-/// Holds database connection information.
-// #[derive(Deserialize)]
-// pub struct DatabaseConfig{
-//     pub database_url: String
-// }
 /// The proof standards, update based on the mod tools desired.
 #[derive(Deserialize, Debug)]
 pub struct ProofConfig{

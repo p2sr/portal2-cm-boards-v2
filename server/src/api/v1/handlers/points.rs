@@ -5,6 +5,7 @@ use std::fs::File;
 use std::path::Path;
 use std::io::Read;
 
+/// Writes out json data to cache points for the boards.
 pub async fn write_to_file(id: &str, data: web::Json<PointsWrapper>) -> Result<(), Error> {
     let path_str = format!("./points/{}.json", id.to_string());
     let path = Path::new(&path_str);
@@ -13,8 +14,10 @@ pub async fn write_to_file(id: &str, data: web::Json<PointsWrapper>) -> Result<(
         .map_err(|err| err.into())
 }
 
-pub async fn read_from_file(file_name: &str) -> Result<PointsWrapper, Error> {
-    let path_str = format!("./points/{}.json", file_name.to_string());
+// TODO: Should be able to make this faster, but stuck with weird limitations to mapping result values from serde.
+/// Reads in json from the cache for the passed in ID.
+pub async fn read_from_file(id: &str) -> Result<PointsWrapper, Error> {
+    let path_str = format!("./points/{}.json", id.to_string());
     let path = Path::new(&path_str);
     let mut file = File::open(path)?;
     let mut buff = String::new();
@@ -23,12 +26,14 @@ pub async fn read_from_file(file_name: &str) -> Result<PointsWrapper, Error> {
     Ok(res)
 }
 
+/// Wrapper struct that contains an optional ID to identify chapter (None if not a chapter), and a hashmap that contains all point information.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PointsWrapper {
     id: Option<i32>,
     points: HashMap<String, Points>,
 }
 
+/// Point information for a given player. 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Points{
     points: f32,
@@ -39,6 +44,7 @@ pub struct Points{
     best: (i32, String),
 }
 
+/// Update single player points data.
 #[post("/points/sp")]
 async fn post_points_sp(data: web::Json<PointsWrapper>) -> impl Responder {
     // Cache data in .json files
@@ -48,6 +54,7 @@ async fn post_points_sp(data: web::Json<PointsWrapper>) -> impl Responder {
     }
 }
 
+/// Gget single player points data.
 #[get("points/sp")]
 async fn get_points_sp() -> impl Responder {
     let res = read_from_file("sp").await;
@@ -57,6 +64,7 @@ async fn get_points_sp() -> impl Responder {
     }
 }
 
+/// Update coop points data.
 #[post("/points/coop")]
 async fn post_points_coop(data: web::Json<PointsWrapper>) -> impl Responder {
     // Cache data in .json files
@@ -66,6 +74,7 @@ async fn post_points_coop(data: web::Json<PointsWrapper>) -> impl Responder {
     }
 }
 
+/// Get coop points data.
 #[get("points/coop")]
 async fn get_points_coop() -> impl Responder {
     let res = read_from_file("coop").await;
@@ -75,6 +84,7 @@ async fn get_points_coop() -> impl Responder {
     }
 }
 
+/// Update chapter data, uses JSON ID (see [PointsWrapper]).
 #[post("/points/chapter")]
 async fn post_points_chapter(data: web::Json<PointsWrapper>) -> impl Responder {
     match write_to_file(&data.id.expect("No chapter ID for chapter").to_string(), data).await {
@@ -83,7 +93,7 @@ async fn post_points_chapter(data: web::Json<PointsWrapper>) -> impl Responder {
     }
 }
 
-// This is stupid
+/// Get points data for a specific chapter.
 #[get("points/chapter/{id}")]
 async fn get_points_chapter(id: web::Path<u64>) -> impl Responder {
     let res = read_from_file(&id.to_string()).await;
@@ -93,6 +103,7 @@ async fn get_points_chapter(id: web::Path<u64>) -> impl Responder {
     }
 }
 
+/// Update overall points data.
 #[post("/points/overall")]
 async fn post_points_overall(data: web::Json<PointsWrapper>) -> impl Responder {
     match write_to_file("overall", data).await {
@@ -101,6 +112,7 @@ async fn post_points_overall(data: web::Json<PointsWrapper>) -> impl Responder {
     }
 }
 
+/// Get overall points data.
 #[get("points/overall")]
 async fn get_points_overall() -> impl Responder {
     let res = read_from_file("overall").await;
