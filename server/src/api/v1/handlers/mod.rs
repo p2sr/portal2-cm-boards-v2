@@ -10,5 +10,7 @@ pub mod points;
 pub mod users;
 /// Chapter-related endpoints.
 pub mod chapters;
+/// Demo endpoints
+pub mod demo;
 /// Mounting of the endpoints.
 pub mod init;

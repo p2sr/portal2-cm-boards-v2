@@ -5,11 +5,10 @@ authors = ["Daniel Bates <36864021+DanielBatesJ@users.noreply.github.com>"]
 edition = "2018"
 
 [dependencies]
-#actix-web = "3.3.2"
-actix-web = "4.0.0-beta.8"
+actix-web = "4.0.0-beta.19"
 actix-rt = "2.2.0"
-#actix-cors = "0.5.4"
-actix-cors = "0.6.0-beta.2"
+actix-cors = "0.6.0-beta.8"
+actix-multipart = "0.4.0-beta.12"
 futures = "0.3.17"
 
 sqlx = { version = "0.5.7", features = [ "runtime-actix-rustls", "postgres", "chrono", "offline"] }
@@ -25,5 +24,6 @@ num = "0.1.42"
 env_logger = "0.8.3"
 log = "0.4.14"
 anyhow = "1.0.43"
+sanitize-filename = "0.3.0"
 
-steam-auth = "1.0.0"
+#steam-auth = "1.0.0"
