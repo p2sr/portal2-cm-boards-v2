@@ -88,10 +88,9 @@ pub struct CoopbundledInsert {
     pub category: Option<String>,
 }
 
-
 /// This struct handles the minimal information we want for SP map pages. We want to limit the amount of data we need to transfer.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SpMap{
+pub struct SpMap {
     pub timestamp: Option<NaiveDateTime>,
     pub profile_number: String,
     pub score: i32,
@@ -99,20 +98,20 @@ pub struct SpMap{
     pub youtube_id: Option<String>,
     pub submission: bool,
     pub note: Option<String>,
-    pub category_id: i32, 
+    pub category_id: i32,
     pub user_name: Option<String>,
     pub avatar: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SpRanked{
+pub struct SpRanked {
     pub map_data: SpMap,
     pub rank: i32,
     pub points: f32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CoopMap{
+pub struct CoopMap {
     pub timestamp: Option<NaiveDateTime>,
     pub profile_number1: String,
     pub profile_number2: String,
@@ -135,7 +134,7 @@ pub struct CoopMap{
 
 /// Wrapper for the coop map data and the rank/score.
 #[derive(Serialize, Deserialize)]
-pub struct CoopRanked{
+pub struct CoopRanked {
     pub map_data: CoopMap,
     pub rank: i32,
     pub points: f32,
@@ -143,21 +142,21 @@ pub struct CoopRanked{
 
 /// To deserialize banned SP entries from the webserver API calls.
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SpBanned{
+pub struct SpBanned {
     pub profilenumber: String,
     pub score: i32,
 }
 
 /// To deserialize banned Coop entries from the webserver API calls.
 #[derive(Deserialize, Debug)]
-pub struct CoopBundled{
+pub struct CoopBundled {
     pub profilenumber1: String,
     pub profilenumber2: Option<String>,
     pub score: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UserMap{
+pub struct UserMap {
     pub boardname: Option<String>,
     pub steamname: Option<String>,
     pub avatar: Option<String>,
@@ -165,7 +164,7 @@ pub struct UserMap{
 
 /// Wrapper for a player's SP PB history.
 #[derive(Serialize, Deserialize, Clone)]
-pub struct SpPbHistory{
+pub struct SpPbHistory {
     pub user_info: UserMap,
     pub pb_history: Option<Vec<Changelog>>,
 }

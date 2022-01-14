@@ -1,15 +1,15 @@
 use actix_web::web;
 
-use crate::api::v1::handlers::sp::*;
-use crate::api::v1::handlers::coop::*;
 use crate::api::v1::handlers::changelog::*;
-use crate::api::v1::handlers::users::*;
 use crate::api::v1::handlers::chapters::*;
-use crate::api::v1::handlers::points::*;
+use crate::api::v1::handlers::coop::*;
 use crate::api::v1::handlers::demo::*;
+use crate::api::v1::handlers::points::*;
+use crate::api::v1::handlers::sp::*;
+use crate::api::v1::handlers::users::*;
 
 /// Mounts the routes to /api/..
-pub fn init(cfg: &mut web::ServiceConfig){
+pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api")
             .service(get_singleplayer_maps) // SP
@@ -36,6 +36,6 @@ pub fn init(cfg: &mut web::ServiceConfig){
             .service(post_points_chapter)
             .service(get_points_overall)
             .service(post_points_overall)
-            .service(receive_multiparts)
+            .service(receive_multiparts),
     );
 }

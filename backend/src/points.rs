@@ -1,6 +1,6 @@
+use crate::models::datamodels::{CoopMap, CoopRanked, SpMap, SpRanked};
 use rayon::prelude::*;
 use std::collections::HashMap;
-use crate::models::datamodels::{SpMap, SpRanked, CoopMap, CoopRanked};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PointsWrapper {
@@ -9,18 +9,18 @@ pub struct PointsWrapper {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Points{
+pub struct Points {
     points: f32,
     score: i32, // TODO: Need to change the format to support SAR timing
     num_scores: i32,
     total_rank_sum: i32,
-    worst: (i32, String), 
+    worst: (i32, String),
     best: (i32, String),
 }
 
-impl Points{
-    pub fn sum(self, new_points: &Points) -> Points{
-        Points{
+impl Points {
+    pub fn sum(self, new_points: &Points) -> Points {
+        Points {
             points: self.points + new_points.points,
             score: self.score + new_points.score,
             num_scores: self.num_scores + new_points.num_scores,
@@ -36,15 +36,15 @@ impl Points{
                 (new_points.best.0, new_points.best.1.clone())
             } else if new_points.best.0 <= self.best.0 {
                 (self.best.0, "Multiple".to_string())
-            } 
-            else {
+            } else {
                 self.best
             },
         }
     }
 }
 
-pub fn score_calc(score: i32) -> (i32, i32, i32) { //lol
+pub fn score_calc(score: i32) -> (i32, i32, i32) {
+    //lol
     let ms = (score % 100) * 10;
     let seconds = (score / 100) % 60;
     let minutes = score / 100 / 60;
@@ -54,23 +54,26 @@ pub fn score_calc(score: i32) -> (i32, i32, i32) { //lol
 pub fn calc_points(maps_altered: Option<Vec<i32>>) {
     // NOTE: We could just recalculate points on a set of impacted chapters. We can reuse the cached values for unaffected chapters.
     // If a score update comes in for btg only, we only need to recalc aggtime/aggpoints in chapter 3. But we would still need to update all user profiles? This might save a small amount of time.
-    // Additionally, we could also ignore players that do not have scores in that give chapter (very limited # of players, might not be worth the effort). 
-    let mut overall_hm : HashMap<String, Points> = HashMap::with_capacity(50 * 200);
-    let mut sp_hm : HashMap<String, Points> = HashMap::with_capacity(25* 200);
-    let mut coop_hm : HashMap<String, Points> = HashMap::with_capacity(25* 200);
+    // Additionally, we could also ignore players that do not have scores in that give chapter (very limited # of players, might not be worth the effort).
+    let mut overall_hm: HashMap<String, Points> = HashMap::with_capacity(50 * 200);
+    let mut sp_hm: HashMap<String, Points> = HashMap::with_capacity(25 * 200);
+    let mut coop_hm: HashMap<String, Points> = HashMap::with_capacity(25 * 200);
     if maps_altered == None {
         // Contains a vector of tuples, each hashmap stores the total points for each player, per chapter. Chapters are denoted by the i32 in the tuple.
         // NOTE: The par_iter means we could have the chapters finish calculating in any order, and thus the ordering can not be assumed.
         let mut hm_vec = Vec::with_capacity(15);
         // par_iter hit endpoint for each chapter (1-6 coop, 7-15 sp)
-        hm_vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].into_par_iter().map(|chapter_id|{
-            let url = format!("http://localhost:8080/api/chapters/{}", &chapter_id);
-            let map_ids: Vec<String> = reqwest::blocking::get(&url)
-                .expect("Error in query to our local API (Make sure the webserver is running")
-                .json()
-                .expect("Error in converting our API values to JSON");
-            calc_chapter(map_ids, chapter_id)
-        }).collect();
+        hm_vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+            .into_par_iter()
+            .map(|chapter_id| {
+                let url = format!("http://localhost:8080/api/chapters/{}", &chapter_id);
+                let map_ids: Vec<String> = reqwest::blocking::get(&url)
+                    .expect("Error in query to our local API (Make sure the webserver is running")
+                    .json()
+                    .expect("Error in converting our API values to JSON");
+                calc_chapter(map_ids, chapter_id)
+            })
+            .collect();
         // TODO: Send the points over to the webserver for the webserver to cache before consuming the vector for the overall calculations.
 
         // Post all chapters to the webserver
@@ -85,40 +88,47 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         }
         // Sp & coop
         for x in hm_vec {
-            if x.id.unwrap() > 6 { // SP
+            if x.id.unwrap() > 6 {
+                // SP
                 for (profile_number, new_points) in x.points {
                     // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
-                    match sp_hm.get(&profile_number){
+                    match sp_hm.get(&profile_number) {
                         Some(old_points) => {
-                            match sp_hm.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
+                            match sp_hm.insert(profile_number.clone(), new_points.sum(old_points)) {
+                                //old_points.sum(&new_points)){
                                 Some(_) => (),
                                 None => unreachable!(),
                             }
-                        },
+                        }
                         None => {
-                            match sp_hm.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
+                            match sp_hm.insert(profile_number.clone(), new_points.clone()) {
+                                // TODO: Maybe remove clone?
                                 Some(_) => unreachable!(),
                                 None => (),
                             }
-                        },
+                        }
                     }
                 }
-            } else { // Coop
+            } else {
+                // Coop
                 for (profile_number, new_points) in x.points {
                     // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
-                    match coop_hm.get(&profile_number){
+                    match coop_hm.get(&profile_number) {
                         Some(old_points) => {
-                            match coop_hm.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
+                            match coop_hm.insert(profile_number.clone(), new_points.sum(old_points))
+                            {
+                                //old_points.sum(&new_points)){
                                 Some(_) => (),
                                 None => unreachable!(),
                             }
-                        },
+                        }
                         None => {
-                            match coop_hm.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
+                            match coop_hm.insert(profile_number.clone(), new_points.clone()) {
+                                // TODO: Maybe remove clone?
                                 Some(_) => unreachable!(),
                                 None => (),
                             }
-                        },
+                        }
                     }
                 }
             }
@@ -129,7 +139,10 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         let url = "http://localhost:8080/api/points/sp".to_string();
         client
             .post(&url)
-            .json(&PointsWrapper{id: None, points: sp_hm.clone()})
+            .json(&PointsWrapper {
+                id: None,
+                points: sp_hm.clone(),
+            })
             .send()
             .expect("Error querying our local API");
         // TODO: Error Handling
@@ -137,50 +150,60 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         let url = "http://localhost:8080/api/points/coop".to_string();
         client
             .post(&url)
-            .json(&PointsWrapper{id: None, points: coop_hm.clone()})
+            .json(&PointsWrapper {
+                id: None,
+                points: coop_hm.clone(),
+            })
             .send()
             .expect("Error querying our local API");
 
         // Generate aggregated overall.
         for (profile_number, new_points) in sp_hm {
             // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
-            match overall_hm.get(&profile_number){
+            match overall_hm.get(&profile_number) {
                 Some(old_points) => {
-                    match overall_hm.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
+                    match overall_hm.insert(profile_number.clone(), new_points.sum(old_points)) {
+                        //old_points.sum(&new_points)){
                         Some(_) => (),
                         None => unreachable!(),
                     }
-                },
+                }
                 None => {
-                    match overall_hm.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
+                    match overall_hm.insert(profile_number.clone(), new_points.clone()) {
+                        // TODO: Maybe remove clone?
                         Some(_) => unreachable!(),
                         None => (),
                     }
-                },
+                }
             }
         }
         for (profile_number, new_points) in coop_hm {
             // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
-            match overall_hm.get(&profile_number){
+            match overall_hm.get(&profile_number) {
                 Some(old_points) => {
-                    match overall_hm.insert(profile_number.clone(), new_points.sum(old_points)){ //old_points.sum(&new_points)){
+                    match overall_hm.insert(profile_number.clone(), new_points.sum(old_points)) {
+                        //old_points.sum(&new_points)){
                         Some(_) => (),
                         None => unreachable!(),
                     }
-                },
+                }
                 None => {
-                    match overall_hm.insert(profile_number.clone(), new_points.clone()){ // TODO: Maybe remove clone?
+                    match overall_hm.insert(profile_number.clone(), new_points.clone()) {
+                        // TODO: Maybe remove clone?
                         Some(_) => unreachable!(),
                         None => (),
                     }
-                },
+                }
             }
         }
         let client = reqwest::blocking::Client::new();
         let url = "http://localhost:8080/api/points/overall".to_string();
         client
             .post(&url)
-            .json(&PointsWrapper{id: None, points: overall_hm})
+            .json(&PointsWrapper {
+                id: None,
+                points: overall_hm,
+            })
             .send()
             .expect("Error querying our local API");
         //println!("{:#?}", overall_hm.get("76561198039230536"));
@@ -199,42 +222,53 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
     let mut coop_hm: HashMap<String, i32> = HashMap::with_capacity(200);
     for map in map_ids.iter() {
         // Grab top X from the web-server for each map.
-        if chapter_id > 6 { // SP
+        if chapter_id > 6 {
+            // SP
             let url = format!("http://localhost:8080/api/maps/sp/{}", &map).to_string();
             let res: Vec<SpRanked> = reqwest::blocking::get(&url) // Assumes all top 200
                 .expect("Error in query to our local API (Make sure the webserver is running")
                 .json()
                 .expect("Error in converting our API values to JSON");
-            for score in res { // If an entry exists, add this new value to the old value, if not, keep only new value.
+            for score in res {
+                // If an entry exists, add this new value to the old value, if not, keep only new value.
                 //  score_calc(score.map_data.score);
-                match final_hm.insert(score.map_data.profile_number.clone(), Points{
-                    points: score.points,
-                    score: score.map_data.score,
-                    num_scores: 1,
-                    total_rank_sum: score.rank,
-                    worst: (score.rank, map.clone()),
-                    best: (score.rank, map.clone()),
-                }){  
-                    Some(pnts) => {final_hm.insert(score.map_data.profile_number, Points{
-                        points: pnts.points + score.points,
-                        score: pnts.score + score.map_data.score,
-                        num_scores: pnts.num_scores + 1,
-                        total_rank_sum: pnts.total_rank_sum + score.rank,
-                        worst: if score.rank > pnts.worst.0 {
-                            (score.rank, map.clone())
-                        } else{
-                            pnts.worst
-                        },
-                        best: if score.rank < pnts.best.0{
-                            (score.rank, map.clone())
-                        }else {
-                            pnts.best
-                        },
-                    });},
+                match final_hm.insert(
+                    score.map_data.profile_number.clone(),
+                    Points {
+                        points: score.points,
+                        score: score.map_data.score,
+                        num_scores: 1,
+                        total_rank_sum: score.rank,
+                        worst: (score.rank, map.clone()),
+                        best: (score.rank, map.clone()),
+                    },
+                ) {
+                    Some(pnts) => {
+                        final_hm.insert(
+                            score.map_data.profile_number,
+                            Points {
+                                points: pnts.points + score.points,
+                                score: pnts.score + score.map_data.score,
+                                num_scores: pnts.num_scores + 1,
+                                total_rank_sum: pnts.total_rank_sum + score.rank,
+                                worst: if score.rank > pnts.worst.0 {
+                                    (score.rank, map.clone())
+                                } else {
+                                    pnts.worst
+                                },
+                                best: if score.rank < pnts.best.0 {
+                                    (score.rank, map.clone())
+                                } else {
+                                    pnts.best
+                                },
+                            },
+                        );
+                    }
                     None => (),
                 }
             }
-        } else{ // Coop
+        } else {
+            // Coop
             let url = format!("http://localhost:8080/api/maps/coop/{}", &map);
             let res: Vec<CoopRanked> = reqwest::blocking::get(&url) // Assumes all top 200
                 .expect("Error in query to our local API (Make sure the webserver is running")
@@ -243,63 +277,80 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
             for score in res {
                 //score_calc(score.map_data.score);
                 // Do checks for both player 1 and player2, if one has an entry in the hashmap already, we ignore the points we would add.
-                match coop_hm.insert(score.map_data.profile_number1.clone(), 1){
+                match coop_hm.insert(score.map_data.profile_number1.clone(), 1) {
                     Some(_) => (),
                     None => {
-                        match final_hm.insert(score.map_data.profile_number1.clone(), Points{
-                            points: score.points,
-                            score: score.map_data.score,
-                            num_scores: 1,
-                            total_rank_sum: score.rank,
-                            worst: (score.rank, map.clone()),
-                            best: (score.rank, map.clone()),
-                        }){  
-                            Some(pnts) => {final_hm.insert(score.map_data.profile_number1, Points{
-                                points: pnts.points + score.points,
-                                score: pnts.score + score.map_data.score,
-                                num_scores: pnts.num_scores + 1,
-                                total_rank_sum: pnts.total_rank_sum + score.rank,
-                                worst: if score.rank > pnts.worst.0 {
-                                    (score.rank, map.clone())
-                                } else{
-                                    pnts.worst
-                                },
-                                best: if score.rank < pnts.best.0{
-                                    (score.rank, map.clone())
-                                }else {
-                                    pnts.best
-                                },
-                            });},
+                        match final_hm.insert(
+                            score.map_data.profile_number1.clone(),
+                            Points {
+                                points: score.points,
+                                score: score.map_data.score,
+                                num_scores: 1,
+                                total_rank_sum: score.rank,
+                                worst: (score.rank, map.clone()),
+                                best: (score.rank, map.clone()),
+                            },
+                        ) {
+                            Some(pnts) => {
+                                final_hm.insert(
+                                    score.map_data.profile_number1,
+                                    Points {
+                                        points: pnts.points + score.points,
+                                        score: pnts.score + score.map_data.score,
+                                        num_scores: pnts.num_scores + 1,
+                                        total_rank_sum: pnts.total_rank_sum + score.rank,
+                                        worst: if score.rank > pnts.worst.0 {
+                                            (score.rank, map.clone())
+                                        } else {
+                                            pnts.worst
+                                        },
+                                        best: if score.rank < pnts.best.0 {
+                                            (score.rank, map.clone())
+                                        } else {
+                                            pnts.best
+                                        },
+                                    },
+                                );
+                            }
                             None => (),
                         }
-                    },
-                } match coop_hm.insert(score.map_data.profile_number2.clone(), 1){
+                    }
+                }
+                match coop_hm.insert(score.map_data.profile_number2.clone(), 1) {
                     Some(_) => (),
                     None => {
-                        match final_hm.insert(score.map_data.profile_number2.clone(), Points{
-                            points: score.points,
-                            score: score.map_data.score,
-                            num_scores: 1,
-                            total_rank_sum: score.rank,
-                            worst: (score.rank, map.clone()),
-                            best: (score.rank, map.clone()),
-                        }){  
-                            Some(pnts) => {final_hm.insert(score.map_data.profile_number2, Points{
-                                points: pnts.points + score.points,
-                                score: pnts.score + score.map_data.score,
-                                num_scores: pnts.num_scores + 1,
-                                total_rank_sum: pnts.total_rank_sum + score.rank,
-                                worst: if score.rank > pnts.worst.0 {
-                                    (score.rank, map.clone())
-                                } else{
-                                    pnts.worst
-                                },
-                                best: if score.rank < pnts.best.0{
-                                    (score.rank, map.clone())
-                                }else {
-                                    pnts.best
-                                },
-                            });},
+                        match final_hm.insert(
+                            score.map_data.profile_number2.clone(),
+                            Points {
+                                points: score.points,
+                                score: score.map_data.score,
+                                num_scores: 1,
+                                total_rank_sum: score.rank,
+                                worst: (score.rank, map.clone()),
+                                best: (score.rank, map.clone()),
+                            },
+                        ) {
+                            Some(pnts) => {
+                                final_hm.insert(
+                                    score.map_data.profile_number2,
+                                    Points {
+                                        points: pnts.points + score.points,
+                                        score: pnts.score + score.map_data.score,
+                                        num_scores: pnts.num_scores + 1,
+                                        total_rank_sum: pnts.total_rank_sum + score.rank,
+                                        worst: if score.rank > pnts.worst.0 {
+                                            (score.rank, map.clone())
+                                        } else {
+                                            pnts.worst
+                                        },
+                                        best: if score.rank < pnts.best.0 {
+                                            (score.rank, map.clone())
+                                        } else {
+                                            pnts.best
+                                        },
+                                    },
+                                );
+                            }
                             None => (),
                         }
                     }
@@ -311,31 +362,33 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
     }
     // Have this be a map, map all the values into one big hashmap.
     // println!("{:#?}", final_hm.get("76561198039230536"));
-    PointsWrapper{id: Some(chapter_id), points: final_hm}
+    PointsWrapper {
+        id: Some(chapter_id),
+        points: final_hm,
+    }
 }
 
-
-// Algorithm (TO BE IMPROVED)    
-    // Scores: Pull all top 200 score data for current maps, break into different threads by chapter.
-        // Chapter:
-            // Create a hashmap, with key profile_number, value is a struct that contains data for all chapters (each chapter has a score and time).
-            // NOTE: For concurrency, we might need to unsafe wrap, or do other shit to ensure that we can mutate the same struct instance accross multiple threads.
-            // In theory, this should be okay, because each thread will only have mutable access to specific compontents of the struct.
-        // Overall: 
-            // SP
-                // Sum all sp chapters.
-            // Coop
-                // Sum all coop chapters.
-            // Overall
-                // Sum both sp/coop.
-// Cache     
-    // Player Profile / Stats:
-        // Stats    
-            // # wrs
-            // Points
-            // Position
-            // Avg placement
-            // Best/worst
-            // Newest/oldest
-        // Scores
-            // All score history (break this into smaller calls?), all aggregated time/points history.
+// Algorithm (TO BE IMPROVED)
+// Scores: Pull all top 200 score data for current maps, break into different threads by chapter.
+// Chapter:
+// Create a hashmap, with key profile_number, value is a struct that contains data for all chapters (each chapter has a score and time).
+// NOTE: For concurrency, we might need to unsafe wrap, or do other shit to ensure that we can mutate the same struct instance accross multiple threads.
+// In theory, this should be okay, because each thread will only have mutable access to specific compontents of the struct.
+// Overall:
+// SP
+// Sum all sp chapters.
+// Coop
+// Sum all coop chapters.
+// Overall
+// Sum both sp/coop.
+// Cache
+// Player Profile / Stats:
+// Stats
+// # wrs
+// Points
+// Position
+// Avg placement
+// Best/worst
+// Newest/oldest
+// Scores
+// All score history (break this into smaller calls?), all aggregated time/points history.

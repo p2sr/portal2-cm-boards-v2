@@ -1,9 +1,9 @@
 use actix_web::{get, post, web, HttpResponse, Responder};
-use anyhow::{Result, Error};
+use anyhow::{Error, Result};
 use std::collections::HashMap;
 use std::fs::File;
-use std::path::Path;
 use std::io::Read;
+use std::path::Path;
 
 /// Writes out json data to cache points for the boards.
 pub async fn write_to_file(id: &str, data: web::Json<PointsWrapper>) -> Result<(), Error> {
@@ -33,14 +33,14 @@ pub struct PointsWrapper {
     points: HashMap<String, Points>,
 }
 
-/// Point information for a given player. 
+/// Point information for a given player.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Points{
+pub struct Points {
     points: f32,
     score: i32, // TODO: Need to change the format to support SAR timing
     num_scores: i32,
     total_rank_sum: i32,
-    worst: (i32, String), 
+    worst: (i32, String),
     best: (i32, String),
 }
 
@@ -87,7 +87,12 @@ async fn get_points_coop() -> impl Responder {
 /// Update chapter data, uses JSON ID (see [PointsWrapper]).
 #[post("/points/chapter")]
 async fn post_points_chapter(data: web::Json<PointsWrapper>) -> impl Responder {
-    match write_to_file(&data.id.expect("No chapter ID for chapter").to_string(), data).await {
+    match write_to_file(
+        &data.id.expect("No chapter ID for chapter").to_string(),
+        data,
+    )
+    .await
+    {
         Ok(_) => HttpResponse::Ok().body("Success"), // TODO: Fix error handling (return values?)
         _ => HttpResponse::NotFound().body("Error updaing score entries for chapter"),
     }

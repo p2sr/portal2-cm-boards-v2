@@ -1,7 +1,22 @@
 use actix_multipart::Multipart;
-use actix_web::{post, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder};
 use futures::{StreamExt, TryStreamExt};
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::fs::OpenOptions;
+use std::io::Write; // bring trait into scope
+
+pub struct DemoData {
+    id: i32,
+    drive_url: Option<String>,
+    partner_name: Option<String>,
+    parsed_successfully: bool,
+    sar_version: Option<String>,
+    cl_id: i32,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DemoUpload {
+    sar_version: Option<String>,
+}
 
 struct ReceivedPart {
     content_type: String,
@@ -32,21 +47,28 @@ impl Display for ReceivedPart {
 //  c. Look to see if there is anything special needed for auto-submit
 //  d. Integrate Parsing
 // Code Reference: https://github.com/Ujang360/actix-multipart-demo/blob/main/src/main.rs
+// Google Drive API: https://docs.rs/google-drive/0.2.4/google_drive/
 #[post("/demo")]
 pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
     let mut received_parts = Vec::new();
-
     while let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field.content_type().to_string();
+        // let x = field.content_disposition().get_filename();
+        // println!("{:#?}", x.unwrap());
         // content_disposition() now returns a &ContentDisposition, rather than an Option<ContentDisposition>
-        let content_disposition = Some(format!("{:#?}", field.content_disposition())); 
+        let content_disposition = Some(format!("{:#?}", field.content_disposition()));
         let mut content_data = Vec::new();
-
         while let Some(Ok(chunk)) = field.next().await {
             content_data.extend(chunk);
         }
-
-        received_parts.push(ReceivedPart { content_data, content_type, content_disposition });
+        // let mut file = OpenOptions::new().create(true).write(true).open("./demo.dem").unwrap();
+        // file.write_all(&content_data);
+        let x = ReceivedPart {
+            content_data,
+            content_type,
+            content_disposition,
+        };
+        received_parts.push(x);
     }
 
     let mut received_parts_string = String::new();
