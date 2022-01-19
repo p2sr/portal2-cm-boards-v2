@@ -105,7 +105,7 @@ pub fn filter_entries_sp(
                     current_rank.insert(entry.steam_id.value.clone(), rank.clone());
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_cheated.push(SpBanned {
-                            profilenumber: entry.steam_id.value.clone(),
+                            profile_number: entry.steam_id.value.clone(),
                             score: entry.score.value,
                         }),
                         _ => (),
@@ -121,7 +121,7 @@ pub fn filter_entries_sp(
                     );
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_cheated.push(SpBanned {
-                            profilenumber: entry.steam_id.value.clone(),
+                            profile_number: entry.steam_id.value.clone(),
                             score: entry.score.value,
                         }),
                         _ => (),
@@ -138,7 +138,7 @@ pub fn filter_entries_sp(
     let ban_url = format!("http://localhost:8080/api/maps/sp/banned/{id}", id = id);
     for entry in not_cheated.iter() {
         let res: bool = client
-            .post(&url)
+            .post(&ban_url)
             .json(entry)
             .send()
             .expect("Error querying our local API")
@@ -150,7 +150,7 @@ pub fn filter_entries_sp(
                 println!("Time not found, so assumed to be unbanned.");
                 // We have now checked that the user is not banned, that the time is top 200 worthy, that the score doesn't exist in the db, but is banned.
                 match post_sp_pb(
-                    entry.profilenumber.clone(),
+                    entry.profile_number.clone(),
                     entry.score,
                     wr,
                     id,
@@ -167,7 +167,7 @@ pub fn filter_entries_sp(
 }
 
 pub fn post_sp_pb(
-    profilenumber: String,
+    profile_number: String,
     score: i32,
     wr: i32,
     id: i32,
@@ -180,7 +180,10 @@ pub fn post_sp_pb(
         wr_gain = 1;
     }
     // Grab the PB history.
-    let url = format!("http://localhost:8080/api/maps/sp/{}/{}", id, profilenumber); // TODO: Handle crashing if no PB history is found.
+    let url = format!(
+        "http://localhost:8080/api/maps/sp/{}/{}",
+        id, profile_number
+    ); // TODO: Handle crashing if no PB history is found.
     let pb_history: SpPbHistory = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json()
@@ -191,7 +194,7 @@ pub fn post_sp_pb(
     match pb_vec {
         Some(pb_vec) => {
             let current_pb = pb_vec.into_iter().nth(0).unwrap();
-            previous_id = Some(current_pb.id);
+            previous_id = Some(current_pb.id as i32);
         }
         None => (),
     }
@@ -206,14 +209,14 @@ pub fn post_sp_pb(
             post_rank = Some(entry.rank)
         }
     }
-    let prerank: Option<i32> = match current_rank.get(&profilenumber) {
+    let prerank: Option<i32> = match current_rank.get(&profile_number) {
         Some(rank) => Some(rank.clone()),
         None => None,
     };
 
     let new_score = ChangelogInsert {
         time_gained: Some(timestamp),
-        profile_number: profilenumber,
+        profile_number: profile_number,
         score: score,
         map_id: id.to_string(),
         wr_gain: wr_gain,
@@ -229,8 +232,9 @@ pub fn post_sp_pb(
         category: Some("any%".to_string()),
     };
     let client = reqwest::blocking::Client::new();
+    //
     let post_url = "http://localhost:8080/api/sp/postscore".to_string();
-    let res: bool = client
+    let res: i64 = client
         .post(&url)
         .json(&new_score)
         .send()
@@ -238,10 +242,12 @@ pub fn post_sp_pb(
         .json()
         .expect("Error converting to json");
     // TODO: Better handling of failure
-    match res {
-        true => return true,
-        false => return false,
-    }
+    println!("{}", res);
+    // match res {
+    //     true => return true,
+    //     false => return false,
+    // }
+    true
 }
 
 /// Version of `filter_entries` for coop, using different logic.
@@ -289,7 +295,7 @@ pub fn filter_entries_coop(
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         // We use SpBanned here because scores taken from the SteamAPI are all handled as SP times.
                         false => not_banned_player.push(SpBanned {
-                            profilenumber: entry.steam_id.value.clone(),
+                            profile_number: entry.steam_id.value.clone(),
                             score: entry.score.value,
                         }),
                         _ => (),
@@ -305,7 +311,7 @@ pub fn filter_entries_coop(
                     );
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_banned_player.push(SpBanned {
-                            profilenumber: entry.steam_id.value.clone(),
+                            profile_number: entry.steam_id.value.clone(),
                             score: entry.score.value,
                         }),
                         _ => (),
@@ -341,41 +347,41 @@ pub fn filter_entries_coop(
     // If the times are matching, all old times are filtered, and no banned times are taken into consideration,
     // it's fair to assume the times were gotten together between two people
     let mut already_bundled: HashMap<String, i32> = HashMap::new();
-    // Contains the bundled entries (if profilenumber2 is None, there is no mathcing time)
+    // Contains the bundled entries (if profile_number2 is None, there is no mathcing time)
     let mut bundled_entries = Vec::new();
     for entry in not_cheated.iter() {
         for entry2 in not_cheated.iter() {
-            if (entry.profilenumber != entry2.profilenumber) & (entry.score == entry2.score) {
+            if (entry.profile_number != entry2.profile_number) & (entry.score == entry2.score) {
                 // Scores are assumed to be gotten together.
-                match already_bundled.get(&entry.profilenumber) {
+                match already_bundled.get(&entry.profile_number) {
                     // Make sure we aren't just reading the second entry later down the line.
                     Some(_) => (),
-                    None => match already_bundled.get(&entry2.profilenumber) {
+                    None => match already_bundled.get(&entry2.profile_number) {
                         Some(_) => (),
                         None => {
                             bundled_entries.push(CoopBundled {
-                                profilenumber1: entry.profilenumber.clone(),
-                                profilenumber2: Some(entry2.profilenumber.clone()),
+                                profile_number1: entry.profile_number.clone(),
+                                profile_number2: Some(entry2.profile_number.clone()),
                                 score: entry.score,
                             });
-                            already_bundled.insert(entry.profilenumber.clone(), 1);
-                            already_bundled.insert(entry2.profilenumber.clone(), 1);
+                            already_bundled.insert(entry.profile_number.clone(), 1);
+                            already_bundled.insert(entry2.profile_number.clone(), 1);
                         }
                     },
                 }
             }
         }
         // If we have looked through every entry, and found no match, the time is "carried" and the p2 is unknown
-        match already_bundled.get(&entry.profilenumber) {
+        match already_bundled.get(&entry.profile_number) {
             Some(_) => (),
             None => {
                 bundled_entries.push(CoopBundled {
-                    profilenumber1: entry.profilenumber.clone(),
-                    profilenumber2: None,
+                    profile_number1: entry.profile_number.clone(),
+                    profile_number2: None,
                     score: entry.score,
                 });
                 // Probably unnecessary to add to hashmap, but doing it just incase.
-                already_bundled.insert(entry.profilenumber.clone(), 0);
+                already_bundled.insert(entry.profile_number.clone(), 0);
             }
         }
     }
@@ -385,8 +391,8 @@ pub fn filter_entries_coop(
     for entry in bundled_entries.iter() {
         // TODO: Handle failture to insert.
         match post_coop_pb(
-            entry.profilenumber1.clone(),
-            entry.profilenumber2.clone(),
+            entry.profile_number1.clone(),
+            entry.profile_number2.clone(),
             entry.score,
             wr,
             id,
@@ -402,8 +408,8 @@ pub fn filter_entries_coop(
 
 ///
 pub fn post_coop_pb(
-    profilenumber1: String,
-    profilenumber2: Option<String>,
+    profile_number1: String,
+    profile_number2: Option<String>,
     score: i32,
     wr: i32,
     id: i32,
@@ -416,11 +422,11 @@ pub fn post_coop_pb(
         wr_gain = 1;
     }
     // Handle there being a partner
-    if let Some(profilenumber2) = profilenumber2 {
+    if let Some(profile_number2) = profile_number2 {
         // Grab the PB history. For now, we're just going to use 2 calls to our API rather than a combined call. (We'll use SP here).
         let url = format!(
             "http://localhost:8080/api/maps/sp/{}/{}",
-            id, profilenumber1
+            id, profile_number1
         ); // TODO: Handle crashing if no PB history is found.
         let pb_history1: SpPbHistory = reqwest::blocking::get(&url)
             .expect("Error in query to our local API (Make sure the webserver is running")
@@ -428,7 +434,7 @@ pub fn post_coop_pb(
             .expect("Error in converting our API values to JSON");
         let url = format!(
             "http://localhost:8080/api/maps/sp/{}/{}",
-            id, profilenumber2
+            id, profile_number2
         ); // TODO: Handle crashing if no PB history is found.
         let pb_history2: SpPbHistory = reqwest::blocking::get(&url)
             .expect("Error in query to our local API (Make sure the webserver is running")
@@ -439,7 +445,7 @@ pub fn post_coop_pb(
         match pb_vec {
             Some(pb_vec) => {
                 let current_pb = pb_vec.into_iter().nth(0).unwrap();
-                previous_id1 = Some(current_pb.id);
+                previous_id1 = Some(current_pb.id as i32);
             }
             None => (),
         }
@@ -448,7 +454,7 @@ pub fn post_coop_pb(
         match pb_vec {
             Some(pb_vec) => {
                 let current_pb = pb_vec.into_iter().nth(0).unwrap();
-                previous_id2 = Some(current_pb.id);
+                previous_id2 = Some(current_pb.id as i32);
             }
             None => (),
         }
@@ -464,11 +470,11 @@ pub fn post_coop_pb(
             }
         }
 
-        let prerank1: Option<i32> = match current_rank.get(&profilenumber1) {
+        let prerank1: Option<i32> = match current_rank.get(&profile_number1) {
             Some(rank) => Some(rank.clone()),
             None => None,
         };
-        let prerank2: Option<i32> = match current_rank.get(&profilenumber2) {
+        let prerank2: Option<i32> = match current_rank.get(&profile_number2) {
             Some(rank) => Some(rank.clone()),
             None => None,
         };
@@ -477,8 +483,8 @@ pub fn post_coop_pb(
 
         let news_score = CoopbundledInsert {
             time_gained: Some(timestamp),
-            profile_number1: profilenumber1,
-            profile_number2: profilenumber2,
+            profile_number1: profile_number1,
+            profile_number2: profile_number2,
             score: score,
             map_id: id.to_string(),
             wr_gain: wr_gain,

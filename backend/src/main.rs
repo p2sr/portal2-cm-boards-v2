@@ -12,26 +12,33 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-use std::env;
-use time::PreciseTime;
-
 use chrono::prelude::*;
+use clap::Parser;
 use dotenv::dotenv;
 use log::{info, trace, warn};
 use rayon::prelude::*;
-
+use std::env;
+use time::PreciseTime;
 mod stages;
 use stages::exporting::*;
 use stages::fetching::*;
-
 mod points;
 use points::*;
-
 mod models;
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    #[clap(short, long, default_value = "rcp")]
+    arg: String,
+    #[clap(short, long)]
+    map: Option<String>,
+}
 
 fn main() {
     // Look into clap? https://docs.rs/clap/2.33.3/clap/
-    let args: Vec<String> = env::args().collect();
+    let new_args = Args::parse();
+    //let args: Vec<String> = env::args().collect();
     // Arg mapping
     // len == 1 (path)
     // Default that will check all SP/Coop Maps and update new scores and then re-compute points.
@@ -43,31 +50,38 @@ fn main() {
     // TODO: Stage point computation??
     // TODO: Handle caching of point information.
     let start = PreciseTime::now();
-    dotenv().ok();
-    if args.len() == 1 {
-        unimplemented!();
-        //fetch_all()
-    } else if args.len() == 2 {
-        match args.get(1) {
-            Some(a) => match a.as_str() {
-                "rcp" => calc_points(None),
-                _ => panic!("Incorrect value"),
-            },
-            None => panic!("Incorrect Value"),
-        }
-    } else if args.len() == 3 {
-        match args.get(1) {
-            Some(a) => match a.as_str() {
-                "ssp" => fetch_sp(args.get(2).expect("Invalid map_id for arg #2").to_string()),
-                "scp" => fetch_cp(args.get(2).expect("Invalid map_id for arg #2").to_string()),
-                "rcp" => calc_points(None),
-                _ => panic!("Incorrect value"),
-            },
-            None => panic!("Incorrect value"),
-        }
-    } else {
-        panic!("Incorrect arg #");
+    println!("{:#?}", new_args.arg);
+    match new_args.arg.as_ref() {
+        "rcp" => calc_points(None),
+        "ssp" => fetch_sp(new_args.map.expect("No map_id")),
+        "scp" => fetch_cp(new_args.map.expect("No map_id")),
+        _ => panic!("Incorrect value"),
     }
+
+    // if args.len() == 1 {
+    //     unimplemented!();
+    //     //fetch_all()
+    // } else if args.len() == 2 {
+    //     match args.get(1) {
+    //         Some(a) => match a.as_str() {
+    //             "rcp" => calc_points(None),
+    //             _ => panic!("Incorrect value"),
+    //         },
+    //         None => panic!("Incorrect Value"),
+    //     }
+    // } else if args.len() == 3 {
+    //     match args.get(1) {
+    //         Some(a) => match a.as_str() {
+    //             "ssp" => fetch_sp(args.get(2).expect("Invalid map_id for arg #2").to_string()),
+    //             "scp" => fetch_cp(args.get(2).expect("Invalid map_id for arg #2").to_string()),
+    //             "rcp" => calc_points(None),
+    //             _ => panic!("Incorrect value"),
+    //         },
+    //         None => panic!("Incorrect value"),
+    //     }
+    // } else {
+    //     panic!("Incorrect arg #");
+    // }
     let end = PreciseTime::now();
     println!("{}", start.to(end));
 }

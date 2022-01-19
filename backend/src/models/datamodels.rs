@@ -22,23 +22,43 @@ pub struct Leaderboards {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Changelog {
-    pub time_gained: Option<NaiveDateTime>,
+    pub id: i64,
+    pub timestamp: Option<NaiveDateTime>,
     pub profile_number: String,
     pub score: i32,
     pub map_id: String,
-    pub wr_gain: i32,
-    pub has_demo: Option<i32>,
-    pub banned: i32,
+    pub demo_id: Option<i64>,
+    pub banned: bool,
     pub youtube_id: Option<String>,
     pub previous_id: Option<i32>,
-    pub id: i32,
-    pub coopid: Option<i32>,
+    pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
-    pub submission: i32,
+    pub submission: bool,
     pub note: Option<String>,
-    pub category: Option<String>,
+    pub category_id: i32,
+    pub score_delta: Option<i32>,
+    pub verified: Option<bool>,
+    pub admin_note: Option<String>,
 }
+// pub struct Changelog {
+//     pub time_gained: Option<NaiveDateTime>,
+//     pub profile_number: String,
+//     pub score: i32,
+//     pub map_id: String,
+//     pub wr_gain: i32,
+//     pub has_demo: Option<i32>,
+//     pub banned: i32,
+//     pub youtube_id: Option<String>,
+//     pub previous_id: Option<i32>,
+//     pub id: i32,
+//     pub coopid: Option<i32>,
+//     pub post_rank: Option<i32>,
+//     pub pre_rank: Option<i32>,
+//     pub submission: i32,
+//     pub note: Option<String>,
+//     pub category: Option<String>,
+// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChangelogInsert {
@@ -143,28 +163,36 @@ pub struct CoopRanked {
 /// To deserialize banned SP entries from the webserver API calls.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SpBanned {
-    pub profilenumber: String,
+    pub profile_number: String,
     pub score: i32,
 }
 
 /// To deserialize banned Coop entries from the webserver API calls.
 #[derive(Deserialize, Debug)]
 pub struct CoopBundled {
-    pub profilenumber1: String,
-    pub profilenumber2: Option<String>,
+    pub profile_number1: String,
+    pub profile_number2: Option<String>,
     pub score: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UserMap {
-    pub boardname: Option<String>,
-    pub steamname: Option<String>,
-    pub avatar: Option<String>,
-}
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct UserMap {
+//     pub boardname: Option<String>,
+//     pub steamname: Option<String>,
+//     pub avatar: Option<String>,
+// }
+
+// /// Wrapper for a player's SP PB history.
+// #[derive(Serialize, Deserialize, Clone)]
+// pub struct SpPbHistory {
+//     pub user_info: UserMap,
+//     pub pb_history: Option<Vec<Changelog>>,
+// }
 
 /// Wrapper for a player's SP PB history.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct SpPbHistory {
-    pub user_info: UserMap,
+    pub user_name: String,
+    pub avatar: Option<String>,
     pub pb_history: Option<Vec<Changelog>>,
 }

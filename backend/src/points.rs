@@ -74,7 +74,6 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
                 calc_chapter(map_ids, chapter_id)
             })
             .collect();
-        // TODO: Send the points over to the webserver for the webserver to cache before consuming the vector for the overall calculations.
 
         // Post all chapters to the webserver
         for chapter in hm_vec.iter() {
@@ -369,26 +368,26 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
 }
 
 // Algorithm (TO BE IMPROVED)
-// Scores: Pull all top 200 score data for current maps, break into different threads by chapter.
-// Chapter:
-// Create a hashmap, with key profile_number, value is a struct that contains data for all chapters (each chapter has a score and time).
-// NOTE: For concurrency, we might need to unsafe wrap, or do other shit to ensure that we can mutate the same struct instance accross multiple threads.
-// In theory, this should be okay, because each thread will only have mutable access to specific compontents of the struct.
-// Overall:
-// SP
-// Sum all sp chapters.
-// Coop
-// Sum all coop chapters.
-// Overall
-// Sum both sp/coop.
-// Cache
-// Player Profile / Stats:
-// Stats
-// # wrs
-// Points
-// Position
-// Avg placement
-// Best/worst
-// Newest/oldest
-// Scores
+//  Scores: Pull all top 200 score data for current maps, break into different threads by chapter.
+//  Chapter:
+//  Create a hashmap, with key profile_number, value is a struct that contains data for all chapters (each chapter has a score and time).
+//  NOTE: For concurrency, we might need to unsafe wrap, or do other shit to ensure that we can mutate the same struct instance accross multiple threads.
+//  In theory, this should be okay, because each thread will only have mutable access to specific compontents of the struct.
+//      Overall:
+//      SP
+//          Sum all sp chapters.
+//      Coop
+//          Sum all coop chapters.
+//      Overall
+//          Sum both sp/coop.
+//          Cache
+//      Player Profile / Stats:
+//          Stats
+//          # wrs
+//      Points
+//      Position
+//      Avg placement
+//      Best/worst
+//      Newest/oldest
+//      Scores
 // All score history (break this into smaller calls?), all aggregated time/points history.
