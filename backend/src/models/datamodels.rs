@@ -62,21 +62,23 @@ pub struct Changelog {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChangelogInsert {
-    pub time_gained: Option<NaiveDateTime>,
+    pub timestamp: Option<NaiveDateTime>,
     pub profile_number: String,
     pub score: i32,
     pub map_id: String,
-    pub wr_gain: i32,
-    pub has_demo: Option<i32>,
-    pub banned: i32,
+    pub demo_id: Option<i64>,
+    pub banned: bool,
     pub youtube_id: Option<String>,
     pub previous_id: Option<i32>,
-    pub coopid: Option<i32>,
+    pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
-    pub submission: i32,
+    pub submission: bool,
     pub note: Option<String>,
-    pub category: Option<String>,
+    pub category_id: i32,
+    pub score_delta: Option<i32>,
+    pub verified: Option<bool>,
+    pub admin_note: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

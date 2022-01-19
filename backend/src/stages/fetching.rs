@@ -191,10 +191,12 @@ pub fn post_sp_pb(
 
     let mut previous_id = None;
     let pb_vec = pb_history.pb_history;
+    let mut past_score: Option<i32> = None;
     match pb_vec {
         Some(pb_vec) => {
             let current_pb = pb_vec.into_iter().nth(0).unwrap();
             previous_id = Some(current_pb.id as i32);
+            past_score = Some(current_pb.score);
         }
         None => (),
     }
@@ -213,36 +215,43 @@ pub fn post_sp_pb(
         Some(rank) => Some(rank.clone()),
         None => None,
     };
-
+    let mut score_delta: Option<i32> = None;
+    if let Some(i) = past_score {
+        score_delta = Some(score-i);
+    }
+    // new_score - old_score
     let new_score = ChangelogInsert {
-        time_gained: Some(timestamp),
+        timestamp: Some(timestamp),
         profile_number: profile_number,
         score: score,
         map_id: id.to_string(),
-        wr_gain: wr_gain,
+        demo_id: None,
+        banned: false,
+        youtube_id: None,
         previous_id: previous_id, // id of last PB
+        coop_id: None,
         post_rank: post_rank,     // New rank as of this score update
         pre_rank: prerank,        // Rank prior to this score update
-        has_demo: Some(0),
-        banned: 0,
-        submission: 0,
-        youtube_id: None,
-        coopid: None,
+        submission: false,
         note: None,
-        category: Some("any%".to_string()),
+        category_id: 0, //TODO: Get default category ID from webserver
+        score_delta: score_delta,
+        verified: None,
+        admin_note: None,
     };
     let client = reqwest::blocking::Client::new();
     //
     let post_url = "http://localhost:8080/api/sp/postscore".to_string();
-    let res: i64 = client
-        .post(&url)
+    let res = client
+        .post(&post_url)
         .json(&new_score)
         .send()
         .expect("Error querying our local API")
-        .json()
-        .expect("Error converting to json");
-    // TODO: Better handling of failure
-    println!("{}", res);
+        .json::<i64>();
+    match res {
+        Ok(s) => println!("{}", s),
+        Err(e) => eprintln!("{}", e),
+    }
     // match res {
     //     true => return true,
     //     false => return false,
