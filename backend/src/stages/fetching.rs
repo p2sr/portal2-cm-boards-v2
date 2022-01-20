@@ -98,10 +98,10 @@ pub fn filter_entries_sp(
             Some((score, rank)) => {
                 // The user has a time in top 200 currently
                 if score > &entry.score.value {
-                    println!(
-                        "New better time for user {} on map_id {}",
-                        entry.steam_id.value, id
-                    ); // Add to leaderboards.
+                    // println!(
+                    //     "New better time for user {} on map_id {}",
+                    //     entry.steam_id.value, id
+                    // ); // Add to leaderboards.
                     current_rank.insert(entry.steam_id.value.clone(), rank.clone());
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_cheated.push(SpBanned {
@@ -115,10 +115,10 @@ pub fn filter_entries_sp(
             _ => {
                 // The user is not currently in top 200.
                 if entry.score.value > worst_score {
-                    println!(
-                        "User {} is new to top 200 on {}, we need to add their time!",
-                        entry.steam_id.value, id
-                    );
+                    // println!(
+                    //     "User {} is new to top 200 on {}, we need to add their time!",
+                    //     entry.steam_id.value, id
+                    // );
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_cheated.push(SpBanned {
                             profile_number: entry.steam_id.value.clone(),
@@ -145,9 +145,11 @@ pub fn filter_entries_sp(
             .json()
             .expect("Error converting to json"); //TODO: Fix the endpoint, or change expectations
         match res {
-            true => println!("The time was found, so the time is banned. Ignore"),
+            true => {
+                // println!("The time was found, so the time is banned. Ignore")
+            },
             false => {
-                println!("Time not found, so assumed to be unbanned.");
+                //eprintln!("Time not found, so assumed to be unbanned.");
                 // We have now checked that the user is not banned, that the time is top 200 worthy, that the score doesn't exist in the db, but is banned.
                 match post_sp_pb(
                     entry.profile_number.clone(),
@@ -184,19 +186,31 @@ pub fn post_sp_pb(
         "http://localhost:8080/api/maps/sp/{}/{}",
         id, profile_number
     ); // TODO: Handle crashing if no PB history is found.
-    let pb_history: SpPbHistory = reqwest::blocking::get(&url)
+    let res = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
-        .json()
-        .expect("Error in converting our API values to JSON");
+        .json::<SpPbHistory>();
+    let pb_history = match res {
+        Ok(s) =>  s,
+        Err(e) => {
+            eprintln!("{}", e);
+            SpPbHistory{user_name: None, avatar: None, pb_history: None}
+        },
+    };
 
     let mut previous_id = None;
     let pb_vec = pb_history.pb_history;
     let mut past_score: Option<i32> = None;
     match pb_vec {
         Some(pb_vec) => {
-            let current_pb = pb_vec.into_iter().nth(0).unwrap();
-            previous_id = Some(current_pb.id as i32);
-            past_score = Some(current_pb.score);
+            let current_pb = pb_vec.into_iter().nth(0);
+            if let Some(s) = current_pb {
+                let current_pb = s;
+                previous_id = Some(current_pb.id as i32);
+                past_score = Some(current_pb.score);
+            } else {
+                previous_id = None;
+                past_score = None;
+            }
         }
         None => (),
     }
@@ -241,7 +255,7 @@ pub fn post_sp_pb(
     };
     let client = reqwest::blocking::Client::new();
     //
-    let post_url = "http://localhost:8080/api/sp/postscore".to_string();
+    let post_url = "http://localhost:8080/api/sp/post_score".to_string();
     let res = client
         .post(&post_url)
         .json(&new_score)
@@ -249,8 +263,12 @@ pub fn post_sp_pb(
         .expect("Error querying our local API")
         .json::<i64>();
     match res {
-        Ok(s) => println!("{}", s),
-        Err(e) => eprintln!("{}", e),
+        Ok(s) => {
+            //println!("{}", s)
+        },
+        Err(e) => {
+            //eprintln!("{}", e)
+        },
     }
     // match res {
     //     true => return true,
@@ -296,10 +314,10 @@ pub fn filter_entries_coop(
             Some((score, rank)) => {
                 // The user has a time in top 200 currently
                 if score > &entry.score.value {
-                    println!(
-                        "New better time for user {} on map_id {}",
-                        entry.steam_id.value, id
-                    ); // Add to leaderboards.
+                    // println!(
+                    //     "New better time for user {} on map_id {}",
+                    //     entry.steam_id.value, id
+                    // ); // Add to leaderboards.
                     current_rank.insert(entry.steam_id.value.clone(), rank.clone());
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         // We use SpBanned here because scores taken from the SteamAPI are all handled as SP times.
@@ -314,10 +332,10 @@ pub fn filter_entries_coop(
             _ => {
                 // The user is not currently in top 200.
                 if entry.score.value > worst_score {
-                    println!(
-                        "User {} is new to top 200 on {}, we need to add their time!",
-                        entry.steam_id.value, id
-                    );
+                    // println!(
+                    //     "User {} is new to top 200 on {}, we need to add their time!",
+                    //     entry.steam_id.value, id
+                    // );
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_banned_player.push(SpBanned {
                             profile_number: entry.steam_id.value.clone(),

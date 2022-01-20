@@ -194,7 +194,7 @@ pub struct CoopBundled {
 /// Wrapper for a player's SP PB history.
 #[derive(Serialize, Deserialize)]
 pub struct SpPbHistory {
-    pub user_name: String,
+    pub user_name: Option<String>,
     pub avatar: Option<String>,
     pub pb_history: Option<Vec<Changelog>>,
 }
