@@ -4,8 +4,8 @@ use serde_xml_rs::from_reader;
 use std::collections::HashMap;
 
 use crate::models::datamodels::{
-    ChangelogInsert, CoopBundled, CoopMap, CoopRanked, CoopbundledInsert, Entry, Leaderboards,
-    SpBanned, SpMap, SpPbHistory, SpRanked, XmlTag,
+    ChangelogInsert, CoopBundled, CoopMap, CoopRanked, CoopBundledInsert, Entry, Leaderboards,
+    SpBanned, SpMap, SpPbHistory, SpRanked, XmlTag, CoopDataUtil
 };
 
 /// Grabs the map at the current ID from valve's API and caches times.
@@ -382,7 +382,7 @@ pub fn filter_entries_coop(
                     None => match already_bundled.get(&entry2.profile_number) {
                         Some(_) => (),
                         None => {
-                            bundled_entries.push(CoopBundled {
+                            bundled_entries.push(CoopDataUtil {
                                 profile_number1: entry.profile_number.clone(),
                                 profile_number2: Some(entry2.profile_number.clone()),
                                 score: entry.score,
@@ -398,7 +398,7 @@ pub fn filter_entries_coop(
         match already_bundled.get(&entry.profile_number) {
             Some(_) => (),
             None => {
-                bundled_entries.push(CoopBundled {
+                bundled_entries.push(CoopDataUtil {
                     profile_number1: entry.profile_number.clone(),
                     profile_number2: None,
                     score: entry.score,
@@ -467,19 +467,35 @@ pub fn post_coop_pb(
         // TODO: Fix to handle new pb_history
         // TODO: Make specific to coop
         let pb_vec = pb_history1.pb_history;
+        let mut past_score: Option<i32> = None;
         match pb_vec {
             Some(pb_vec) => {
-                let current_pb = pb_vec.into_iter().nth(0).unwrap();
-                previous_id1 = Some(current_pb.id as i32);
+                let current_pb = pb_vec.into_iter().nth(0);
+                if let Some(s) = current_pb {
+                    let current_pb = s;
+                    previous_id1 = Some(current_pb.id as i32);
+                    past_score = Some(current_pb.score);
+                } else {
+                    previous_id1 = None;
+                    past_score = None;
+                }
             }
             None => (),
         }
         let mut previous_id2 = None;
         let pb_vec = pb_history2.pb_history;
+        let mut past_score: Option<i32> = None;
         match pb_vec {
             Some(pb_vec) => {
-                let current_pb = pb_vec.into_iter().nth(0).unwrap();
-                previous_id2 = Some(current_pb.id as i32);
+                let current_pb = pb_vec.into_iter().nth(0);
+                if let Some(s) = current_pb {
+                    let current_pb = s;
+                    previous_id2 = Some(current_pb.id as i32);
+                    past_score = Some(current_pb.score);
+                } else {
+                    previous_id2 = None;
+                    past_score = None;
+                }
             }
             None => (),
         }
@@ -503,36 +519,113 @@ pub fn post_coop_pb(
             Some(rank) => Some(rank.clone()),
             None => None,
         };
+        let mut score_delta1: Option<i32> = None;
+        if let Some(i) = past_score {
+            score_delta1 = Some(score-i);
+        }
+        let mut score_delta2: Option<i32> = None;
+        if let Some(i) = past_score {
+            score_delta2 = Some(score-i);
+        }
 
         // TODO: We first need to upload individually as changelog entries, get the result from that insert (the changelogID it creates, then use that for the bundling process).
-
-        let news_score = CoopbundledInsert {
-            time_gained: Some(timestamp),
-            profile_number1: profile_number1,
-            profile_number2: profile_number2,
+        // TODO: Getting 404s on all post calls
+        let score1 = ChangelogInsert { 
+            timestamp: Some(timestamp),
+            profile_number: profile_number1.clone(),
             score: score,
             map_id: id.to_string(),
-            wr_gain: wr_gain,
-            is_blue: None,
-            has_demo1: Some(0),
-            has_demo2: Some(0),
-            banned: 0,
-            youtube_id1: None,
-            youtube_id2: None,
-            previous_id1: previous_id1,
-            previous_id2: previous_id2,
-            changelogid1: 0,       //TODO: Get clid
-            changelogid2: 0,       //TODO: Get clid
-            post_rank1: post_rank, //TODO: We should not have 2 post_ranks. The values should always be the same
-            post_rank2: post_rank,
-            pre_rank1: prerank1,
-            pre_rank2: prerank2,
-            submission1: 0,
-            submission2: 0,
-            note1: None,
-            note2: None,
-            category: Some("any%".to_string()),
+            demo_id: None,
+            banned: false,
+            youtube_id: None,
+            previous_id: previous_id1, // id of last PB
+            coop_id: None,
+            post_rank: post_rank,     // New rank as of this score update
+            pre_rank: prerank1,        // Rank prior to this score update
+            submission: false,
+            note: None,
+            category_id: 0, //TODO: Get default category ID from webserver
+            score_delta: score_delta1,
+            verified: None,
+            admin_note: None,
         };
+
+        let score2 = ChangelogInsert {
+            timestamp: Some(timestamp),
+            profile_number: profile_number2.clone(),
+            score: score,
+            map_id: id.to_string(),
+            demo_id: None,
+            banned: false,
+            youtube_id: None,
+            previous_id: previous_id2, // id of last PB
+            coop_id: None,
+            post_rank: post_rank,     // New rank as of this score update
+            pre_rank: prerank2,        // Rank prior to this score update
+            submission: false,
+            note: None,
+            category_id: 0, //TODO: Get default category ID from webserver
+            score_delta: score_delta2,
+            verified: None,
+            admin_note: None,
+        };
+
+        // Insert both changelog entries, retrieve their IDs, create bundle
+        
+        let client = reqwest::blocking::Client::new();
+        let mut new_id1 = 0;
+        let mut new_id2 = 0;
+        let post_url = "http://localhost:8080/api/sp/post_score".to_string();
+        let res = client
+            .post(&post_url)
+            .json(&score1)
+            .send()
+            .expect("Error querying our local API")
+            .json::<i64>();
+        match res {
+            Ok(s) => {
+                new_id1 = s;
+            },
+            Err(e) => {
+                eprintln!("{}", e)
+            },
+        }
+        let res = client
+            .post(&post_url)
+            .json(&score2)
+            .send()
+            .expect("Error querying our local API")
+            .json::<i64>();
+        match res {
+            Ok(s) => {
+                new_id2 = s;
+            },
+            Err(e) => {
+                eprintln!("{}", e)
+            },
+        }
+        let bundle = CoopBundledInsert{
+            p_id1: profile_number1,
+            p_id2: Some(profile_number2),
+            p1_is_host: None,
+            cl_id1: new_id1,
+            cl_id2: Some(new_id2),
+        };
+        let post_url = "http://localhost:8080/api/coop/post_score".to_string();
+        let res = client
+            .post(&post_url)
+            .json(&bundle)
+            .send()
+            .expect("Error querying our local API")
+            .json::<i64>();
+        match res {
+            Ok(s) => {
+                println!("{}", s);
+            },
+            Err(e) => {
+                eprintln!("{}", e);
+            }
+        }
     }
 
     true
