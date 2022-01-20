@@ -267,13 +267,9 @@ pub fn post_sp_pb(
             //println!("{}", s)
         },
         Err(e) => {
-            //eprintln!("{}", e)
+            eprintln!("{}", e)
         },
     }
-    // match res {
-    //     true => return true,
-    //     false => return false,
-    // }
     true
 }
 
@@ -358,7 +354,7 @@ pub fn filter_entries_coop(
     let mut not_cheated = Vec::new(); // Becomes the vector of times that are not from banned players, and do not exist in the changelog.
     for entry in not_banned_player.iter() {
         let res: bool = client
-            .post(&url)
+            .post(&ban_url)
             .json(entry)
             .send()
             .expect("Error querying our local API")
@@ -468,6 +464,8 @@ pub fn post_coop_pb(
             .json()
             .expect("Error in converting our API values to JSON");
         let mut previous_id1 = None;
+        // TODO: Fix to handle new pb_history
+        // TODO: Make specific to coop
         let pb_vec = pb_history1.pb_history;
         match pb_vec {
             Some(pb_vec) => {
