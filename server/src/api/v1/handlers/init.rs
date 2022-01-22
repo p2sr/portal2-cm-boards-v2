@@ -24,6 +24,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(get_cooperative_maps) // Coop
             .service(get_cooperative_preview)
             .service(get_changelog)
+            .service(post_score_coop)
             .service(post_changelog_filtered)
             .service(check_ban_status) // Users
             .service(get_banned_users)

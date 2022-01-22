@@ -243,7 +243,7 @@ impl Maps{
 }
 
 impl Users{
-    pub async fn get_user_data(pool: &PgPool, profile_number: String) -> Result<UsersPage>{
+    pub async fn get_user_data(pool: &PgPool, profile_number: String) -> Result<Option<UsersPage>>{
         let res = sqlx::query_as::<_, UsersPage>(r#"
                 SELECT            
                 CASE 
@@ -259,10 +259,11 @@ impl Users{
             .fetch_one(pool)
             .await;
         match res{
-            Ok(user_data) => Ok(user_data),
+            Ok(user_data) => Ok(Some(user_data)),
             Err(e) => {
-                eprintln!("Error with get_user_data {}", e);
-                return Err(anyhow::Error::new(e).context("Error with SP Banned."))
+                eprintln!("User not found get_user_data ->{}", e);
+                // return Err(anyhow::Error::new(e).context("Error with user data."))
+                return Ok(None)
             }
         }
     }
@@ -404,6 +405,22 @@ impl SpMap{
     }
 }
 
+impl CoopBundled {
+    pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64>{
+        let mut res: i64 = 0; 
+        let query = sqlx::query(r#"
+                INSERT INTO "p2boards".coop_bundled 
+                (p_id1, p_id2, p1_is_host, cl_id1, cl_id2) VALUES 
+                ($1, $2, $3, $4, $5)
+                RETURNING id"#)
+            .bind(cl.p_id1).bind(cl.p_id2).bind(cl.p1_is_host).bind(cl.cl_id1).bind(cl.cl_id2)
+            .map(|row: PgRow|{res = row.get(0)})
+            .fetch_one(pool)
+            .await?;
+            Ok(res)
+    }
+}
+
 // Implementations of associated functions for Changelog
 impl Changelog{
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
@@ -448,7 +465,8 @@ impl Changelog{
         }
     }
     /// Insert a new changelog entry.
-    pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64>{
+    pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64> {
+        // TODO: https://stackoverflow.com/questions/4448340/postgresql-duplicate-key-violates-unique-constraint
         let mut res: i64 = 0; 
         let query = sqlx::query(r#"
                 INSERT INTO "p2boards".changelog 
@@ -464,7 +482,7 @@ impl Changelog{
             .map(|row: PgRow|{res = row.get(0)})
             .fetch_one(pool)
             .await?;
-            Ok(res)
+        Ok(res)
     }
     /// Updates all fields (except ID) for a given changelog entry. Returns the updated Changelog struct.
     pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<Changelog>{

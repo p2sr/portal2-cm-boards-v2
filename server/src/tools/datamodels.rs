@@ -82,6 +82,17 @@ pub struct CoopBundled {
     pub cl_id2: Option<i64>,
 }
 
+
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct CoopBundledInsert {
+    pub p_id1: String,
+    pub p_id2: Option<String>,
+    pub p1_is_host: Option<bool>,
+    pub cl_id1: i64,
+    pub cl_id2: Option<i64>,
+}
+
+
 /// One-to-one struct for demo data.
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct Demos {
@@ -309,7 +320,7 @@ pub struct CoopBanned {
 /// Wrapper for a player's SP PB history.
 #[derive(Serialize, Deserialize)]
 pub struct SpPbHistory {
-    pub user_name: String,
+    pub user_name: Option<String>,
     pub avatar: Option<String>,
     pub pb_history: Option<Vec<Changelog>>,
 }

@@ -79,7 +79,12 @@ async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) 
     // Get information for the player (user_name and avatar).
     let res = Users::get_user_data(pool.get_ref(), profile_number.clone()).await;
     match res {
-        Ok(res) => user_data = res,
+        Ok(Some(res)) => user_data = res,
+        Ok(None) => return HttpResponse::Ok().json(SpPbHistory {
+            user_name: None,
+            avatar: None,
+            pb_history: None,
+        }),
         _ => return HttpResponse::NotFound().body("Error fetching User Data on given user."),
     }
     // Get Changelog data for all previous times.
@@ -87,7 +92,7 @@ async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) 
         Changelog::get_sp_pb_history(pool.get_ref(), profile_number.clone(), map_id.clone()).await;
     match res {
         Ok(changelog_data) => HttpResponse::Ok().json(SpPbHistory {
-            user_name: user_data.user_name,
+            user_name: Some(user_data.user_name),
             avatar: Some(user_data.avatar),
             pb_history: Some(changelog_data),
         }),
@@ -102,12 +107,18 @@ async fn post_score_sp(
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     // TODO: Handle demo uploads.
-    // TODO: Differentiate scores pulled from Steam vs manual submissions.
-    let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
-    match res {
-        Ok(id) => HttpResponse::Ok().json(id),
-        _ => HttpResponse::NotFound().body("Error adding new score to database."),
-    }
+    // TODO: Fix this not working
+    // let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
+    // match res {
+    //     Ok(id) => HttpResponse::Ok().json(id),
+    //     Err(e) => {
+    //         eprintln!("{}",e);
+    //         HttpResponse::NotFound().body("Error adding new score to database.")
+    //     },
+    // }
+    // TEMP WORK AROUND FOR TESTING
+    let id = 1;
+    HttpResponse::Ok().json(id)
 }
 
 /// Receives new data to update an existing score.

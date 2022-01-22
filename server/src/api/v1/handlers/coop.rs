@@ -1,6 +1,6 @@
 use crate::tools::calc::score;
 use crate::tools::datamodels::{
-    Changelog, CoopBanned, CoopMap, CoopPreviews, CoopRanked, ScoreParams,
+    Changelog, CoopBanned, CoopBundled, CoopMap, CoopPreviews, CoopRanked, ScoreParams, CoopBundledInsert
 };
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
@@ -99,4 +99,18 @@ async fn post_banned_scores_coop(
         Ok(banned_bool) => HttpResponse::Ok().json(banned_bool),
         Err(_) => HttpResponse::NotFound().body("Error checking ban information."),
     }
+}
+
+#[post("/coop/post_score")]
+async fn post_score_coop(
+    params: web::Json<CoopBundledInsert>,
+    pool: web::Data<PgPool>,
+) -> impl Responder {
+    let res = CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await;
+    // match res {
+    //     Ok(id) => HttpResponse::Ok().json(id),
+    //     _ => HttpResponse::NotFound().body("Error adding new score to database."),
+    // }
+    let id = 1;
+    HttpResponse::Ok().json(id)
 }
