@@ -27,7 +27,7 @@ pub fn fetch_entries(
         .expect("Error in request to valve API")
         .text()
         .expect("Error in writing the result from Valve's API to text");
-
+    
     // Print to cache
     let is_updated = cache_leaderboard(id, text.clone());
     // TODO: Set this up with logging.
@@ -253,6 +253,7 @@ pub fn post_sp_pb(
         verified: None,
         admin_note: None,
     };
+    // println!("{}", serde_json::to_string(&new_score).unwrap());
     let client = reqwest::blocking::Client::new();
     //
     let post_url = "http://localhost:8080/api/sp/post_score".to_string();
@@ -569,7 +570,9 @@ pub fn post_coop_pb(
             verified: None,
             admin_note: None,
         };
+        // println!("{:#?}", score1);
 
+        // println!("{:#?}", score2);
         // Insert both changelog entries, retrieve their IDs, create bundle
         
         let client = reqwest::blocking::Client::new();
