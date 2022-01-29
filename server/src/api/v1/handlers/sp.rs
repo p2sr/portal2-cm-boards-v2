@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use crate::tools::calc::score;
 use crate::tools::datamodels::{
     Changelog, ChangelogInsert, ScoreParams, SpBanned, SpMap, SpPbHistory, SpPreviews, SpRanked,
-    Users, UsersPage,
+    Users, UsersPage
 };
 
 /// GET endpoint to handle the preview page showing all sp maps.

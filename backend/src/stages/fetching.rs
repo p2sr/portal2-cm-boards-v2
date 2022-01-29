@@ -2,6 +2,7 @@ use super::exporting::*;
 use chrono::prelude::*;
 use serde_xml_rs::from_reader;
 use std::collections::HashMap;
+use log::{debug, trace, error};
 
 use crate::models::datamodels::{
     ChangelogInsert, CoopBundled, CoopMap, CoopRanked, CoopBundledInsert, Entry, Leaderboards,
@@ -30,9 +31,8 @@ pub fn fetch_entries(
     
     // Print to cache
     let is_updated = cache_leaderboard(id, text.clone());
-    // TODO: Set this up with logging.
     if is_updated {
-        println!("The cache is updated for map {}", id);
+        debug!("The cache is updated for map {}", id);
     }
     let leaderboard: Leaderboards = from_reader(text.as_bytes()).expect("XML Error in parsing");
     // Get banned players list.
@@ -98,10 +98,10 @@ pub fn filter_entries_sp(
             Some((score, rank)) => {
                 // The user has a time in top 200 currently
                 if score > &entry.score.value {
-                    // println!(
-                    //     "New better time for user {} on map_id {}",
-                    //     entry.steam_id.value, id
-                    // ); // Add to leaderboards.
+                    trace!(
+                        "New better time for user {} on map_id {}",
+                        entry.steam_id.value, id
+                    ); // Add to leaderboards.
                     current_rank.insert(entry.steam_id.value.clone(), rank.clone());
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_cheated.push(SpBanned {
@@ -115,10 +115,10 @@ pub fn filter_entries_sp(
             _ => {
                 // The user is not currently in top 200.
                 if entry.score.value > worst_score {
-                    // println!(
-                    //     "User {} is new to top 200 on {}, we need to add their time!",
-                    //     entry.steam_id.value, id
-                    // );
+                    trace!(
+                        "User {} is new to top 200 on {}, we need to add their time!",
+                        entry.steam_id.value, id
+                    );
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_cheated.push(SpBanned {
                             profile_number: entry.steam_id.value.clone(),
@@ -143,13 +143,13 @@ pub fn filter_entries_sp(
             .send()
             .expect("Error querying our local API")
             .json()
-            .expect("Error converting to json"); //TODO: Fix the endpoint, or change expectations
+            .expect("Error converting to json");
         match res {
             true => {
-                // println!("The time was found, so the time is banned. Ignore")
+                trace!("Time {} by {} found, so time is banned. Ignore", entry.score, entry.profile_number)
             },
             false => {
-                //eprintln!("Time not found, so assumed to be unbanned.");
+                trace!("Time {} by {} not found, so assumed to be unbanned.", entry.score, entry.profile_number);
                 // We have now checked that the user is not banned, that the time is top 200 worthy, that the score doesn't exist in the db, but is banned.
                 match post_sp_pb(
                     entry.profile_number.clone(),
@@ -160,8 +160,8 @@ pub fn filter_entries_sp(
                     &current_rank,
                     &map_json,
                 ) {
-                    true => (), //TODO: Handle failure.
-                    false => (),
+                    true => (),
+                    false => error!("Time {} by {} failed to submit", entry.profile_number, entry.score),
                 };
             }
         }
@@ -185,14 +185,14 @@ pub fn post_sp_pb(
     let url = format!(
         "http://localhost:8080/api/maps/sp/{}/{}",
         id, profile_number
-    ); // TODO: Handle crashing if no PB history is found.
+    );
     let res = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json::<SpPbHistory>();
     let pb_history = match res {
         Ok(s) =>  s,
         Err(e) => {
-            eprintln!("{}", e);
+            trace!("{}", e);
             SpPbHistory{user_name: None, avatar: None, pb_history: None}
         },
     };
@@ -233,7 +233,17 @@ pub fn post_sp_pb(
     if let Some(i) = past_score {
         score_delta = Some(score-i);
     }
-    // new_score - old_score
+    let mut cat_id = 0;
+    let url = format!("http://localhost:8080/api/category/default_category/{}", id);
+    let res = reqwest::blocking::get(&url)
+        .expect("Error in query to our local API (Make sure the webserver is running")
+        .json::<i32>();
+    let pb_history = match res {
+        Ok(s) =>  cat_id = s,
+        Err(e) => {
+            trace!("{}", e);
+        },
+    };
     let new_score = ChangelogInsert {
         timestamp: Some(timestamp),
         profile_number: profile_number,
@@ -248,14 +258,12 @@ pub fn post_sp_pb(
         pre_rank: prerank,        // Rank prior to this score update
         submission: false,
         note: None,
-        category_id: 0, //TODO: Get default category ID from webserver
+        category_id: cat_id,
         score_delta: score_delta,
         verified: None,
         admin_note: None,
     };
-    // println!("{}", serde_json::to_string(&new_score).unwrap());
     let client = reqwest::blocking::Client::new();
-    //
     let post_url = "http://localhost:8080/api/sp/post_score".to_string();
     let res = client
         .post(&post_url)
@@ -265,10 +273,11 @@ pub fn post_sp_pb(
         .json::<i64>();
     match res {
         Ok(s) => {
-            //println!("{}", s)
+            trace!("{}", s)
         },
         Err(e) => {
-            eprintln!("{}", e)
+            error!("{}", e);
+            return false
         },
     }
     true
@@ -311,10 +320,10 @@ pub fn filter_entries_coop(
             Some((score, rank)) => {
                 // The user has a time in top 200 currently
                 if score > &entry.score.value {
-                    // println!(
-                    //     "New better time for user {} on map_id {}",
-                    //     entry.steam_id.value, id
-                    // ); // Add to leaderboards.
+                    trace!(
+                        "New better time for user {} on map_id {}",
+                        entry.steam_id.value, id
+                    ); // Add to leaderboards.
                     current_rank.insert(entry.steam_id.value.clone(), rank.clone());
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         // We use SpBanned here because scores taken from the SteamAPI are all handled as SP times.
@@ -329,10 +338,10 @@ pub fn filter_entries_coop(
             _ => {
                 // The user is not currently in top 200.
                 if entry.score.value > worst_score {
-                    // println!(
-                    //     "User {} is new to top 200 on {}, we need to add their time!",
-                    //     entry.steam_id.value, id
-                    // );
+                    trace!(
+                        "User {} is new to top 200 on {}, we need to add their time!",
+                        entry.steam_id.value, id
+                    );
                     match check_cheated(&entry.steam_id.value, &banned_users) {
                         false => not_banned_player.push(SpBanned {
                             profile_number: entry.steam_id.value.clone(),
@@ -362,7 +371,7 @@ pub fn filter_entries_coop(
             .json()
             .expect("Error converting to json");
         match res {
-            true => println!("The time was found, so the time is banned. Ignore"),
+            true => debug!("The time was found, so the time is banned. Ignore"),
             false => not_cheated.push(entry.clone()),
         }
     }
@@ -528,6 +537,19 @@ pub fn post_coop_pb(
         if let Some(i) = past_score {
             score_delta2 = Some(score-i);
         }
+        let mut cat_id = 0;
+        
+        let url = format!("http://localhost:8080/api/category/default_category/{}", id);
+        let res = reqwest::blocking::get(&url)
+            .expect("Error in query to our local API (Make sure the webserver is running")
+            .json::<i32>();
+        let pb_history = match res {
+            Ok(s) =>  cat_id = s,
+            Err(e) => {
+                trace!("{}", e);
+            },
+        };
+        //println!("{}", cat_id);
 
         // TODO: We first need to upload individually as changelog entries, get the result from that insert (the changelogID it creates, then use that for the bundling process).
         // TODO: Getting 404s on all post calls
@@ -545,7 +567,7 @@ pub fn post_coop_pb(
             pre_rank: prerank1,        // Rank prior to this score update
             submission: false,
             note: None,
-            category_id: 0, //TODO: Get default category ID from webserver
+            category_id: cat_id,
             score_delta: score_delta1,
             verified: None,
             admin_note: None,
@@ -565,14 +587,14 @@ pub fn post_coop_pb(
             pre_rank: prerank2,        // Rank prior to this score update
             submission: false,
             note: None,
-            category_id: 0, //TODO: Get default category ID from webserver
+            category_id: cat_id,
             score_delta: score_delta2,
             verified: None,
             admin_note: None,
         };
-        // println!("{:#?}", score1);
+        debug!("{:#?}", score1);
 
-        // println!("{:#?}", score2);
+        debug!("{:#?}", score2);
         // Insert both changelog entries, retrieve their IDs, create bundle
         
         let client = reqwest::blocking::Client::new();
@@ -590,7 +612,7 @@ pub fn post_coop_pb(
                 new_id1 = s;
             },
             Err(e) => {
-                eprintln!("{}", e)
+                error!("{}", e)
             },
         }
         let res = client
@@ -604,7 +626,7 @@ pub fn post_coop_pb(
                 new_id2 = s;
             },
             Err(e) => {
-                eprintln!("{}", e)
+                error!("{}", e)
             },
         }
         let bundle = CoopBundledInsert{
@@ -623,10 +645,10 @@ pub fn post_coop_pb(
             .json::<i64>();
         match res {
             Ok(s) => {
-                println!("{}", s);
+                trace!("{}", s);
             },
             Err(e) => {
-                eprintln!("{}", e);
+                debug!("{}", e);
             }
         }
     }

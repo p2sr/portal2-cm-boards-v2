@@ -240,6 +240,18 @@ impl Maps{
             .await?;
         Ok(Some(res))
     }
+    pub async fn get_deafult_cat(pool: &PgPool, map_id: String) -> Result<Option<i32>> {
+        // TODO: This "deafult" is kind of stupid. There are 108 defaults so we just make sure the ID is < 109
+        let res = sqlx::query(r#"
+                SELECT ct.id FROM "p2boards".categories
+                    AS ct INNER JOIN "p2boards".maps AS map ON (ct.map_id = map.steam_id)
+                    WHERE (ct.id < 109) AND (map.steam_id = $1);"#)
+            .bind(map_id)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(res)
+    }
 }
 
 impl Users{
