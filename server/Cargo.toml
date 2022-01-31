@@ -9,6 +9,7 @@ actix-web = "4.0.0-beta.19"
 actix-rt = "2.2.0"
 actix-cors = "0.6.0-beta.8"
 actix-multipart = "0.4.0-beta.12"
+actix-form-data = "0.6.0-beta.11"
 futures = "0.3.17"
 
 sqlx = { version = "0.5.7", features = [ "runtime-actix-rustls", "postgres", "chrono", "offline"] }

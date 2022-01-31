@@ -1,23 +1,26 @@
 use actix_multipart::Multipart;
+use actix_form_data::{Field, Form, Value};
 use actix_web::{post, web, HttpResponse, Responder};
 use futures::{StreamExt, TryStreamExt};
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::fs::OpenOptions;
 use std::io::Write; // bring trait into scope
+use std::str;
 
-pub struct DemoData {
-    id: i32,
-    drive_url: Option<String>,
-    partner_name: Option<String>,
-    parsed_successfully: bool,
-    sar_version: Option<String>,
-    cl_id: i32,
-}
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DemoUpload {
-    sar_version: Option<String>,
-}
+// pub struct DemoData {
+//     id: i32,
+//     drive_url: Option<String>,
+//     partner_name: Option<String>,
+//     parsed_successfully: bool,
+//     sar_version: Option<String>,
+//     cl_id: i32,
+// }
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct DemoUpload {
+//     sar_version: Option<String>,
+// }
 
+#[derive(Debug)]
 struct ReceivedPart {
     content_type: String,
     content_disposition: Option<String>,
@@ -41,28 +44,50 @@ impl Display for ReceivedPart {
     }
 }
 
-// TODO: A lot of this is just example code for debugging, not super useful, will need to
+// I had a fundamental misunderstanding of multipart. I can send over multiple form fields, not just files. I need to handle the different fields now.
 //  a. Handle renaming/db interactions (update demo table/specific time that is being uploaded)
-//  b. Pass to google drive
+//  b. Pass to backblaze
 //  c. Look to see if there is anything special needed for auto-submit
 //  d. Integrate Parsing
 // Code Reference: https://github.com/Ujang360/actix-multipart-demo/blob/main/src/main.rs
-// Google Drive API: https://docs.rs/google-drive/0.2.4/google_drive/
 #[post("/demo")]
 pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
     let mut received_parts = Vec::new();
     while let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field.content_type().to_string();
-        // let x = field.content_disposition().get_filename();
-        // println!("{:#?}", x.unwrap());
-        // content_disposition() now returns a &ContentDisposition, rather than an Option<ContentDisposition>
+        // TODO: Match on data type for deserialization
+        // let file_name = field.content_disposition().get_filename();
+        // if let Some(file_name) = file_name {
+        //     println!("{:#?}", file_name);
+        // }
+        // let name = field.content_disposition().get_name();
+        // if let Some(name) = name {
+        //     println!("{:#?}", name);
+        // }
+        // Note: content_disposition() now returns a &ContentDisposition, rather than an Option<ContentDisposition>
         let content_disposition = Some(format!("{:#?}", field.content_disposition()));
         let mut content_data = Vec::new();
         while let Some(Ok(chunk)) = field.next().await {
             content_data.extend(chunk);
         }
-        // let mut file = OpenOptions::new().create(true).write(true).open("./demo.dem").unwrap();
-        // file.write_all(&content_data);
+        // TODO:: Write out the demo file locally, use that for parsing.
+        // let name = field.content_disposition().get_name();
+        // let name = if let Some(name) = name {
+        //     name
+        // } else {
+        //     "notfound"
+        // };
+        // let mut file = OpenOptions::new().create(true).write(true).open(format!("./{}", name)).unwrap();
+        // file.write_all(&content_data).unwrap();
+        // TODO: Use from_utf8 to deserialize the data we recieve (SKIP OVER DEMO FILES)
+        // let s = match str::from_utf8(&content_data) {
+        //     Ok(v) => v,
+        //     Err(e) => {
+        //         eprintln!("Invalid UTF-8 sequence: {}", e);
+        //         "ERROR"
+        //     },
+        // };
+        // println!("result: {}", s);
         let x = ReceivedPart {
             content_data,
             content_type,
@@ -70,7 +95,6 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
         };
         received_parts.push(x);
     }
-
     let mut received_parts_string = String::new();
     let mut counter = 0;
 
