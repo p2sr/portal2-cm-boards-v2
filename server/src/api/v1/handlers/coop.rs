@@ -106,6 +106,7 @@ async fn post_score_coop(
     params: web::Json<CoopBundledInsert>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
+    #[allow(unused_variables)]
     let res = CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await;
     // match res {
     //     Ok(id) => HttpResponse::Ok().json(id),

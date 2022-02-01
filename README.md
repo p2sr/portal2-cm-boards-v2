@@ -72,26 +72,24 @@ If this doesn't work for any reason, one thing to check is that the file copied 
 
 ## Backend
 ### Building
-The backend binary can be build by using `cargo build` in the `backend` directory. With Rust installed, it should download all dependancies and compile the binary for you.
+The backend binary is currently being re-worked to work with clap, so we build the binary, then run it with arg flags (to be changed). The backend binary calls our webserver for information needed to fetch/upload new scores and calculate points. It does *not* interact with the database on its own.
 #### Features
 * Pulling Official Single Player Map data from Steam, caching that data to avoid needing to re-parse/compare.
 * Supports multithreading with Rayon.
 * Queries to the API for comparison data.
+* Calculates all point information for the boards
 #### Future Plans
-Plans for the future include allowing args for the binary to allow it to distinguish between different tasks, but the current goal is to use it for fetching / process / cache times from the 
-Steam Leaderboards, as well as to calculate and cache profile data for all players.
-
-The purpose of keeping this backend seperate from the web-server is to off-load some more computationally heavy tasks to an entirely different process for modularity. None of this design is final
+The purpose of keeping this backend seperate from the web-server is to off-load some more computationally heavy tasks to an entirely different process for modularity (in theory you should be able to run a cluster of backends). None of this design is final.
 
 ## Database
 ### Building
-* Install `postgres` and setup a user (reference the `DATABASE_URL` bellow.
+* Install `postgres` and setup a user (reference the `DATABASE_URL` bellow).
 * Open psql console, `CREATE DATABASE p2boards;`
 * Load the latest dump from `/db/dbdump` with `psql p2boards < most_recent_dump_file_name.sql`
 
 ## Server
 ### Building
-The code is being re-writen to no longer use Diesel.rs and MySQL. More information to come.
+Using sqlx to pass queries to our database. REST API to be documented.
 
 **Be sure to copy the `.env.example` file, remove `.example` from the file name, and change the contents of the file to suite your usecase.**
 
@@ -108,12 +106,10 @@ RUST_LOG="actix_web=info"
 ```
 
 #### Features:
-* Endpoints for sp/coop/changelog pages.
+* Endpoints interacting with the data on the boards.
 * Supports db pool and async for non-blocking, fast response to simultanious queries.
 #### Future Plans
 * Result Caching (redis?).
-* Migrating to Postgres.
-* Different query handler.
 * Authentication handling through Steam.
 * Permissions handling for Admin users.
 * Category integration.

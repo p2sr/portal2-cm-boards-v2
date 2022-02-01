@@ -1,15 +1,13 @@
 [package]
 name = "server"
-version = "0.1.0"
+version = "0.5.0"
 authors = ["Daniel Bates <36864021+DanielBatesJ@users.noreply.github.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-actix-web = "4.0.0-beta.19"
-actix-rt = "2.2.0"
+actix-web = "4.0.0-rc.1"
 actix-cors = "0.6.0-beta.8"
-actix-multipart = "0.4.0-beta.12"
-actix-form-data = "0.6.0-beta.11"
+actix-multipart = "0.4.0-beta.13"
 futures = "0.3.17"
 
 sqlx = { version = "0.5.7", features = [ "runtime-actix-rustls", "postgres", "chrono", "offline"] }

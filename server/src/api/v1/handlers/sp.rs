@@ -101,6 +101,7 @@ async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) 
 }
 
 /// Receives a new score to add to the DB.
+#[allow(unused_variables)]
 #[post("/sp/post_score")]
 async fn post_score_sp(
     params: web::Json<ChangelogInsert>,
