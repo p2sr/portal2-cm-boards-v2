@@ -315,6 +315,30 @@ impl Users{
             .await?;
         Ok(res)
     }
+    /// Inserts a new user into the databse
+    pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<bool> {
+        let mut res = String::new();
+        let query = sqlx::query(r#"
+                INSERT INTO "p2boards".Users
+                (profile_number, board_name, steam_name, banned, registred, 
+                avatar, twitch, youtube, title, admin, donation_amount, discord_id)
+                VALUSE ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                RETURNING profile_number"#)
+            .bind(new_user.profile_number.clone()).bind(new_user.board_name).bind(new_user.steam_name)
+            .bind(new_user.banned).bind(new_user.registred).bind(new_user.avatar)
+            .bind(new_user.twitch).bind(new_user.youtube).bind(new_user.title)
+            .bind(new_user.admin).bind(new_user.donation_amount).bind(new_user.discord_id)
+            .map(|row: PgRow| {
+                res = row.get(0);
+            })
+            .fetch_one(pool)
+            .await?;
+        if res == new_user.profile_number {
+            return Ok(true);
+        } else {
+            return Ok(false);
+        }
+    }
 }
 
 impl CoopMap{

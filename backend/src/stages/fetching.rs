@@ -9,6 +9,8 @@ use crate::models::datamodels::{
     SpBanned, SpMap, SpPbHistory, SpRanked, XmlTag, CoopDataUtil
 };
 
+// TODO: If user doesn't exist, add a new user in db.
+
 /// Grabs the map at the current ID from valve's API and caches times.
 pub fn fetch_entries(
     id: i32,
@@ -36,7 +38,7 @@ pub fn fetch_entries(
     }
     let leaderboard: Leaderboards = from_reader(text.as_bytes()).expect("XML Error in parsing");
     // Get banned players list.
-    let banned_users: Vec<String> = reqwest::blocking::get("http://localhost:8080/api/bannedusers")
+    let banned_users: Vec<String> = reqwest::blocking::get("http://localhost:8080/api/banned_users")
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json()
         .expect("Error in converting our API values to JSON");

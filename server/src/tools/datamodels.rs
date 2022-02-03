@@ -132,7 +132,7 @@ pub struct Maps {
 }
 
 /// One-to-one struct for user data.
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Users {
     pub profile_number: String,
     pub board_name: Option<String>,
