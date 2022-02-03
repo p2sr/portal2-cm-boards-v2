@@ -9,7 +9,7 @@ use std::str;
 
 #[derive(Debug)]
 pub struct DemoData {
-    file_url: Option<String>,
+    file_id: Option<String>,
     partner_name: Option<String>,
     parsed_successfully: bool,
     sar_version: Option<String>,
@@ -50,7 +50,7 @@ impl Display for ReceivedPart {
 pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
     let mut received_parts = Vec::new();
     let mut values = DemoData {
-        file_url: None,
+        file_id: None,
         partner_name: None,
         parsed_successfully: false,
         sar_version: None,
@@ -76,6 +76,7 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
         let file_name = field.content_disposition().get_filename();
 
         // Handle the case where we were passed a file
+        #[allow(unused_variables)]
         if let Some(file_name) = file_name {
             // TODO: Uncomment this code when we want the demos to be written (works trust me)
             // let mut file = OpenOptions::new()
@@ -100,9 +101,8 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
                     "ERROR"
                 }
             };
-            // TODO: Match on field_name
             match field_name {
-                "file_url" => values.file_url = Some(result_string.to_string()),
+                "file_id" => values.file_id = Some(result_string.to_string()),
                 "partner_name" => values.partner_name = Some(result_string.to_string()),
                 "parsed_successfully" => {
                     values.parsed_successfully = {

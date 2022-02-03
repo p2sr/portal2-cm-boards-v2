@@ -108,7 +108,7 @@ async fn post_score_sp(
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     // TODO: Handle demo uploads.
-    // TODO: Fix this not working
+    // TODO: Working with sequence re-sync. Need to implement role-back.
     // let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
     // match res {
     //     Ok(id) => HttpResponse::Ok().json(id),

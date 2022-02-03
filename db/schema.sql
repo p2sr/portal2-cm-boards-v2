@@ -93,7 +93,7 @@ CREATE SEQUENCE p2boards.changelog_id_seq
 --
 -- Name: changelog_id_seq; Type: SEQUENCE OWNED BY; Schema: p2boards; Owner: -
 --
-
+/* https://stackoverflow.com/questions/244243/how-to-reset-postgres-primary-key-sequence-when-it-falls-out-of-sync */
 ALTER SEQUENCE p2boards.changelog_id_seq OWNED BY p2boards.changelog.id;
 
 
@@ -168,7 +168,7 @@ ALTER SEQUENCE p2boards.coop_bundled_id_seq OWNED BY p2boards.coop_bundled.id;
 
 CREATE TABLE p2boards.demos (
     id bigint NOT NULL,
-    drive_url character varying(100) NOT NULL,
+    file_id character varying(100) NOT NULL,
     partner_name character varying(50),
     parsed_successfully boolean DEFAULT false NOT NULL,
     sar_version character varying(50),

@@ -384,6 +384,7 @@ def coop_bundled(mysql_cursor, pg_cursor):
 # NEW BLOCK
 def categories(pg_cursor):
     # We want to create 108 any% cateogies for all 108 base-maps
+    # TODO: Create default cat_id for each map
     id_ = 1
     for map in sp_map_ids:
         pg_cursor.execute("""INSERT INTO

@@ -632,3 +632,19 @@ impl ChangelogPage{
         // Ok(Some(res))
     }
 }
+
+impl Demos {
+    pub async fn insert_demo(pool: &PgPool, demo: DemoInsert) -> Result<i64>{
+        let mut res: i64 = 0; 
+        let query = sqlx::query(r#"
+                INSERT INTO "p2boards".demos 
+                (file_id, partner_name, parsed_successfully, sar_version, cl_id) VALUES 
+                ($1, $2, $3, $4, $5)
+                RETURNING id"#)
+            .bind(demo.file_url).bind(demo.partner_name).bind(demo.parsed_successfully).bind(demo.sar_version).bind(demo.cl_id)
+            .map(|row: PgRow|{res = row.get(0)})
+            .fetch_one(pool)
+            .await?;
+            Ok(res)
+    }
+}
