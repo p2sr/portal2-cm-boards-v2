@@ -78,6 +78,7 @@ async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) 
     let user_data: UsersPage;
     // Get information for the player (user_name and avatar).
     let res = Users::get_user_data(pool.get_ref(), profile_number.clone()).await;
+    // TODO: Handle the case where the is no user in the db
     match res {
         Ok(Some(res)) => user_data = res,
         Ok(None) => return HttpResponse::Ok().json(SpPbHistory {
@@ -96,7 +97,10 @@ async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) 
             avatar: Some(user_data.avatar),
             pb_history: Some(changelog_data),
         }),
-        _ => HttpResponse::NotFound().body("Error fetching Changelog data on given user."),
+        Err(e) => {
+            eprintln!("Could not find SP PB History -> {}", e);
+            HttpResponse::NotFound().body("Error fetching Changelog data on given user.")
+        },
     }
 }
 

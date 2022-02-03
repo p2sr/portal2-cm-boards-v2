@@ -495,8 +495,7 @@ impl Changelog{
         match res{
             Ok(pb_history) => return Ok(pb_history),
             Err(e) => {
-                eprintln!("Error with get_sp_pb_history {}", e);
-                return Err(anyhow::Error::new(e).context("Error with SP Maps"))
+                return Err(anyhow::Error::new(e).context("Could not find SP PB History"))
             },
         }
     }

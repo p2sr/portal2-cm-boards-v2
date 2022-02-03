@@ -192,6 +192,7 @@ pub fn post_sp_pb(
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json::<SpPbHistory>();
     let pb_history = match res {
+        // TODO: Handle this with new user creation.
         Ok(s) =>  s,
         Err(e) => {
             trace!("{}", e);
