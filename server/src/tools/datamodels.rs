@@ -82,7 +82,6 @@ pub struct CoopBundled {
     pub cl_id2: Option<i64>,
 }
 
-
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct CoopBundledInsert {
     pub p_id1: String,
@@ -91,7 +90,6 @@ pub struct CoopBundledInsert {
     pub cl_id1: i64,
     pub cl_id2: Option<i64>,
 }
-
 
 /// One-to-one struct for demo data.
 #[derive(Serialize, Deserialize, FromRow)]
@@ -128,6 +126,7 @@ pub struct Maps {
     pub lp_id: String,
     pub name: String,
     pub chapter_id: Option<i32>,
+    pub default_cat_id: i32,
     pub is_public: bool,
 }
 
