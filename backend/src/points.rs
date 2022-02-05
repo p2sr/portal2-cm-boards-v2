@@ -9,6 +9,12 @@ pub struct PointsWrapper {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SendWrapper {
+    id: Option<i32>,
+    points: Vec<(String, Points)>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Points {
     points: f32,
     score: i32, // TODO: Need to change the format to support SAR timing
@@ -74,9 +80,23 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
                 calc_chapter(map_ids, chapter_id)
             })
             .collect();
+        // Sort the hashmap by points
+        // TODO: Ordered hashmap lib?
+        // TODO: This allocation is really annoying, would *love* to fix it. Maybe compute this on the webserver??
+        let hm_vec_clone = hm_vec.clone();
+        let mut send_vec: Vec<SendWrapper> = Vec::with_capacity(16);
+        for chapter in hm_vec_clone.into_iter() {
+            let mut sorted: Vec<_> = chapter.points.into_iter().collect();
+            sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
+            send_vec.push(SendWrapper {
+                id: chapter.id,
+                points: sorted,
+            });
+        }
 
+        // TODO: Handle time-based sorting
         // Post all chapters to the webserver
-        for chapter in hm_vec.iter() {
+        for chapter in send_vec.iter() {
             let client = reqwest::blocking::Client::new();
             let url = "http://localhost:8080/api/points/chapter".to_string();
             client
@@ -133,25 +153,34 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
             }
         }
         // println!("{:#?}", sp_hm.get("76561198039230536"));
+        let sp_hm_clone = sp_hm.clone();
+        let mut sorted: Vec<_> = sp_hm_clone.into_iter().collect();
+        sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
+
         // TODO: Error Handling
+
         let client = reqwest::blocking::Client::new();
         let url = "http://localhost:8080/api/points/sp".to_string();
         client
             .post(&url)
-            .json(&PointsWrapper {
+            .json(&SendWrapper {
                 id: None,
-                points: sp_hm.clone(),
+                points: sorted,
             })
             .send()
             .expect("Error querying our local API");
+        let coop_hm_clone = coop_hm.clone();
+        let mut sorted: Vec<_> = coop_hm_clone.into_iter().collect();
+        sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
+
         // TODO: Error Handling
         let client = reqwest::blocking::Client::new();
         let url = "http://localhost:8080/api/points/coop".to_string();
         client
             .post(&url)
-            .json(&PointsWrapper {
+            .json(&SendWrapper {
                 id: None,
-                points: coop_hm.clone(),
+                points: sorted,
             })
             .send()
             .expect("Error querying our local API");
@@ -195,13 +224,16 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
                 }
             }
         }
+        let mut sorted: Vec<_> = overall_hm.into_iter().collect();
+        sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
+
         let client = reqwest::blocking::Client::new();
         let url = "http://localhost:8080/api/points/overall".to_string();
         client
             .post(&url)
-            .json(&PointsWrapper {
+            .json(&SendWrapper {
                 id: None,
-                points: overall_hm,
+                points: sorted,
             })
             .send()
             .expect("Error querying our local API");
@@ -361,6 +393,8 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
     }
     // Have this be a map, map all the values into one big hashmap.
     // println!("{:#?}", final_hm.get("76561198039230536"));
+    // The placeholder "N/A" profile_number is getting their points calculated. This removes the entry.
+    final_hm.remove("N/A");
     PointsWrapper {
         id: Some(chapter_id),
         points: final_hm,
