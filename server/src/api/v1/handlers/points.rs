@@ -48,6 +48,8 @@ pub struct Points {
     total_rank_sum: i32,
     worst: (i32, String),
     best: (i32, String),
+    user_name: Option<String>,
+    avatar: Option<String>,
 }
 
 /// Update single player points data.

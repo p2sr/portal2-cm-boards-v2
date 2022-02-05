@@ -22,6 +22,8 @@ pub struct Points {
     total_rank_sum: i32,
     worst: (i32, String),
     best: (i32, String),
+    user_name: Option<String>,
+    avatar: Option<String>,
 }
 
 impl Points {
@@ -45,6 +47,8 @@ impl Points {
             } else {
                 self.best
             },
+            user_name: self.user_name,
+            avatar: self.avatar,
         }
     }
 }
@@ -272,6 +276,8 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
                         total_rank_sum: score.rank,
                         worst: (score.rank, map.clone()),
                         best: (score.rank, map.clone()),
+                        user_name: score.map_data.user_name.clone(),
+                        avatar: score.map_data.avatar.clone(),
                     },
                 ) {
                     Some(pnts) => {
@@ -292,6 +298,8 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
                                 } else {
                                     pnts.best
                                 },
+                                user_name: score.map_data.user_name,
+                                avatar: score.map_data.avatar,
                             },
                         );
                     }
@@ -320,6 +328,8 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
                                 total_rank_sum: score.rank,
                                 worst: (score.rank, map.clone()),
                                 best: (score.rank, map.clone()),
+                                user_name: Some(score.map_data.user_name1.clone()),
+                                avatar: score.map_data.avatar1.clone(),
                             },
                         ) {
                             Some(pnts) => {
@@ -340,6 +350,8 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
                                         } else {
                                             pnts.best
                                         },
+                                        user_name: Some(score.map_data.user_name1.clone()),
+                                        avatar: score.map_data.avatar1.clone(),
                                     },
                                 );
                             }
@@ -359,6 +371,8 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
                                 total_rank_sum: score.rank,
                                 worst: (score.rank, map.clone()),
                                 best: (score.rank, map.clone()),
+                                user_name: score.map_data.user_name2.clone(),
+                                avatar: score.map_data.avatar2.clone(),
                             },
                         ) {
                             Some(pnts) => {
@@ -379,6 +393,8 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
                                         } else {
                                             pnts.best
                                         },
+                                        user_name: score.map_data.user_name2,
+                                        avatar: score.map_data.avatar2,
                                     },
                                 );
                             }
