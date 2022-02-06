@@ -9,6 +9,7 @@ actix-web = "4.0.0-rc.1"
 actix-cors = "0.6.0-beta.8"
 actix-multipart = "0.4.0-beta.13"
 futures = "0.3.17"
+b2_backblaze = "0.1.3"
 
 sqlx = { version = "0.5.7", features = [ "runtime-actix-rustls", "postgres", "chrono", "offline"] }
 chrono = { version = "0.4.19", features = ["serde", "rustc-serialize"] }

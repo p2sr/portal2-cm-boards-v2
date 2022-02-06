@@ -1,10 +1,14 @@
 #![allow(unused_imports)]
 use actix_multipart::Multipart;
 use actix_web::{post, web, HttpResponse, Responder};
+use b2_backblaze::Config;
+use b2_backblaze::B2;
 use futures::{StreamExt, TryStreamExt};
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use std::fs::remove_file;
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::process::Command;
 use std::str;
 
 #[derive(Debug)]
@@ -76,16 +80,51 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
         let file_name = field.content_disposition().get_filename();
 
         // Handle the case where we were passed a file
-        #[allow(unused_variables)]
         if let Some(file_name) = file_name {
-            // TODO: Uncomment this code when we want the demos to be written (works trust me)
-            // let mut file = OpenOptions::new()
-            //     .create(true)
-            //     .write(true)
-            //     .open(format!("./{}", file_name))
-            //     .unwrap(); // TODO: unwraps...
-            // file.write_all(&content_data).unwrap();
+            let file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .open(format!("./demos/{}", file_name));
+            match file {
+                Ok(mut res) => match res.write_all(&content_data) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return HttpResponse::InternalServerError()
+                            .body(format!("Failed to write demo locally -> {}", e))
+                    }
+                },
+                Err(e) => {
+                    return HttpResponse::InternalServerError()
+                        .body(format!("Failed to write demo locally -> {}", e))
+                }
+            };
+            // TODO: Parse Demo
+            // TODO: Need more features from BB API
+            // TODO: Setup BackBlaze credentials in .env
+            let mut client = B2::new(Config::new("".to_string(), "".to_string()));
+            client.set_bucket_id("".to_string());
+            match client.login().await {
+                Ok(_) => println!("Backblaze Login Successfull"),
+                Err(e) => eprintln!("Backblaze Login Failed -> {:?}", e),
+            }
 
+            //upload file to path
+            match client
+                .upload(file_name.to_string(), format!("./demos/{}", file_name))
+                .await
+            {
+                Ok(_) => println!("Backblaze Upload Successfull"),
+                Err(e) => eprintln!("Backblaze Upload Failed -> {:?}", e),
+            }
+            // Delete Demo
+            let res = remove_file(format!("./demos/{}", file_name));
+            match res {
+                Ok(_) => (),
+                Err(e) => {
+                    return HttpResponse::InternalServerError()
+                        .body(format!("Failed to delete demo locally -> {}", e))
+                }
+            }
             let x = ReceivedPart {
                 content_data,
                 content_type,
@@ -117,7 +156,7 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
                 "cl_id" => values.cl_id = Some(result_string.parse::<i32>().unwrap_or(0)),
                 _ => eprintln!("Got an unexpected field."),
             }
-            println!("result: {} - {}", field_name, result_string);
+            // println!("result: {} - {}", field_name, result_string);
 
             let x = ReceivedPart {
                 content_data,
@@ -128,7 +167,7 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
         }
     }
     // TODO: Send to database.
-    println!("{:#?}", values);
+    // println!("{:#?}", values);
     let mut received_parts_string = String::new();
     let mut counter = 0;
     #[allow(clippy::explicit_counter_loop)]

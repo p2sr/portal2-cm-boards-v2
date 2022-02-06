@@ -9,7 +9,7 @@ use crate::models::datamodels::{
     Leaderboards, SpBanned, SpMap, SpPbHistory, SpRanked, XmlTag,
 };
 
-/// Upload the PB to the database
+/// Upload sp PB to the database
 pub fn post_sp_pb(
     profile_number: String,
     score: i32,
@@ -130,7 +130,7 @@ pub fn post_sp_pb(
     true
 }
 
-///
+/// Upload coop PB to database
 pub fn post_coop_pb(
     profile_number1: String,
     profile_number2: Option<String>,
