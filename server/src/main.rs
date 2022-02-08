@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
+
 use actix_cors::Cors;
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use anyhow::{Error, Result};

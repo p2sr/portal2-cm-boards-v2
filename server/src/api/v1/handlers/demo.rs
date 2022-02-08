@@ -1,14 +1,13 @@
-#![allow(unused_imports)]
 use actix_multipart::Multipart;
 use actix_web::{post, web, HttpResponse, Responder};
-use b2_backblaze::Config;
-use b2_backblaze::B2;
 use futures::{StreamExt, TryStreamExt};
+use raze::api::*;
+use raze::utils::*;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::fs::remove_file;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::process::Command;
+//use std::process::Command;
 use std::str;
 
 #[derive(Debug)]
@@ -53,6 +52,7 @@ impl Display for ReceivedPart {
 #[post("/demo")]
 pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
     let mut received_parts = Vec::new();
+    let mut file_id: Option<String> = None;
     let mut values = DemoData {
         file_id: None,
         partner_name: None,
@@ -101,21 +101,47 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
             // TODO: Parse Demo
             // TODO: Need more features from BB API
             // TODO: Setup BackBlaze credentials in .env
-            let mut client = B2::new(Config::new("".to_string(), "".to_string()));
-            client.set_bucket_id("".to_string());
-            match client.login().await {
-                Ok(_) => println!("Backblaze Login Successfull"),
-                Err(e) => eprintln!("Backblaze Login Failed -> {:?}", e),
-            }
-
-            //upload file to path
-            match client
-                .upload(file_name.to_string(), format!("./demos/{}", file_name))
+            let client = reqwest::ClientBuilder::new().build().unwrap();
+            // Ref: https://docs.rs/raze/0.4.1/raze/api/fn.b2_authorize_account.html
+            let auth = b2_authorize_account(
+                &client,
+                "0040e513092e5aa0000000001:K0044YeN/dPIEpAgvckfxWv3FaKFJjE",
+            )
+            .await
+            .unwrap();
+            let upload_auth = b2_get_upload_url(&client, &auth, "207e05212370d9127ee50a1a")
                 .await
-            {
-                Ok(_) => println!("Backblaze Upload Successfull"),
-                Err(e) => eprintln!("Backblaze Upload Failed -> {:?}", e),
-            }
+                .unwrap();
+            let file = tokio::fs::File::open(format!("./demos/{}", file_name))
+                .await
+                .unwrap();
+            let metadata = file.metadata().await.unwrap();
+            let size = metadata.len();
+            let modf = metadata
+                .modified()
+                .unwrap()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs()
+                * 1000;
+
+            let param = FileParameters {
+                file_path: file_name,
+                file_size: size,
+                content_type: None,
+                content_sha1: Sha1Variant::HexAtEnd,
+                last_modified_millis: modf,
+            };
+
+            let stream = reader_to_stream(file);
+            let stream = BytesStreamHashAtEnd::wrap(stream);
+            let stream = BytesStreamThrottled::wrap(stream, 500000000);
+
+            let body = reqwest::Body::wrap_stream(stream);
+            let resp1 = b2_upload_file(&client, &upload_auth, body, param)
+                .await
+                .unwrap();
+            file_id = resp1.file_id;
             // Delete Demo
             let res = remove_file(format!("./demos/{}", file_name));
             match res {
@@ -141,7 +167,6 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
                 }
             };
             match field_name {
-                "file_id" => values.file_id = Some(result_string.to_string()),
                 "partner_name" => values.partner_name = Some(result_string.to_string()),
                 "parsed_successfully" => {
                     values.parsed_successfully = {
@@ -166,8 +191,11 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
             received_parts.push(x);
         }
     }
+    if let Some(file_id) = file_id {
+        values.file_id = Some(file_id);
+    }
     // TODO: Send to database.
-    // println!("{:#?}", values);
+    println!("{:#?}", values);
     let mut received_parts_string = String::new();
     let mut counter = 0;
     #[allow(clippy::explicit_counter_loop)]
