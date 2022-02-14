@@ -662,7 +662,7 @@ impl Demos {
                 (file_id, partner_name, parsed_successfully, sar_version, cl_id) VALUES 
                 ($1, $2, $3, $4, $5)
                 RETURNING id"#)
-            .bind(demo.file_url).bind(demo.partner_name).bind(demo.parsed_successfully).bind(demo.sar_version).bind(demo.cl_id)
+            .bind(demo.file_id).bind(demo.partner_name).bind(demo.parsed_successfully).bind(demo.sar_version).bind(demo.cl_id)
             .map(|row: PgRow|{res = row.get(0)})
             .fetch_one(pool)
             .await?;

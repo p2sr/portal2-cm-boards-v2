@@ -30,7 +30,8 @@ async fn main() -> Result<(), Error> {
     // Remote-IP, Time, First line of request, Response status, Size of response in bytes, Referer, User-Agent, Time to serve
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-
+    let host = config.server.host.clone();
+    let port = config.server.port.clone();
     println!(
         "Server starting at http://{}:{}/",
         config.server.host, config.server.port
@@ -45,9 +46,10 @@ async fn main() -> Result<(), Error> {
             .wrap(cors)
             .wrap(Logger::default())
             .app_data(web::Data::new(pool.clone()))
+            .app_data(web::Data::new(config.clone()))
             .configure(api::v1::handlers::init::init)
     })
-    .bind(format!("{}:{}", config.server.host, config.server.port))?
+    .bind(format!("{}:{}", host, port))?
     .run()
     .await?;
     Ok(())

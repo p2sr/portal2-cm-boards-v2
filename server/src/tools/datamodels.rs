@@ -95,16 +95,16 @@ pub struct CoopBundledInsert {
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct Demos {
     pub id: i64,
-    pub file_url: String,
+    pub file_id: String,
     pub partner_name: Option<String>,
     pub parsed_successfully: bool,
     pub sar_version: Option<String>,
     pub cl_id: i64,
 }
 
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct DemoInsert {
-    pub file_url: String,
+    pub file_id: String,
     pub partner_name: Option<String>,
     pub parsed_successfully: bool,
     pub sar_version: Option<String>,

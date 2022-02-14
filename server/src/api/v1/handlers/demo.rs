@@ -7,17 +7,10 @@ use std::fmt::{Display, Formatter, Result as FmtResult};
 use std::fs::remove_file;
 use std::fs::OpenOptions;
 use std::io::Write;
-//use std::process::Command;
+use sqlx::PgPool;
+use crate::config::Config;
+use crate::tools::datamodels::{Demos, DemoInsert};
 use std::str;
-
-#[derive(Debug)]
-pub struct DemoData {
-    file_id: Option<String>,
-    partner_name: Option<String>,
-    parsed_successfully: bool,
-    sar_version: Option<String>,
-    cl_id: Option<i32>,
-}
 
 #[derive(Debug)]
 struct ReceivedPart {
@@ -50,16 +43,17 @@ impl Display for ReceivedPart {
 //  d. Integrate Parsing
 // Code Reference: https://github.com/Ujang360/actix-multipart-demo/blob/main/src/main.rs
 #[post("/demo")]
-pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
+pub async fn receive_multiparts(mut payload: Multipart, config: web::Data<Config>, pool: web::Data<PgPool>) -> impl Responder {
     let mut received_parts = Vec::new();
     let mut file_id: Option<String> = None;
-    let mut values = DemoData {
-        file_id: None,
+    let mut values = DemoInsert {
+        file_id: "None".to_string(),
         partner_name: None,
         parsed_successfully: false,
         sar_version: None,
-        cl_id: None,
+        cl_id: 0,
     };
+    //println!("{} - {} - {}", config.backblaze.keyid, config.backblaze.key, config.backblaze.bucket);
     while let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field.content_type().to_string();
 
@@ -81,6 +75,14 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
 
         // Handle the case where we were passed a file
         if let Some(file_name) = file_name {
+            use std::fs;
+            match fs::create_dir_all("./demos") {
+                Ok(_) => (),
+                Err(e) => {
+                    return HttpResponse::InternalServerError()
+                        .body(format!("Failed to create demo directory locally -> {}", e))
+                },
+            }
             let file = OpenOptions::new()
                 .create(true)
                 .write(true)
@@ -99,17 +101,16 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
                 }
             };
             // TODO: Parse Demo
-            // TODO: Need more features from BB API
             // TODO: Setup BackBlaze credentials in .env
             let client = reqwest::ClientBuilder::new().build().unwrap();
             // Ref: https://docs.rs/raze/0.4.1/raze/api/fn.b2_authorize_account.html
             let auth = b2_authorize_account(
                 &client,
-                "0040e513092e5aa0000000001:K0044YeN/dPIEpAgvckfxWv3FaKFJjE",
+                format!("{}:{}", config.backblaze.keyid, config.backblaze.key)
             )
             .await
             .unwrap();
-            let upload_auth = b2_get_upload_url(&client, &auth, "207e05212370d9127ee50a1a")
+            let upload_auth = b2_get_upload_url(&client, &auth, config.backblaze.bucket.clone())
                 .await
                 .unwrap();
             let file = tokio::fs::File::open(format!("./demos/{}", file_name))
@@ -178,7 +179,7 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
                     }
                 }
                 "sar_version" => values.sar_version = Some(result_string.to_string()),
-                "cl_id" => values.cl_id = Some(result_string.parse::<i32>().unwrap_or(0)),
+                "cl_id" => values.cl_id = result_string.parse::<i64>().unwrap_or(0),
                 _ => eprintln!("Got an unexpected field."),
             }
             // println!("result: {} - {}", field_name, result_string);
@@ -192,17 +193,22 @@ pub async fn receive_multiparts(mut payload: Multipart) -> impl Responder {
         }
     }
     if let Some(file_id) = file_id {
-        values.file_id = Some(file_id);
+        values.file_id = file_id;
     }
-    // TODO: Send to database.
-    println!("{:#?}", values);
-    let mut received_parts_string = String::new();
-    let mut counter = 0;
-    #[allow(clippy::explicit_counter_loop)]
-    for received_part in received_parts {
-        received_parts_string.push_str(&format!("\nPart {}\n", counter));
-        received_parts_string.push_str(&received_part.to_string());
-        counter += 1;
+    //println!("{:#?}", values);
+    let res = Demos::insert_demo(&pool, values).await;
+    match res {
+        Ok(id) => HttpResponse::Ok().json(id),
+        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to add demo to database -> {}", e)),
     }
-    HttpResponse::Ok().body(received_parts_string)
+    // Debug return info
+    // let mut received_parts_string = String::new();
+    // let mut counter = 0;
+    // #[allow(clippy::explicit_counter_loop)]
+    // for received_part in received_parts {
+    //     received_parts_string.push_str(&format!("\nPart {}\n", counter));
+    //     received_parts_string.push_str(&received_part.to_string());
+    //     counter += 1;
+    // }
+    // HttpResponse::Ok().body(received_parts_string)
 }
