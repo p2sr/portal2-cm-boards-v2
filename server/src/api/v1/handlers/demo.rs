@@ -13,9 +13,6 @@ use crate::config::Config;
 use crate::tools::datamodels::{Demos, DemoInsert, ChangelogInsert, CalcValues};
 use std::str;
 
-
-
-
 //  a. Handle renaming/db interactions (update demo table/specific time that is being uploaded)
 //  b. Pass to backblaze
 //  c. Look to see if there is anything special needed for auto-submit
@@ -160,6 +157,7 @@ async fn upload_demo(config: &web::Data<Config>, file_name: &str) -> Result<Opti
     Ok(resp1.file_id)
 }
 
+/// Should parse a changelog upload built using forms, with a demo file upload.
 #[post("/demos/changelog")]
 pub async fn changelog_with_demo(mut payload: Multipart, config: web::Data<Config>, pool: web::Data<PgPool>) -> impl Responder {
     let mut file_id: Option<String> = None;
@@ -244,10 +242,38 @@ pub async fn changelog_with_demo(mut payload: Multipart, config: web::Data<Confi
                     changelog_insert.category_id = 
                     match result_string.parse::<i32>() {
                         Ok(val) => val, 
-                        Err(e) => return HttpResponse::BadRequest().body("Invalid category_id, could not parse"),
+                        Err(_) => return HttpResponse::BadRequest().body("Invalid category_id, could not parse"),
                     }
                 },
                 _ => (),
+            }
+            // Make sure these are not defaults before we use them for calculating score information
+            if changelog_insert.score != 0 && !changelog_insert.profile_number.is_empty() && !changelog_insert.map_id.is_empty() {
+                use super::sp::check_for_valid_score;
+                let res = check_for_valid_score(&pool, 
+                    changelog_insert.profile_number.clone(),
+                    changelog_insert.score.clone(),
+                    changelog_insert.map_id.clone())
+                    .await;
+                match res {
+                    Ok(details) => {
+                        // TODO: NEED TO FIX THIS i32
+                        if !details.banned {
+                            changelog_insert.previous_id = details.previous_id;
+                            changelog_insert.post_rank = details.post_rank;
+                            changelog_insert.pre_rank = details.pre_rank;
+                            changelog_insert.score_delta = details.score_delta;
+                        }
+                        else {
+                            // USER IS BANNED, DO NOT ADD A TIME FOR THEM
+                            return HttpResponse::NotFound().body("User is banned");
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Error finding newscore details -> {:#?}", e);
+                        // Cannot find user.
+                    },
+                }
             }
         }
     }

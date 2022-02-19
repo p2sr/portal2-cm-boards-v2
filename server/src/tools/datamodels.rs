@@ -335,7 +335,7 @@ pub struct SpPbHistory {
 
 #[derive(Default, Debug, Serialize)]
 pub struct CalcValues {
-    pub previous_id: Option<i64>,
+    pub previous_id: Option<i32>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
     pub score_delta: Option<i32>,

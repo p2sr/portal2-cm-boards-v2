@@ -1,4 +1,4 @@
-use actix_web::{get, post, put, web, HttpResponse, Responder, HttpRequest};
+use actix_web::{get, post, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
 use anyhow::{bail, Result};
 
@@ -185,7 +185,7 @@ pub async fn check_for_valid_score(pool: &PgPool, profile_number: String, score:
     };
 
     values.score_delta = Some(cl[0].score-score);
-    values.previous_id = Some(cl[0].id);
+    values.previous_id = Some(cl[0].id as i32); // TODO: Fix this
     // Assuming there is a PB History, there must be other scores, this should return a valid list of ranked maps.
     let cl_ranked = SpMap::get_sp_map_page(&pool, map_id).await.unwrap();
     for (i, entry) in cl_ranked.iter().enumerate() {
