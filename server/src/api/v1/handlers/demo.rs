@@ -8,9 +8,13 @@ use std::fs::remove_file;
 use std::fs::OpenOptions;
 use std::io::Write;
 use sqlx::PgPool;
+use chrono::NaiveDateTime;
 use crate::config::Config;
-use crate::tools::datamodels::{Demos, DemoInsert};
+use crate::tools::datamodels::{Demos, DemoInsert, ChangelogInsert, CalcValues};
 use std::str;
+
+
+
 
 //  a. Handle renaming/db interactions (update demo table/specific time that is being uploaded)
 //  b. Pass to backblaze
@@ -20,13 +24,7 @@ use std::str;
 #[post("/demo")]
 pub async fn receive_multiparts(mut payload: Multipart, config: web::Data<Config>, pool: web::Data<PgPool>) -> impl Responder {
     let mut file_id: Option<String> = None;
-    let mut values = DemoInsert {
-        file_id: "None".to_string(),
-        partner_name: None,
-        parsed_successfully: false,
-        sar_version: None,
-        cl_id: 0,
-    };
+    let mut values = DemoInsert::default();
     //println!("{} - {} - {}", config.backblaze.keyid, config.backblaze.key, config.backblaze.bucket);
     while let Ok(Some(mut field)) = payload.try_next().await {
         // Note: content_disposition() now returns a &ContentDisposition, rather than an Option<ContentDisposition>
@@ -34,16 +32,8 @@ pub async fn receive_multiparts(mut payload: Multipart, config: web::Data<Config
         while let Some(Ok(chunk)) = field.next().await {
             content_data.extend(chunk);
         }
-
-        let name = field.content_disposition().get_name();
-        let field_name = if let Some(name) = name {
-            name
-        } else {
-            "NO-KEY-PROVIDED"
-        };
-
+        let field_name = field.content_disposition().get_name().unwrap_or_else(|| "NO-KEY-PROVIDED");
         let file_name = field.content_disposition().get_filename();
-
         // Handle the case where we were passed a file
         if let Some(file_name) = file_name {
             use std::fs;
@@ -168,4 +158,107 @@ async fn upload_demo(config: &web::Data<Config>, file_name: &str) -> Result<Opti
         .await
         .unwrap();
     Ok(resp1.file_id)
+}
+
+#[post("/demos/changelog")]
+pub async fn changelog_with_demo(mut payload: Multipart, config: web::Data<Config>, pool: web::Data<PgPool>) -> impl Responder {
+    let mut file_id: Option<String> = None;
+    let mut changelog_insert = ChangelogInsert::default();
+    let mut demo_insert = DemoInsert::default();
+    while let Ok(Some(mut field)) = payload.try_next().await {
+        let mut content_data = Vec::new();
+        while let Some(Ok(chunk)) = field.next().await {
+            content_data.extend(chunk);
+        }
+        let field_name = field.content_disposition().get_name().unwrap_or_else(|| "NO-KEY-PROVIDED");
+        let file_name = field.content_disposition().get_filename();
+
+        if let Some(file_name) = file_name {
+            use std::fs;
+            match fs::create_dir_all("./demos") {
+                Ok(_) => (),
+                Err(e) => return HttpResponse::InternalServerError().body(format!("Failed to create demo directory locally -> {}", e)),
+            }
+            let file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .open(format!("./demos/{}", file_name));
+            match file {
+                Ok(mut res) => match res.write_all(&content_data) {
+                    Ok(_) => (),
+                    Err(e) => {
+                        return HttpResponse::InternalServerError()
+                            .body(format!("Failed to write demo locally -> {}", e))
+                    }
+                },
+                Err(e) => {
+                    return HttpResponse::InternalServerError()
+                        .body(format!("Failed to write demo locally -> {}", e))
+                }
+            };
+            // TODO: Parse Demo
+            file_id = match upload_demo(&config, &file_name).await {
+                Ok(fid) => fid,
+                Err(e) => {
+                    eprintln!("Error with File upload -> {:?}", e);
+                    None
+                },
+            };
+            
+            // Delete Demo
+            let res = remove_file(format!("./demos/{}", file_name));
+            match res {
+                Ok(_) => (),
+                Err(e) => {
+                    return HttpResponse::InternalServerError()
+                        .body(format!("Failed to delete demo locally -> {}", e))
+                }
+            }
+        } else {
+            // Handle the case where we are passed a text value.
+            let result_string = str::from_utf8(&content_data).unwrap_or("ERROR");
+            match field_name {
+                "timestamp" => {
+                    changelog_insert.timestamp = 
+                        match NaiveDateTime::parse_from_str(result_string, "%Y-%m-%d %H:%M:%S") {
+                            Ok(val) => Some(val),
+                            Err(e) => None,
+                        }
+                },
+                "profile_number" => changelog_insert.profile_number = result_string.to_string(),
+                "score" => { 
+                    changelog_insert.score = 
+                    match result_string.parse::<i32>() {
+                        Ok(val) => val, 
+                        Err(e) => return HttpResponse::BadRequest().body("Invalid score, could not parse"),
+                    }
+                },
+                "map_id" => changelog_insert.map_id = result_string.to_string(),
+                "demo_id" => changelog_insert.demo_id = None, // TODO: Maybe fix this?
+                "banned" => changelog_insert.banned = false,
+                "youtube_id" => changelog_insert.youtube_id = Some(result_string.to_string()),
+                "coop_id"  => changelog_insert.coop_id =  None,
+                "submission" => changelog_insert.submission = true, // TODO: Check defaults
+                "note" => changelog_insert.note = Some(result_string.to_string()),
+                "category_id" => { 
+                    changelog_insert.category_id = 
+                    match result_string.parse::<i32>() {
+                        Ok(val) => val, 
+                        Err(e) => return HttpResponse::BadRequest().body("Invalid category_id, could not parse"),
+                    }
+                },
+                _ => (),
+            }
+        }
+    }
+    // TODO: Insert changelog values
+    if let Some(file_id) = file_id {
+        demo_insert.file_id = file_id;
+    }
+    //println!("{:#?}", values);
+    let res = Demos::insert_demo(&pool, demo_insert).await;
+    match res {
+        Ok(id) => HttpResponse::Ok().json(id),
+        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to add demo to database -> {}", e)),
+    }
 }

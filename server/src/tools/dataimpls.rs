@@ -304,7 +304,7 @@ impl Users{
             .await?;
         Ok(res)
     }
-    /// Returns a boolean based on if the profile number passed is banned or not.
+    /// Returns the boolean flag associated with the user in the boards, if Err, assumed User does not exist.
     pub async fn check_banned(pool: &PgPool, profile_number: String) -> Result<bool>{
         let res = sqlx::query(r#"SELECT users.banned FROM "p2boards".users WHERE users.profile_number = $1"#)
             .bind(profile_number)

@@ -13,7 +13,12 @@ raze = "0.4.1"
 reqwest = { version = "0.11.9", features = ["json", "stream"] }
 tokio = { version = "1.16.1", features = ["full"] }
 
-sqlx = { version = "0.5.7", features = [ "runtime-actix-rustls", "postgres", "chrono", "offline"] }
+sqlx = { version = "0.5.7", features = [
+    "runtime-actix-rustls",
+    "postgres",
+    "chrono",
+    "offline",
+] }
 chrono = { version = "0.4.19", features = ["serde", "rustc-serialize"] }
 
 serde = "1.0.123"
