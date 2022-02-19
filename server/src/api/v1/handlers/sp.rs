@@ -82,11 +82,13 @@ async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) 
     // TODO: Handle the case where the is no user in the db
     match res {
         Ok(Some(res)) => user_data = res,
-        Ok(None) => return HttpResponse::Ok().json(SpPbHistory {
-            user_name: None,
-            avatar: None,
-            pb_history: None,
-        }),
+        Ok(None) => {
+            return HttpResponse::Ok().json(SpPbHistory {
+                user_name: None,
+                avatar: None,
+                pb_history: None,
+            })
+        }
         _ => return HttpResponse::NotFound().body("Error fetching User Data on given user."),
     }
     // Get Changelog data for all previous times.
@@ -100,8 +102,16 @@ async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) 
         }),
         Err(e) => {
             eprintln!("Could not find SP PB History -> {}", e);
-            HttpResponse::NotFound().body("Error fetching Changelog data on given user.")
-        },
+            HttpResponse::Ok().json(SpPbHistory {
+                user_name: None,
+                avatar: None,
+                pb_history: None,
+            })
+        }
+        // Err(e) => {
+        //     eprintln!("Could not find SP PB History -> {}", e);
+        //     HttpResponse::NotFound().body("Error fetching Changelog data on given user.")
+        // }
     }
 }
 
@@ -114,17 +124,17 @@ async fn post_score_sp(
 ) -> impl Responder {
     // TODO: Handle demo uploads.
     // TODO: Working with sequence re-sync. Need to implement role-back.
-    // let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
-    // match res {
-    //     Ok(id) => HttpResponse::Ok().json(id),
-    //     Err(e) => {
-    //         eprintln!("{}",e);
-    //         HttpResponse::NotFound().body("Error adding new score to database.")
-    //     },
-    // }
+    let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
+    match res {
+        Ok(id) => HttpResponse::Ok().json(id),
+        Err(e) => {
+            eprintln!("{}", e);
+            HttpResponse::NotFound().body("Error adding new score to database.")
+        }
+    }
     // TEMP WORK AROUND FOR TESTING
-    let id = 1;
-    HttpResponse::Ok().json(id)
+    // let id = 1;
+    // HttpResponse::Ok().json(id)
 }
 
 /// Receives new data to update an existing score.
@@ -137,6 +147,7 @@ async fn put_score_sp(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> 
         _ => HttpResponse::NotFound().body("Error updating score."),
     }
 }
+
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ScoreLookup {

@@ -52,8 +52,12 @@ The `DATABASE_URL` field should be identical if the docker files are unchanged, 
 DATABASE_URL=postgresql://docker:docker@postgres/p2boards
 SERVER.HOST=0.0.0.0
 SERVER.PORT=8080
-PROOF.DEMO=80
-PROOF.VIDEO=100
+PROOF.RESULTS=500
+PROOF.DEMO=200
+PROOF.VIDEO=200
+BACKBLAZE.KEYID=
+BACKBLAZE.KEY=
+BACKBLAZE.BUCKET=
 RUST_LOG=1
 RUST_LOG="actix_web=info"
 ```
@@ -96,11 +100,15 @@ Using sqlx to pass queries to our database. REST API to be documented.
 #### Local .env Example
 
 ```
-DATABASE_URL=postgresql://username:password@postgres:5432/p2boards
-SERVER.HOST=127.0.0.1
+DATABASE_URL=postgresql://danielbatesj:123@localhost/p2boards
+SERVER.HOST=0.0.0.0
 SERVER.PORT=8080
-PROOF.DEMO=80
-PROOF.VIDEO=100
+PROOF.RESULTS=500
+PROOF.DEMO=200
+PROOF.VIDEO=200
+BACKBLAZE.KEYID=
+BACKBLAZE.KEY=
+BACKBLAZE.BUCKET=
 RUST_LOG=1
 RUST_LOG="actix_web=info"
 ```
