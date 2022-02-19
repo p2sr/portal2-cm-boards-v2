@@ -94,6 +94,8 @@ pub fn filter_entries_sp(
             (rank.map_data.score, rank.rank),
         );
     }
+    // TODO: Query to see if the user exists.
+
     // TODO: Implement a per-map threshold???
     // Potentially turn this into a macro? This basic shape is reused.
     for entry in data.value.iter() {
@@ -135,8 +137,8 @@ pub fn filter_entries_sp(
             }
         }
     }
-    // We grab the list of banned times from our API.
 
+    // We grab the list of banned times from our API.
     // Filter out any times that are banned from the list of potential runs.
     // The list of new scores is probably relatively low, it would be easier to just send the score information to an endpoint and have it check.
     let client = reqwest::blocking::Client::new();

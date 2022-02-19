@@ -7,6 +7,8 @@ use std::path::Path;
 
 /// Writes out json data to cache points for the boards.
 pub async fn write_to_file(id: &str, data: web::Json<SendWrapper>) -> Result<(), Error> {
+    use std::fs;
+    fs::create_dir_all("./points")?;
     let path_str = format!("./points/{}.json", id);
     let path = Path::new(&path_str);
     serde_json::to_writer(&File::create(path)?, &data)

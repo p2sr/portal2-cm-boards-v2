@@ -20,7 +20,7 @@ pub struct Changelog {
     pub demo_id: Option<i64>,
     pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i32>,
+    pub previous_id: Option<i32>, // TODO: This needs to be an i64
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
@@ -32,7 +32,7 @@ pub struct Changelog {
     pub admin_note: Option<String>,
 }
 /// All changelog data except for the ID, for table insertion.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct ChangelogInsert {
     pub timestamp: Option<NaiveDateTime>,
     pub profile_number: String,
@@ -95,16 +95,16 @@ pub struct CoopBundledInsert {
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct Demos {
     pub id: i64,
-    pub file_url: String,
+    pub file_id: String,
     pub partner_name: Option<String>,
     pub parsed_successfully: bool,
     pub sar_version: Option<String>,
     pub cl_id: i64,
 }
 
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Debug, Default, Serialize, Deserialize, FromRow)]
 pub struct DemoInsert {
-    pub file_url: String,
+    pub file_id: String,
     pub partner_name: Option<String>,
     pub parsed_successfully: bool,
     pub sar_version: Option<String>,
@@ -331,4 +331,13 @@ pub struct SpPbHistory {
     pub user_name: Option<String>,
     pub avatar: Option<String>,
     pub pb_history: Option<Vec<Changelog>>,
+}
+
+#[derive(Default, Debug, Serialize)]
+pub struct CalcValues {
+    pub previous_id: Option<i32>,
+    pub post_rank: Option<i32>,
+    pub pre_rank: Option<i32>,
+    pub score_delta: Option<i32>,
+    pub banned: bool,
 }
