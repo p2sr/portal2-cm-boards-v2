@@ -311,6 +311,41 @@ impl Users {
 }
 
 impl Demos {
+    /// Gets Demo information for a given demo_id
+    pub async fn get_demo(pool: &PgPool, demo_id: i64) -> Result<Option<Demos>> {
+        let res = sqlx::query_as::<_, Demos>(r#"SELECT * FROM "p2boards".demos WHERE id = $1"#)
+            .bind(demo_id)
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    /// Returns a file id that can be used to download the demo
+    pub async fn get_demo_file_id(pool: &PgPool, demo_id: i64) -> Result<Option<String>> {
+        let res = sqlx::query(r#"SELECT file_id FROM "p2boards".demos WHERE id = $1"#)
+            .bind(demo_id)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    /// Check to see if a demo was parsed successfully
+    pub async fn check_parsed(pool: &PgPool, demo_id: i64) -> Result<bool> {
+        let res = sqlx::query(r#"SELECT parsed_successfully FROM "p2boards".demos WHERE id = $1"#)
+            .bind(demo_id)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(res)
+    }
+    /// Gets the SAR version associated with a demo
+    pub async fn get_sar_version(pool: &PgPool, demo_id: i64) -> Result<Option<String>> {
+        let res = sqlx::query(r#"SELECT sar_version FROM "p2boards".demos WHERE id = $1"#)
+            .bind(demo_id)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
     /// Adds a new demo to the database, returns the demo's id
     pub async fn insert_demo(pool: &PgPool, demo: DemoInsert) -> Result<i64> {
         let mut res: i64 = 0; 
