@@ -153,6 +153,13 @@ pub struct UsersPage {
     pub avatar: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, FromRow)]
+pub struct Socials {
+    pub twitch: Option<String>,
+    pub youtube: Option<String>,
+    pub discord_id: Option<String>
+}
+
 /// The minimal data we want for SP map pages to lower bandwidth usage.
 #[derive(Serialize, FromRow)]
 pub struct SpMap {

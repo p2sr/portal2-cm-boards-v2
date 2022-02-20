@@ -25,6 +25,9 @@ async fn post_changelog_filtered(
     let res = ChangelogPage::get_cl_page_filtered(pool.get_ref(), params.0).await;
     match res {
         Ok(changelog_entries) => HttpResponse::Ok().json(changelog_entries),
-        _ => HttpResponse::NotFound().body("No changelog entries found."),
+        Err(e) => {
+            eprintln!("Error with filtering changelog page -> {}", e);
+            HttpResponse::NotFound().body("No changelog entries found.")
+        },
     }
 }

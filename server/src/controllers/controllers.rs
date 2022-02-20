@@ -3,18 +3,15 @@
 use std::collections::HashMap;
 use sqlx::postgres::PgRow;
 use sqlx::{Row, PgPool};
-use anyhow::Result;
+use anyhow::{Result, bail};
 //use log::{debug};
-
-
 use crate::controllers::models::*;
 
 // TODO: Create macro for different lookup templates
 
-
-impl Maps{
+impl Maps {
     /// Takes in a bool, if true returns MP map_ids, if false, returns as SP map_ids
-    pub async fn get_steam_ids(pool: &PgPool, is_mp: bool) -> Result<Vec<String>>{
+    pub async fn get_steam_ids(pool: &PgPool, is_mp: bool) -> Result<Vec<String>> {
         let res = sqlx::query(r#"
                 SELECT maps.steam_id FROM "p2boards".maps
                     INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
@@ -27,7 +24,7 @@ impl Maps{
         Ok(res)
     }
     /// Returns the map name for a given steam_id.
-    pub async fn get_map_name(pool: &PgPool, map_id: String) -> Result<Option<String>>{
+    pub async fn get_map_name(pool: &PgPool, map_id: String) -> Result<Option<String>> {
         let res = sqlx::query(r#"SELECT maps.name FROM "p2boards".maps WHERE maps.steam_id = $1"#)
             .bind(map_id)
             .map(|row: PgRow|{row.get(0)})
@@ -131,9 +128,17 @@ impl Chapters {
     }
 }
 
-
-impl Users{
-    pub async fn get_user_data(pool: &PgPool, profile_number: String) -> Result<Option<UsersPage>>{
+impl Users {
+    /// Returns user information
+    pub async fn get_user(pool: &PgPool, profile_number: String) -> Result<Option<Users>> {
+        let res = sqlx::query_as::<_, Users>(r#"SELECT * FROM "p2boards".users WHERE profile_number = $1"#)
+            .bind(profile_number)
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    /// Gets a user's avatar and user_name/board_name (favors board_name)
+    pub async fn get_user_data(pool: &PgPool, profile_number: String) -> Result<Option<UsersPage>> {
         let res = sqlx::query_as::<_, UsersPage>(r#"
                 SELECT            
                 CASE 
@@ -151,14 +156,14 @@ impl Users{
         match res{
             Ok(user_data) => Ok(Some(user_data)),
             Err(e) => {
-                eprintln!("User not found get_user_data ->{}", e);
+                eprintln!("User not found get_user_data -> {}", e);
                 // return Err(anyhow::Error::new(e).context("Error with user data."))
                 return Ok(None)
             }
         }
     }
     /// Pattern match on a given string to find similar names (supports board/steam names). 
-    pub async fn check_board_name(pool: &PgPool, nick_name: String) -> Result<Option<Vec<String>>>{ // TODO: Check return type of 0 results more carefully
+    pub async fn check_board_name(pool: &PgPool, nick_name: String) -> Result<Option<Vec<String>>> {
         let query_nn = format!("%{}%", &nick_name);
         let res = sqlx::query(r#"
                 SELECT users.profile_number FROM "p2boards".users
@@ -174,10 +179,13 @@ impl Users{
             .map(|row: PgRow|{row.get(0)})
             .fetch_all(pool)
             .await?;
+        if res.is_empty() {
+            return Ok(None)
+        }
         Ok(Some(res))
     }
-    /// Returns a list of all banned players profile_numbers.
-    pub async fn get_banned(pool: &PgPool) -> Result<Vec<String>>{
+    /// Returns a list of all banned player's profile_numbers.
+    pub async fn get_banned(pool: &PgPool) -> Result<Vec<String>> {
         let res = sqlx::query(r#"SELECT users.profile_number FROM "p2boards".users WHERE users.banned = True"#)
             .map(|row: PgRow|{row.get(0)})    
             .fetch_all(pool)
@@ -185,7 +193,7 @@ impl Users{
         Ok(res)
     }
     /// Returns the boolean flag associated with the user in the boards, if Err, assumed User does not exist.
-    pub async fn check_banned(pool: &PgPool, profile_number: String) -> Result<bool>{
+    pub async fn check_banned(pool: &PgPool, profile_number: String) -> Result<bool> {
         let res = sqlx::query(r#"SELECT users.banned FROM "p2boards".users WHERE users.profile_number = $1"#)
             .bind(profile_number)
             .map(|row: PgRow| {row.get(0)})
@@ -193,6 +201,68 @@ impl Users{
             .await?;
         Ok(res)
     }
+    /// Returns the title associated with the user
+    pub async fn get_title(pool: &PgPool, profile_number: String) -> Result<Option<String>> {
+        let res = sqlx::query(r#"SELECT title FROM "p2boards".users WHERE users.profile_number = $1"#)
+            .bind(profile_number)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    } 
+    /// Returns the social media informatio associated with a given user's profile_number
+    pub async fn get_socials(pool: &PgPool, profile_number: String) -> Result<Option<Socials>> {
+        let res = sqlx::query_as::<_, Socials>(r#"
+                SELECT twitch, youtube, discord_id 
+                FROM "p2boards".users 
+                WHERE profile_number = $1"#)
+            .bind(profile_number)
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    /// Returns the admin information associated with the user.
+    pub async fn get_admin_for_user(pool: &PgPool, profile_number: String) -> Result<Option<i32>> {
+        let res = sqlx::query(r#"SELECT admin FROM "p2boards".users WHERE profile_number = $1"#)
+            .bind(profile_number)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    /// Returns UsersPage for all admins
+    /// Usage:  admin_value = 0     -> Non-admin user
+    ///         admin_value = 1     -> Standard admin
+    ///         admin_value = 2     -> Shadow admin
+    ///             (Has admin permissions, is not publically listed)
+    ///             (Typically reserved for former admins, trusted players)
+    ///         admin_value = 3     -> Developer admin
+    ///             (Has admin permissions as an activen developer only)
+    pub async fn get_all_admins(pool: &PgPool, admin_value: i32) -> Result<Option<UsersPage>> {
+        let res = sqlx::query_as::<_, UsersPage>(r#"
+                SELECT            
+                CASE 
+                    WHEN users.board_name IS NULL
+                        THEN users.steam_name
+                    WHEN users.board_name IS NOT NULL
+                        THEN users.board_name
+                    END user_name, users.avatar
+                FROM "p2boards".users
+                WHERE users.admin = $1
+                "#)
+            .bind(admin_value)
+            .fetch_one(pool)
+            .await;
+        match res{
+            Ok(user_data) => Ok(Some(user_data)),
+            Err(e) => {
+                eprintln!("User not found get_user_data -> {}", e);
+                // return Err(anyhow::Error::new(e).context("Error with user data."))
+                return Ok(None)
+            }
+        }
+    }
+    // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
     /// Inserts a new user into the databse
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<bool> {
         let mut res = String::new();
@@ -218,10 +288,31 @@ impl Users{
             return Ok(false);
         }
     }
+    pub async fn update_existing_user(pool: &PgPool, updated_user: Users) -> Result<bool> {
+        // If this gives us an error, we're updaing a user that already exists.
+        let _ = Users::get_user(pool, updated_user.profile_number.clone()).await?;
+        // TODO: Check to make sure user has correct AUTH to update specific items
+        // (board_name should only be changed by the backend, admin should only be updated by admin etc)
+        let _ = sqlx::query(r#"
+                UPDATE "p2boards".Users
+                SET board_name = $1, steam_name = $2, banned = $3, registered = $4, 
+                avatar = $5, twitch = $6, youtube = $7, title = $8, admin = $9,
+                donation_amount = $10, discord_id = $11
+                WHERE profile_numer = $12"#)
+            .bind(updated_user.board_name).bind(updated_user.steam_name)
+            .bind(updated_user.banned).bind(updated_user.registred).bind(updated_user.avatar)
+            .bind(updated_user.twitch).bind(updated_user.youtube).bind(updated_user.title)
+            .bind(updated_user.admin).bind(updated_user.donation_amount)
+            .bind(updated_user.discord_id).bind(updated_user.profile_number)
+            .fetch_one(pool)
+            .await?;
+        Ok(true)
+    }
 }
 
 impl Demos {
-    pub async fn insert_demo(pool: &PgPool, demo: DemoInsert) -> Result<i64>{
+    /// Adds a new demo to the database, returns the demo's id
+    pub async fn insert_demo(pool: &PgPool, demo: DemoInsert) -> Result<i64> {
         let mut res: i64 = 0; 
         let _ = sqlx::query(r#"
                 INSERT INTO "p2boards".demos 
@@ -235,13 +326,29 @@ impl Demos {
             .await?;
             Ok(res)
     }
+    /// Updates an existing demo
+    pub async fn update_demo(pool: &PgPool, updated_demo: Demos) -> Result<bool> {
+        // TODO: Validation
+        let _ = sqlx::query(r#"
+                UPDATE "p2boards".demos
+                SET file_id = $1, partner_name = $2, parsed_successfully = $3,
+                sar_version = $4, cl_id = $5
+                WHERE id = $6"#)
+            .bind(updated_demo.file_id).bind(updated_demo.partner_name)
+            .bind(updated_demo.parsed_successfully).bind(updated_demo.sar_version)
+            .bind(updated_demo.cl_id).bind(updated_demo.id)
+            .fetch_one(pool)
+            .await?;
+        Ok(true)
+    }
+    
 }
 
 // Implementations of associated functions for Changelog
 impl Changelog {
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
-    pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String) -> Result<bool>{
+    pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String) -> Result<bool> {
         // We don't care about the result, we only care if there is a result.
         let query = sqlx::query(r#" 
                 SELECT * 
@@ -261,7 +368,7 @@ impl Changelog {
         }
     }
     // Returns a vec of changelog for a user's PB history on a given SP map.
-    pub async fn get_sp_pb_history(pool: &PgPool, profile_number: String, map_id: String) -> Result<Vec<Changelog>>{
+    pub async fn get_sp_pb_history(pool: &PgPool, profile_number: String, map_id: String) -> Result<Vec<Changelog>> {
         let res = sqlx::query_as::<_, Changelog>(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
@@ -300,7 +407,7 @@ impl Changelog {
         Ok(res)
     }
     /// Updates all fields (except ID) for a given changelog entry. Returns the updated Changelog struct.
-    pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<Changelog>{
+    pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<Changelog> {
         let res = sqlx::query_as::<_, Changelog>(r#"
                 UPDATE "p2boards".changelog
                 SET timestamp = $1, profile_number = $2, score = $3, map_id = $4, demo_id = $5, banned = $6, 
@@ -320,7 +427,7 @@ impl Changelog {
 }
 
 impl CoopBundled {
-    pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64>{
+    pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64> {
         let mut res: i64 = 0;
         let _ = sqlx::query(r#"
                 INSERT INTO "p2boards".coop_bundled 
@@ -339,7 +446,7 @@ impl CoopBundled {
 impl ChangelogPage {
     // Gets as many changelog entries as the limit passed.
     // TODO: Base this on time rather than a hard limit??
-    pub async fn get_cl_page(pool: &PgPool, limit: i32) -> Result<Option<Vec<ChangelogPage>>>{
+    pub async fn get_cl_page(pool: &PgPool, limit: i32) -> Result<Option<Vec<ChangelogPage>>> {
         let res = sqlx::query_as::<_, ChangelogPage>(r#" 
                 SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
                 cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
@@ -368,8 +475,8 @@ impl ChangelogPage {
         }
     }
     // Handles filtering out changelog by different criteria.
-    pub async fn get_cl_page_filtered(pool: &PgPool, params: ChangelogQueryParams) -> Result<Option<Vec<ChangelogPage>>>{
-        // TODO: Decide if we want Chapter name
+    pub async fn get_cl_page_filtered(pool: &PgPool, params: ChangelogQueryParams) -> Result<Option<Vec<ChangelogPage>>> {
+        // TODO: Add additonal filters
         let mut filters: Vec<String> = Vec::new();
         let mut query_string: String = String::from(r#" 
             SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
@@ -431,11 +538,11 @@ impl ChangelogPage {
                     }
                 }
             }
-            else{
-                // TODO: Construct an Error
+            else {
+                bail!("No users found with specified username pattern.");
             }
         }
-        // Build the statement based off the elements we added.
+        // Build the statement based off the elements we added to our vector (used to make sure only first statement is WHERE, and additional are OR)
         for (i, entry) in filters.iter().enumerate() {
             if i == 0 {
                 query_string = format!("{} WHERE {}", &query_string, entry);
@@ -566,7 +673,7 @@ impl CoopMap {
 
 impl SpPreview {
     /// Gets preview information for top 7 on an SP Map.
-    pub async fn get_sp_preview(pool: &PgPool, map_id: String) -> Result<Vec<SpPreview>>{
+    pub async fn get_sp_preview(pool: &PgPool, map_id: String) -> Result<Vec<SpPreview>> {
         let res = sqlx::query_as::<_, SpPreview>(r#"
                 SELECT t.CL_profile_number, t.score, t.youtube_id, t.category_id,
                 CASE
@@ -603,7 +710,7 @@ impl SpPreview {
 
 impl SpPreviews{
     // Collects the top 7 preview data for all SP maps.
-    pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<SpPreviews>>{
+    pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<SpPreviews>> {
         let map_id_vec = Maps::get_steam_ids(&pool, false).await?;
         let mut vec_final = Vec::new();
         for map_id in map_id_vec.iter(){
@@ -619,7 +726,7 @@ impl SpPreviews{
 
 impl CoopPreview {
     /// Gets the top 7 (unique on player) times on a given Coop Map.
-    pub async fn get_coop_preview(pool: &PgPool, map_id: String) -> Result<Vec<CoopPreview>>{
+    pub async fn get_coop_preview(pool: &PgPool, map_id: String) -> Result<Vec<CoopPreview>> {
         // TODO: Open to PRs to contain all this functionality in the SQL statement.
         let query = sqlx::query_as::<_, CoopPreview>(r#"
                 SELECT
@@ -691,7 +798,7 @@ impl CoopPreview {
 
 impl CoopPreviews {
     // Collects the top 7 preview data for all Coop maps.
-    pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<CoopPreviews>>{
+    pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<CoopPreviews>> {
         let map_id_vec = Maps::get_steam_ids(&pool, true).await?;
         let mut vec_final = Vec::new();
         for map_id in map_id_vec.iter(){
@@ -707,7 +814,7 @@ impl CoopPreviews {
 
 impl SpBanned {
     // Returns all profile_numbers and scores associated with banned times on a given map
-    pub async fn get_sp_banned(pool: &PgPool, map_id: String) -> Result<Vec<SpBanned>>{
+    pub async fn get_sp_banned(pool: &PgPool, map_id: String) -> Result<Vec<SpBanned>> {
         let res = sqlx::query_as::<_, SpBanned>(r#"
                 SELECT changelog.profile_number, changelog.score 
                     FROM "p2boards".changelog
@@ -730,7 +837,7 @@ impl SpBanned {
 
 impl CoopBanned {
     /// Currently returns two profile_numbers and a score associated with a coop_bundle where one or both times are either banned or unverifed.
-    pub async fn get_coop_banned(pool: &PgPool, map_id: String) -> Result<Vec<CoopBanned>>{
+    pub async fn get_coop_banned(pool: &PgPool, map_id: String) -> Result<Vec<CoopBanned>> {
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
         // TODO: How to handle one player in coop not-being banned/unverified but the other is.
         let res = sqlx::query_as::<_, CoopBanned>(r#"
