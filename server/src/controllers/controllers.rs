@@ -7,7 +7,7 @@ use anyhow::Result;
 //use log::{debug};
 
 
-use crate::tools::datamodels::*;
+use crate::controllers::models::*;
 
 // TODO: Create macro for different lookup templates
 

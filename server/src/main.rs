@@ -10,17 +10,17 @@ use sqlx::PgPool;
 
 /// Module for the API versions containing handlers for API endpoints.
 mod api;
-/// Configuration module that handles extracting information from the environment for setup.
-mod config;
-/// Module for tools like our models and some of the calculation functions we use for the boards.
+/// Helpter functions used for the boards
 mod tools;
+/// Module for database interactions and models.
+mod controllers;
 
 /// Driver code to start and mount all compontents to the webserver we create.
 #[actix_web::main]
 async fn main() -> Result<(), Error> {
     dotenv().ok();
     // Use config.rs to extract a configuration struct from .env (See documentation about changing .env.example)
-    let config = crate::config::Config::from_env().unwrap();
+    let config = crate::tools::config::Config::from_env().unwrap();
     println!("{:#?}", config);
     // Database pool, uses manager to build new database pool, saved in web::Data.
     // Reference Code: https://github.com/actix/examples/blob/master/database_interactions/diesel/src/main.rs

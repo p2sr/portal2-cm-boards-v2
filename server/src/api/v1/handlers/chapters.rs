@@ -1,4 +1,4 @@
-use crate::tools::datamodels::Chapters;
+use crate::controllers::models::Chapters;
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 

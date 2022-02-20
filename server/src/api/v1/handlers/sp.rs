@@ -3,7 +3,7 @@ use anyhow::{bail, Result};
 use sqlx::PgPool;
 
 use crate::tools::calc::score;
-use crate::tools::datamodels::{
+use crate::controllers::models::{
     CalcValues, Changelog, ChangelogInsert, ScoreParams, SpBanned, SpMap, SpPbHistory, SpPreviews,
     SpRanked, Users, UsersPage,
 };

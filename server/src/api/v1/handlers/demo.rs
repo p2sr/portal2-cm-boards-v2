@@ -1,5 +1,5 @@
-use crate::config::Config;
-use crate::tools::datamodels::{Changelog, ChangelogInsert, DemoInsert, Demos, Maps};
+use crate::tools::config::Config;
+use crate::controllers::models::{Changelog, ChangelogInsert, DemoInsert, Demos, Maps};
 use actix_multipart::Multipart;
 use actix_web::{post, web, HttpResponse, Responder};
 use anyhow::Result;

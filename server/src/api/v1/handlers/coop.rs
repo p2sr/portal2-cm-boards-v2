@@ -1,5 +1,5 @@
 use crate::tools::calc::score;
-use crate::tools::datamodels::{
+use crate::controllers::models::{
     Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, CoopRanked,
     ScoreParams,
 };

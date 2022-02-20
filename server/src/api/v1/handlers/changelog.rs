@@ -1,5 +1,6 @@
-use crate::tools::datamodels::ChangelogPage;
-use crate::tools::datamodels::ChangelogQueryParams;
+use crate::controllers::models::ChangelogPage;
+use crate::controllers::models::ChangelogQueryParams;
+
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
