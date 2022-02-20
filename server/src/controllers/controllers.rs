@@ -370,6 +370,7 @@ impl ChangelogPage {
     // Handles filtering out changelog by different criteria.
     pub async fn get_cl_page_filtered(pool: &PgPool, params: ChangelogQueryParams) -> Result<Option<Vec<ChangelogPage>>>{
         // TODO: Decide if we want Chapter name
+        let mut filters: Vec<String> = Vec::new();
         let mut query_string: String = String::from(r#" 
             SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
             cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
@@ -385,52 +386,61 @@ impl ChangelogPage {
             INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
             INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
             INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)"#);
-        if !params.coop{
-            query_string = format!("{} WHERE chapters.is_multiplayer = False", &query_string);
-        } else if !params.sp{
-            query_string = format!("{} WHERE chapters.is_multiplayer = True", &query_string);
+        
+        if !params.coop {
+            filters.push("chapters.is_multiplayer = False".to_string());
+        } else if !params.sp {
+            filters.push("chapters.is_multiplayer = True".to_string());
         }
-        if let Some(has_demo) = params.has_demo{
-            if has_demo{
-                query_string = format!("{} WHERE cl.demo_id IS NOT NULL", &query_string);
-            } else{
-                query_string = format!("{} WHERE cl.demo_id IS NULL", &query_string);
+        if let Some(has_demo) = params.has_demo {
+            if has_demo {
+                filters.push("cl.demo_id IS NOT NULL".to_string());
+            } else {
+                filters.push("cl.demo_id IS NULL".to_string());
             }
         }
-        if let Some(yt) = params.yt{
-            if yt{
-                query_string = format!("{} WHERE cl.youtube_id IS NOT NULL", &query_string);
-            } else{
-                query_string = format!("{} WHERE cl.youtube_id IS NULL", &query_string);
+        if let Some(yt) = params.yt {
+            if yt {
+                filters.push("cl.youtube_id IS NOT NULL".to_string());
+            } else {
+                filters.push("cl.youtube_id IS NULL".to_string());
             }
         }
-        if let Some(wr_gain) = params.wr_gain{
-            if wr_gain{
-                query_string = format!("{} WHERE cl.post_rank = 1", &query_string);
+        if let Some(wr_gain) = params.wr_gain {
+            if wr_gain {
+                filters.push("cl.post_rank = 1".to_string());
             }
         }
-        if let Some(chamber) = params.chamber{
-            query_string = format!("{} WHERE cl.map_id = {}", &query_string, &chamber);
+        if let Some(chamber) = params.chamber {
+            filters.push(format!("cl.map_id = {}", &chamber));
         }
-        if let Some(profile_number) = params.profile_number{
-            query_string = format!("{} WHERE cl.profile_number = {}", &query_string, &profile_number);
+        if let Some(profile_number) = params.profile_number {
+            filters.push(format!("cl.profile_number = {}", &profile_number));
         }
         //#[allow(irrefutable_let_patterns)]
-        if let Some(nick_name) = params.nick_name{
+        if let Some(nick_name) = params.nick_name {
             //eprintln!("{}", nick_name);
             if let Some(profile_numbers) = Users::check_board_name(&pool, nick_name.clone()).await?.as_mut(){
-                if profile_numbers.len() == 1{
-                    query_string = format!("{} WHERE cl.profile_number = '{}'", &query_string, &profile_numbers[0].to_string());
-                } else{
-                    query_string = format!("{} WHERE cl.profile_number = '{}'", &query_string, &profile_numbers[0].to_string());
+                if profile_numbers.len() == 1 {
+                    filters.push(format!("cl.profile_number = '{}'", &profile_numbers[0].to_string()));
+                } else {
+                    filters.push(format!("cl.profile_number = '{}'", &profile_numbers[0].to_string()));
                     profile_numbers.remove(0);
                     for num in profile_numbers.iter(){
-                        query_string = format!("{} OR cl.profile_number = '{}'", &query_string, num);
+                        filters.push(format!("cl.profile_number = '{}'", num));
                     }
                 }
             }
             else{
                 // TODO: Construct an Error
+            }
+        }
+        // Build the statement based off the elements we added.
+        for (i, entry) in filters.iter().enumerate() {
+            if i == 0 {
+                query_string = format!("{} WHERE {}", &query_string, entry);
+            } else {
+                query_string = format!("{} OR {} ", &query_string, entry);
             }
         }
         //TODO: Maybe allow for custom order params????
