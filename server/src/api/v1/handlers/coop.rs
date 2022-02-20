@@ -1,6 +1,7 @@
 use crate::tools::calc::score;
 use crate::tools::datamodels::{
-    Changelog, CoopBanned, CoopBundled, CoopMap, CoopPreviews, CoopRanked, ScoreParams, CoopBundledInsert
+    Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, CoopRanked,
+    ScoreParams,
 };
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
