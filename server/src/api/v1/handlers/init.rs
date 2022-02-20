@@ -22,6 +22,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(get_sp_pbs)
             .service(post_score_sp)
             .service(put_score_sp)
+            .service(get_newscore_details)
             .service(get_cooperative_maps) // Coop
             .service(get_cooperative_preview)
             .service(get_changelog)

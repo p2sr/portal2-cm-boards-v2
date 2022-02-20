@@ -1,17 +1,15 @@
-#![allow(unused)]
-#![allow(clippy::all)]
+#![allow(dead_code)]
 
 use std::collections::HashMap;
-use actix_web::{HttpResponse, Error, HttpRequest, Responder};
 use sqlx::postgres::PgRow;
-use sqlx::{FromRow, Row, PgPool};
-use futures::future::{ready, Ready};
+use sqlx::{Row, PgPool};
 use anyhow::Result;
-use chrono::NaiveDateTime;
-use log::{debug};
+//use log::{debug};
 
 
 use crate::tools::datamodels::*;
+
+// TODO: Create macro for different lookup templates
 
 impl CoopPreview {
     /// Gets the top 7 (unique on player) times on a given Coop Map.
@@ -88,7 +86,7 @@ impl CoopPreview {
 impl CoopPreviews {
     // Collects the top 7 preview data for all Coop maps.
     pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<CoopPreviews>>{
-        let map_id_vec = Maps::get_steamids(&pool, true).await?;
+        let map_id_vec = Maps::get_steam_ids(&pool, true).await?;
         let mut vec_final = Vec::new();
         for map_id in map_id_vec.iter(){
             let vec_temp = CoopPreview::get_coop_preview(&pool, map_id.to_string()).await?;
@@ -102,7 +100,8 @@ impl CoopPreviews {
 }
 
 impl Chapters{
-    pub async fn get_map_ids(pool: &PgPool, chapter_id: i32) -> Result<Option<Vec<String>>>{
+    /// Returns the maps for a given chapter.
+    pub async fn get_map_ids(pool: &PgPool, chapter_id: i32) -> Result<Option<Vec<String>>> {
         let res = sqlx::query(r#"SELECT maps.steam_id FROM p2boards.maps WHERE chapter_id=$1"#)
             .bind(chapter_id)
             .map(|row: PgRow|{row.get(0)})
@@ -110,6 +109,44 @@ impl Chapters{
             .await?;
         Ok(Some(res)) //We're not going to handle error cases I'm tired
         // TODO: Do this better
+    }
+    /// Searches for all chapter IDs that match a given search pattern.
+    pub async fn get_chapter_id_by_name(pool: &PgPool, chapter_name: String) -> Result<Option<Vec<i32>>> {
+        let query_chapter_name = format!("%{}%", &chapter_name);
+        let res = sqlx::query(r#"SELECT id FROM "p2boards".chapters 
+                WHERE LOWER(chapter_name) LIKE LOWER($1)"#)
+            .bind(query_chapter_name) 
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_all(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    /// Returns a chapter's data by the ID given.
+    pub async fn get_chapter_by_id(pool: &PgPool, chapter_id: i32) -> Result<Option<Chapters>> {
+        let res = sqlx::query_as::<_, Chapters>(r#"SELECT * FROM "p2boards".chapters WHERE id=$1;"#)
+            .bind(chapter_id)
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    /// Returns true if the map is multiplayer, false if the map is singleplayer
+    pub async fn get_chapter_is_multiplayer(pool: &PgPool, chapter_id: i32) -> Result<Option<bool>> {
+        let res = sqlx::query(r#"SELECT is_multiplayer FROM "p2boards".chapters WHERE id=$1"#)
+            .bind(chapter_id)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    pub async fn get_chapter_game(pool: &PgPool, chapter_id: i32) -> Result<Option<Games>> {
+        let res = sqlx::query_as::<_, Games>(r#"SELECT games.id, games.game_name 
+                FROM "p2boards".games
+                INNER JOIN "p2boards".chapters ON (games.id = chapters.game_id)
+                WHERE chapters.id = $1"#)
+            .bind(chapter_id)
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
     }
 }
 
@@ -153,7 +190,7 @@ impl SpPreview{
 impl SpPreviews{
     // Collects the top 7 preview data for all SP maps.
     pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<SpPreviews>>{
-        let map_id_vec = Maps::get_steamids(&pool, false).await?;
+        let map_id_vec = Maps::get_steam_ids(&pool, false).await?;
         let mut vec_final = Vec::new();
         for map_id in map_id_vec.iter(){
             let vec_temp = SpPreview::get_sp_preview(&pool, map_id.to_string()).await?;
@@ -189,11 +226,11 @@ impl SpBanned{
     }
 }
 
-impl CoopBanned{
+impl CoopBanned {
+    /// Currently returns two profile_numbers and a score associated with a coop_bundle where one or both times are either banned or unverifed.
     pub async fn get_coop_banned(pool: &PgPool, map_id: String) -> Result<Vec<CoopBanned>>{
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
         // TODO: How to handle one player in coop not-being banned/unverified but the other is.
-        /// Currently returns two profile_numbers and a score associated with a coop_bundle where one or both times are either banned or unverifed.
         let res = sqlx::query_as::<_, CoopBanned>(r#"
                 SELECT c1.score, p1.profile_number, p2.profile_number
                 FROM (SELECT * FROM 
@@ -218,8 +255,8 @@ impl CoopBanned{
 }
 
 impl Maps{
-    /// Takes in a bool, if true returns ass MP map_ids, if false, returns as SP map_ids
-    pub async fn get_steamids(pool: &PgPool, is_mp: bool) -> Result<Vec<String>>{
+    /// Takes in a bool, if true returns MP map_ids, if false, returns as SP map_ids
+    pub async fn get_steam_ids(pool: &PgPool, is_mp: bool) -> Result<Vec<String>>{
         let res = sqlx::query(r#"
                 SELECT maps.steam_id FROM "p2boards".maps
                     INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
@@ -240,6 +277,7 @@ impl Maps{
             .await?;
         Ok(Some(res))
     }
+    /// Returns the default category for a given map.
     pub async fn get_deafult_cat(pool: &PgPool, map_id: String) -> Result<Option<i32>> {
         let res = sqlx::query(r#"
                 SELECT default_cat_id FROM "p2boards".maps
@@ -249,6 +287,38 @@ impl Maps{
             .fetch_one(pool)
             .await?;
         Ok(res)
+    }
+    /// Returns chapter information for a given map_id (steam_id)
+    pub async fn get_chapter_from_map_id(pool: &PgPool, map_id: String) -> Result<Option<Chapters>> {
+        let res = sqlx::query_as::<_, Chapters>(r#"
+                SELECT chapters.id, chapters.chapter_name, chapters.is_multiplayer, chapters.game_id
+                FROM "p2boards".Chapters
+                INNER JOIN "p2boards".maps ON (chapters.id = maps.chapter_id)
+                WHERE maps.steam_id = $1"#)
+            .bind(map_id)
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    /// Searches for all chapter IDs that match a given search pattern.
+    pub async fn get_steam_id_by_name(pool: &PgPool, map_name: String) -> Result<Option<Vec<i32>>> {
+        let query_map_name = format!("%{}%", &map_name);
+        let res = sqlx::query(r#"SELECT steam_id FROM "p2boards".maps 
+                WHERE LOWER(name) LIKE LOWER($1)"#)
+            .bind(query_map_name) 
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_all(pool)
+            .await?;
+        Ok(Some(res))
+    }
+    /// Returns true if the map is publicly accessible on the Steam Leaderboards.
+    pub async fn get_is_public_by_steam_id(pool: &PgPool, map_id: String) -> Result<Option<bool>> {
+        let res = sqlx::query(r#"SELECT is_public FROM "p2boards".maps WHERE steam_id = $1;"#)
+            .bind(map_id)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
     }
 }
 
@@ -316,7 +386,8 @@ impl Users{
     /// Inserts a new user into the databse
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<bool> {
         let mut res = String::new();
-        let query = sqlx::query(r#"
+        // We do not care about the returning profile_number. As it is not generated and we already have it
+        let _ = sqlx::query(r#"
                 INSERT INTO "p2boards".Users
                 (profile_number, board_name, steam_name, banned, registred, 
                 avatar, twitch, youtube, title, admin, donation_amount, discord_id)
@@ -441,8 +512,8 @@ impl SpMap{
 
 impl CoopBundled {
     pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64>{
-        let mut res: i64 = 0; 
-        let query = sqlx::query(r#"
+        let mut res: i64 = 0;
+        let _ = sqlx::query(r#"
                 INSERT INTO "p2boards".coop_bundled 
                 (p_id1, p_id2, p1_is_host, cl_id1, cl_id2) VALUES 
                 ($1, $2, $3, $4, $5)
@@ -501,7 +572,7 @@ impl Changelog{
     pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64> {
         // TODO: https://stackoverflow.com/questions/4448340/postgresql-duplicate-key-violates-unique-constraint
         let mut res: i64 = 0; 
-        let query = sqlx::query(r#"
+        let _ = sqlx::query(r#"
                 INSERT INTO "p2boards".changelog 
                 (timestamp, profile_number, score, map_id, demo_id, banned, 
                 youtube_id, coop_id, post_rank, pre_rank, submission, note,
@@ -657,8 +728,9 @@ impl ChangelogPage{
 impl Demos {
     pub async fn insert_demo(pool: &PgPool, demo: DemoInsert) -> Result<i64>{
         let mut res: i64 = 0; 
-        let query = sqlx::query(r#"
+        let _ = sqlx::query(r#"
                 INSERT INTO "p2boards".demos 
+               
                 (file_id, partner_name, parsed_successfully, sar_version, cl_id) VALUES 
                 ($1, $2, $3, $4, $5)
                 RETURNING id"#)
