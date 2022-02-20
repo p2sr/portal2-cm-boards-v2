@@ -4,10 +4,10 @@ use crate::api::v1::handlers::changelog::*;
 use crate::api::v1::handlers::chapters::*;
 use crate::api::v1::handlers::coop::*;
 use crate::api::v1::handlers::demo::*;
+use crate::api::v1::handlers::maps::*;
 use crate::api::v1::handlers::points::*;
 use crate::api::v1::handlers::sp::*;
 use crate::api::v1::handlers::users::*;
-use crate::api::v1::handlers::maps::*;
 
 /// Mounts the routes to /api/..
 pub fn init(cfg: &mut web::ServiceConfig) {
