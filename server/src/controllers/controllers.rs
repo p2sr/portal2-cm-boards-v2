@@ -56,7 +56,7 @@ impl Maps {
         Ok(Some(res))
     }
     /// Searches for all chapter IDs that match a given search pattern.
-    pub async fn get_steam_id_by_name(pool: &PgPool, map_name: String) -> Result<Option<Vec<i32>>> {
+    pub async fn get_steam_id_by_name(pool: &PgPool, map_name: String) -> Result<Option<Vec<String>>> {
         let query_map_name = format!("%{}%", &map_name);
         let res = sqlx::query(r#"SELECT steam_id FROM "p2boards".maps 
                 WHERE LOWER(name) LIKE LOWER($1)"#)
@@ -268,7 +268,7 @@ impl Users {
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<bool> {
         let mut res = String::new();
         // We do not care about the returning profile_number. As it is not generated and we already have it
-        let test = sqlx::query(r#"
+        let _ = sqlx::query(r#"
                 INSERT INTO "p2boards".Users
                 (profile_number, board_name, steam_name, banned, registered, 
                 avatar, twitch, youtube, title, admin, donation_amount, discord_id)
@@ -283,7 +283,6 @@ impl Users {
             })
             .fetch_one(pool)
             .await?;
-        eprintln!("DEBUG -> {:?}", test);
         if res == new_user.profile_number {
             return Ok(true);
         } else {

@@ -81,6 +81,27 @@ async fn test_db_users() {
     insert_user.board_name = Some("BigDaniel11AtlasPog".to_string());
     assert_eq!(Users::update_existing_user(&pool, insert_user.clone()).await.unwrap(), true);
     assert_eq!(Users::delete_user(&pool, insert_user.profile_number.clone()).await.unwrap(), true);
-    let res = Users::get_user_data(&pool, insert_user.profile_number.clone()).await;
-    eprintln!("{:#?}", res);
+    let _res = Users::get_user_data(&pool, insert_user.profile_number.clone()).await;
+}
+
+#[actix_web::test]
+async fn test_db_maps() {
+    use crate::controllers::models::*;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    let sp = Maps::get_steam_ids(&pool, false).await.unwrap();
+    let coop = Maps::get_steam_ids(&pool, true).await.unwrap();
+    assert_eq!(sp.len(), 60);
+    assert_eq!(coop.len(), 48);
+    let map_name = Maps::get_map_name(&pool, sp[0].clone()).await.unwrap().unwrap();
+    let pgun = "Portal Gun".to_string();
+    assert_eq!(map_name, pgun);
+    let default_cat = Maps::get_deafult_cat(&pool, sp[0].clone()).await.unwrap().unwrap();
+    assert_eq!(default_cat, 1);
+    let chapter_id = Maps::get_chapter_from_map_id(&pool, sp[0].clone()).await.unwrap().unwrap();
+    assert_eq!(chapter_id.id, 7);
+    assert_eq!(chapter_id.chapter_name, Some("The Courtesy Call".to_string()));
+    let id = Maps::get_steam_id_by_name(&pool, pgun.clone()).await.unwrap().unwrap();
+    assert_eq!(sp[0], id[0]);
+    let public = Maps::get_is_public_by_steam_id(&pool, sp[0].clone()).await.unwrap().unwrap();
+    assert_eq!(true, public);
 }
