@@ -13,6 +13,53 @@ async fn get_config() -> Result<(Config, PgPool)> {
     Ok((config, pool))
 }
 
+#[actix_web::test]
+async fn test_db_maps() {
+    use crate::controllers::models::*;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    let sp = Maps::get_steam_ids(&pool, false).await.unwrap();
+    let coop = Maps::get_steam_ids(&pool, true).await.unwrap();
+    assert_eq!(sp.len(), 60);
+    assert_eq!(coop.len(), 48);
+    let map_name = Maps::get_map_name(&pool, sp[0].clone()).await.unwrap().unwrap();
+    let pgun = "Portal Gun".to_string();
+    assert_eq!(map_name, pgun);
+    let default_cat = Maps::get_deafult_cat(&pool, sp[0].clone()).await.unwrap().unwrap();
+    assert_eq!(default_cat, 1);
+    let chapter_id = Maps::get_chapter_from_map_id(&pool, sp[0].clone()).await.unwrap().unwrap();
+    assert_eq!(chapter_id.id, 7);
+    assert_eq!(chapter_id.chapter_name, Some("The Courtesy Call".to_string()));
+    let id = Maps::get_steam_id_by_name(&pool, pgun.clone()).await.unwrap().unwrap();
+    assert_eq!(sp[0], id[0]);
+    let public = Maps::get_is_public_by_steam_id(&pool, sp[0].clone()).await.unwrap().unwrap();
+    assert_eq!(true, public);
+}
+
+#[actix_web::test]
+async fn test_db_chapters() {
+    use crate::controllers::models::*;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    let chapter = Chapters {
+        id: 7,
+        chapter_name: Some("The Courtesy Call".to_string()),
+        is_multiplayer: false,
+        game_id: 1,
+    };
+    let map_ids = Chapters::get_map_ids(&pool, chapter.id).await.unwrap().unwrap();
+    assert_eq!(vec!["47458", "47455", "47452", "47106", "47735", "62761", "62758", "62763", "62759"], map_ids);
+    let ids = Chapters::get_chapter_id_by_name(&pool, "The Courtesy Call".to_string()).await.unwrap().unwrap();
+    assert_eq!(chapter.id, ids[0]);
+    let new_chapter = Chapters::get_chapter_by_id(&pool, chapter.id).await.unwrap().unwrap();
+    assert_eq!(chapter.id, new_chapter.id);
+    assert_eq!(chapter.chapter_name, new_chapter.chapter_name);
+    assert_eq!(chapter.is_multiplayer, new_chapter.is_multiplayer);
+    assert_eq!(chapter.game_id, new_chapter.game_id);
+    let is_mp = Chapters::get_chapter_is_multiplayer(&pool, chapter.id).await.unwrap().unwrap();
+    assert_eq!(chapter.is_multiplayer, is_mp);
+    let game = Chapters::get_chapter_game(&pool, chapter.id).await.unwrap().unwrap();
+    assert_eq!(chapter.game_id, game.id);
+}
+
 
 // TODO: We want to make this prone to handling changes, right now many of the tests
 //       are hard-coded to only work on this current version of the db.
@@ -82,26 +129,4 @@ async fn test_db_users() {
     assert_eq!(Users::update_existing_user(&pool, insert_user.clone()).await.unwrap(), true);
     assert_eq!(Users::delete_user(&pool, insert_user.profile_number.clone()).await.unwrap(), true);
     let _res = Users::get_user_data(&pool, insert_user.profile_number.clone()).await;
-}
-
-#[actix_web::test]
-async fn test_db_maps() {
-    use crate::controllers::models::*;
-    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
-    let sp = Maps::get_steam_ids(&pool, false).await.unwrap();
-    let coop = Maps::get_steam_ids(&pool, true).await.unwrap();
-    assert_eq!(sp.len(), 60);
-    assert_eq!(coop.len(), 48);
-    let map_name = Maps::get_map_name(&pool, sp[0].clone()).await.unwrap().unwrap();
-    let pgun = "Portal Gun".to_string();
-    assert_eq!(map_name, pgun);
-    let default_cat = Maps::get_deafult_cat(&pool, sp[0].clone()).await.unwrap().unwrap();
-    assert_eq!(default_cat, 1);
-    let chapter_id = Maps::get_chapter_from_map_id(&pool, sp[0].clone()).await.unwrap().unwrap();
-    assert_eq!(chapter_id.id, 7);
-    assert_eq!(chapter_id.chapter_name, Some("The Courtesy Call".to_string()));
-    let id = Maps::get_steam_id_by_name(&pool, pgun.clone()).await.unwrap().unwrap();
-    assert_eq!(sp[0], id[0]);
-    let public = Maps::get_is_public_by_steam_id(&pool, sp[0].clone()).await.unwrap().unwrap();
-    assert_eq!(true, public);
 }
