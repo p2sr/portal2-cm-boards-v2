@@ -92,7 +92,7 @@ pub struct CoopBundledInsert {
 }
 
 /// One-to-one struct for demo data.
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
 pub struct Demos {
     pub id: i64,
     pub file_id: String,
@@ -102,7 +102,7 @@ pub struct Demos {
     pub cl_id: i64,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Default, Serialize, Deserialize, FromRow, Clone)]
 pub struct DemoInsert {
     pub file_id: String,
     pub partner_name: Option<String>,

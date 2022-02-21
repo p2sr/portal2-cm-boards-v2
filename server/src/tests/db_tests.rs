@@ -66,8 +66,8 @@ async fn test_db_chapters() {
 #[actix_web::test]
 async fn test_db_users() {
     use crate::controllers::models::*;
-
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    
     let user: Users = Users{ 
         profile_number: "76561198040982247".to_string(),
         board_name: Some("Daniel".to_string()),
@@ -129,4 +129,56 @@ async fn test_db_users() {
     assert_eq!(Users::update_existing_user(&pool, insert_user.clone()).await.unwrap(), true);
     assert_eq!(Users::delete_user(&pool, insert_user.profile_number.clone()).await.unwrap(), true);
     let _res = Users::get_user_data(&pool, insert_user.profile_number.clone()).await;
+}
+
+#[actix_web::test]
+async fn test_db_demos() {
+    use crate::controllers::models::*;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    let demo = Demos {
+        id: 14598,
+        file_id: "LaservsTurret_1763_76561198040982247_14598.dem".to_string(),
+        partner_name: None,
+        parsed_successfully: true,
+        sar_version: Some("".to_string()),
+        cl_id: 127825
+    };
+    let new_demo = Demos::get_demo(&pool, demo.id).await.unwrap().unwrap();
+    assert_eq!(demo.id, new_demo.id);
+    assert_eq!(demo.file_id, new_demo.file_id);
+    assert_eq!(demo.partner_name, new_demo.partner_name);
+    assert_eq!(demo.parsed_successfully, new_demo.parsed_successfully);
+    // TODO: All sar_version values are empty strings for some reason...
+    assert_eq!(demo.sar_version, new_demo.sar_version);
+    assert_eq!(demo.cl_id, new_demo.cl_id);
+    let fid = Demos::get_demo_file_id(&pool, demo.id).await.unwrap().unwrap();
+    assert_eq!(demo.file_id, fid);
+    let partner_name = Demos::get_partner_name(&pool, demo.id).await.unwrap();
+    assert_eq!(demo.partner_name, partner_name);
+    let parsed = Demos::check_parsed(&pool, demo.id).await.unwrap();
+    assert_eq!(demo.parsed_successfully, parsed);
+    let sar_version = Demos::get_sar_version(&pool, demo.id).await.unwrap();
+    assert_eq!(demo.sar_version, sar_version);
+    let new_demo = DemoInsert {
+        file_id: "Doors_831_76561198039230536.dem".to_string(),
+        partner_name: Some("Undead".to_string()),
+        parsed_successfully: false,
+        sar_version: Some("12.7.2-pre".to_string()),
+        cl_id: 1,
+    };
+    let demo_insert = Demos::insert_demo(&pool, new_demo.clone()).await.unwrap();
+    let mut check_insert = Demos::get_demo(&pool, demo_insert).await.unwrap().unwrap();
+    assert_eq!(demo_insert, check_insert.id);
+    assert_eq!(new_demo.file_id, check_insert.file_id);
+    assert_eq!(new_demo.partner_name, check_insert.partner_name);
+    assert_eq!(new_demo.parsed_successfully, check_insert.parsed_successfully);
+    assert_eq!(new_demo.sar_version, check_insert.sar_version);
+    assert_eq!(new_demo.cl_id, check_insert.cl_id);
+    let new_fid = "Hello World".to_string();
+    check_insert.file_id = new_fid.clone();
+    assert_eq!(Demos::update_demo(&pool, check_insert.clone()).await.unwrap(), true);
+    let check_updated = Demos::get_demo(&pool, check_insert.id).await.unwrap().unwrap();
+    assert_eq!(check_updated.file_id, new_fid);
+    assert_eq!(Demos::delete_demo(&pool, check_insert.id).await.unwrap(), true);
+    let _res = Demos::get_demo(&pool, check_insert.id).await;
 }

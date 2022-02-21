@@ -343,6 +343,15 @@ impl Demos {
             .await?;
         Ok(Some(res))
     }
+    /// Returns the partner's name
+    pub async fn get_partner_name(pool: &PgPool, demo_id: i64) -> Result<Option<String>> {
+        let res = sqlx::query(r#"SELECT partner_name FROM "p2boards".demos WHERE id = $1"#)
+            .bind(demo_id)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(res)
+    }
     /// Check to see if a demo was parsed successfully
     pub async fn check_parsed(pool: &PgPool, demo_id: i64) -> Result<bool> {
         let res = sqlx::query(r#"SELECT parsed_successfully FROM "p2boards".demos WHERE id = $1"#)
@@ -387,11 +396,25 @@ impl Demos {
             .bind(updated_demo.file_id).bind(updated_demo.partner_name)
             .bind(updated_demo.parsed_successfully).bind(updated_demo.sar_version)
             .bind(updated_demo.cl_id).bind(updated_demo.id)
-            .fetch_one(pool)
+            .fetch_optional(pool)
             .await?;
         Ok(true)
     }
-    
+    /// Deletes a demo
+    pub async fn delete_demo(pool: &PgPool, demo_id: i64) -> Result<bool> {
+        let res = sqlx::query_as::<_, Demos>(r#"DELETE FROM "p2boards".demos 
+                WHERE id = $1 RETURNING *"#)
+            .bind(demo_id)
+            .fetch_one(pool)
+            .await;
+        match res {
+            Ok(_) => Ok(true),
+            Err(e) => {
+                eprintln!("Error deleting demo -> {}", e);
+                Ok(false)
+            },
+        }        
+    }
 }
 
 // Implementations of associated functions for Changelog
