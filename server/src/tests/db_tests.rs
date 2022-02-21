@@ -135,6 +135,7 @@ async fn test_db_users() {
 async fn test_db_demos() {
     use crate::controllers::models::*;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+
     let demo = Demos {
         id: 14598,
         file_id: "LaservsTurret_1763_76561198040982247_14598.dem".to_string(),
@@ -181,4 +182,101 @@ async fn test_db_demos() {
     assert_eq!(check_updated.file_id, new_fid);
     assert_eq!(Demos::delete_demo(&pool, check_insert.id).await.unwrap(), true);
     let _res = Demos::get_demo(&pool, check_insert.id).await;
+}
+
+#[actix_web::test]
+async fn test_db_changelog() {
+    use crate::controllers::models::*;
+    use chrono::NaiveDateTime;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    
+    let changelog = Changelog {
+        id: 127825,
+        timestamp: Some(NaiveDateTime::parse_from_str("2020-10-16 12:11:56", "%Y-%m-%d %H:%M:%S").unwrap()),
+        profile_number: "76561198040982247".to_string(),
+        score: 1763,
+        map_id: "47763".to_string(),
+        demo_id: Some(14598),
+        banned: false,
+        youtube_id: Some("-InZK6yZb08?start=0".to_string()),
+        previous_id: Some(113132),
+        coop_id: None,
+        post_rank: Some(1),
+        pre_rank: Some(3),
+        submission: false,
+        note: None,
+        category_id: 19,
+        score_delta: Some(-83),
+        verified: Some(true),
+        admin_note: None,
+    };
+
+    let clinsert = ChangelogInsert {
+        timestamp: Some(NaiveDateTime::parse_from_str("2020-10-16 12:11:56", "%Y-%m-%d %H:%M:%S").unwrap()),
+        profile_number: "76561198040982247".to_string(),
+        score: 1698,
+        map_id: "47763".to_string(),
+        demo_id: None,
+        banned: false,
+        youtube_id: None,
+        previous_id: Some(127825),
+        coop_id: None,
+        post_rank: Some(1),
+        pre_rank: Some(3),
+        submission: true,
+        note: None,
+        category_id: 19,
+        score_delta: Some(-65),
+        verified: Some(true),
+        admin_note: None,
+    };
+    let cl = Changelog::get_changelog(&pool, 127825).await.unwrap().unwrap();
+    assert_eq!(changelog.id, cl.id);
+    assert_eq!(changelog.timestamp, cl.timestamp);
+    assert_eq!(changelog.score, cl.score);
+    assert_eq!(changelog.map_id, cl.map_id);
+    assert_eq!(changelog.demo_id, cl.demo_id);
+    assert_eq!(changelog.banned, cl.banned);
+    assert_eq!(changelog.youtube_id, cl.youtube_id);
+    assert_eq!(changelog.previous_id, cl.previous_id);
+    assert_eq!(changelog.coop_id, cl.coop_id);
+    assert_eq!(changelog.post_rank, cl.post_rank);
+    assert_eq!(changelog.pre_rank, cl.pre_rank);
+    assert_eq!(changelog.submission, cl.submission);
+    assert_eq!(changelog.note, cl.note);
+    assert_eq!(changelog.category_id, cl.category_id);
+    assert_eq!(changelog.score_delta, cl.score_delta);
+    assert_eq!(changelog.verified, cl.verified);
+    assert_eq!(changelog.admin_note, cl.admin_note);
+
+    let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string()).await.unwrap();
+    assert_eq!(banned_scores, false);
+    let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247".to_string(), "47763".to_string()).await.unwrap();
+    assert_eq!(11, pb_history.len());
+    let new_cl_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
+    let mut new_cl = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
+    new_cl.note = Some("fat time".to_string());
+    let is_updated = Changelog::update_changelog(&pool, new_cl.clone()).await.unwrap();
+    assert_eq!(is_updated, true);
+    let updated_changelog = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
+    assert_eq!(new_cl.id, updated_changelog.id);
+    assert_eq!(new_cl.timestamp, updated_changelog.timestamp);
+    assert_eq!(new_cl.score, updated_changelog.score);
+    assert_eq!(new_cl.map_id, updated_changelog.map_id);
+    assert_eq!(new_cl.demo_id, updated_changelog.demo_id);
+    assert_eq!(new_cl.banned, updated_changelog.banned);
+    assert_eq!(new_cl.youtube_id, updated_changelog.youtube_id);
+    assert_eq!(new_cl.previous_id, updated_changelog.previous_id);
+    assert_eq!(new_cl.coop_id, updated_changelog.coop_id);
+    assert_eq!(new_cl.post_rank, updated_changelog.post_rank);
+    assert_eq!(new_cl.pre_rank, updated_changelog.pre_rank);
+    assert_eq!(new_cl.submission, updated_changelog.submission);
+    assert_eq!(Some("fat time".to_string()), updated_changelog.note);
+    assert_eq!(new_cl.category_id, updated_changelog.category_id);
+    assert_eq!(new_cl.score_delta, updated_changelog.score_delta);
+    assert_eq!(new_cl.verified, updated_changelog.verified);
+    assert_eq!(new_cl.admin_note, updated_changelog.admin_note);
+    let deleted = Changelog::delete_changelog(&pool, new_cl_id).await.unwrap();
+    assert_eq!(deleted, true);
+    let _res = Changelog::get_changelog(&pool, new_cl_id).await;
 }

@@ -419,11 +419,18 @@ impl Demos {
 
 // Implementations of associated functions for Changelog
 impl Changelog {
+    pub async fn get_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<Changelog>> {
+        let res = sqlx::query_as::<_, Changelog>(r#"SELECT * FROM "p2boards".changelog WHERE id = $1"#)
+            .bind(cl_id)
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
     pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String) -> Result<bool> {
         // We don't care about the result, we only care if there is a result.
-        let query = sqlx::query(r#" 
+        let res = sqlx::query(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
                 WHERE changelog.score = $1
@@ -433,9 +440,10 @@ impl Changelog {
             .bind(score)
             .bind(map_id)
             .bind(profile_number)
-            .bind(true);
-        let res = query.fetch_optional(pool).await?;
-        match res{
+            .bind(true)
+            .fetch_optional(pool)
+            .await?;
+        match res {
             Some(_) => return Ok(true),
             None => return Ok(false),
         }
@@ -480,23 +488,34 @@ impl Changelog {
         Ok(res)
     }
     /// Updates all fields (except ID) for a given changelog entry. Returns the updated Changelog struct.
-    pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<Changelog> {
-        let res = sqlx::query_as::<_, Changelog>(r#"
-                UPDATE "p2boards".changelog
+    pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<bool> {
+        let _ = sqlx::query(r#"UPDATE "p2boards".changelog 
                 SET timestamp = $1, profile_number = $2, score = $3, map_id = $4, demo_id = $5, banned = $6, 
                 youtube_id = $7, coop_id = $8, post_rank = $9, pre_rank = $10, submission = $11, note = $12,
-                category_id = $13, score_delta = $14, verified = $15, admin_note = $15
-                WHERE changelog.id = $16
-                RETURNING *"#)
+                category_id = $13, score_delta = $14, verified = $15, admin_note = $16
+                WHERE id = $17"#)
             .bind(update.timestamp).bind(update.profile_number).bind(update.score).bind(update.map_id) 
             .bind(update.demo_id).bind(update.banned).bind(update.youtube_id).bind(update.coop_id)
             .bind(update.post_rank).bind(update.pre_rank).bind(update.submission).bind(update.note)
             .bind(update.category_id).bind(update.score_delta).bind(update.verified).bind(update.admin_note)
             .bind(update.id)
-            .fetch_one(pool)
+            .fetch_optional(pool)
             .await?;
-        Ok(res)
+        Ok(true)
     }
+    pub async fn delete_changelog(pool: &PgPool, cl_id: i64) -> Result<bool> {
+        let res = sqlx::query_as::<_, Changelog>(r#"DELETE FROM "p2boards".changelog WHERE id = $1 RETURNING *"#)
+            .bind(cl_id)
+            .fetch_one(pool)
+            .await;
+        match res {
+            Ok(_) => Ok(true),
+            Err(e) => {
+                eprintln!("Error deleting demo -> {}", e);
+                Ok(false)
+            },
+        }
+    }  
 }
 
 impl CoopBundled {

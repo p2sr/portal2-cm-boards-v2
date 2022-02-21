@@ -32,7 +32,7 @@ pub struct Changelog {
     pub admin_note: Option<String>,
 }
 /// All changelog data except for the ID, for table insertion.
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct ChangelogInsert {
     pub timestamp: Option<NaiveDateTime>,
     pub profile_number: String,
