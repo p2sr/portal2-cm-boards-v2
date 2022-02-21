@@ -137,7 +137,7 @@ pub struct Users {
     pub board_name: Option<String>,
     pub steam_name: Option<String>,
     pub banned: bool,
-    pub registred: bool,
+    pub registered: i32,
     pub avatar: Option<String>,
     pub twitch: Option<String>,
     pub youtube: Option<String>,
@@ -147,7 +147,7 @@ pub struct Users {
     pub discord_id: Option<String>,
 }
 
-#[derive(Serialize, FromRow, Clone)]
+#[derive(Serialize, FromRow, Clone, Debug)]
 pub struct UsersPage {
     pub user_name: String,
     pub avatar: String,

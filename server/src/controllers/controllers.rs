@@ -201,14 +201,15 @@ impl Users {
             .await?;
         Ok(res)
     }
-    /// Returns the title associated with the user
+    /// Returns the title associated with the user (CAN BE NONE)
     pub async fn get_title(pool: &PgPool, profile_number: String) -> Result<Option<String>> {
-        let res = sqlx::query(r#"SELECT title FROM "p2boards".users WHERE users.profile_number = $1"#)
+        // Result of query can be None, None is valid and should not return an error.
+        let res: Option<String> = sqlx::query(r#"SELECT title FROM "p2boards".users WHERE users.profile_number = $1"#)
             .bind(profile_number)
             .map(|row: PgRow|{row.get(0)})
             .fetch_one(pool)
             .await?;
-        Ok(Some(res))
+        Ok(res)
     } 
     /// Returns the social media informatio associated with a given user's profile_number
     pub async fn get_socials(pool: &PgPool, profile_number: String) -> Result<Option<Socials>> {
@@ -238,7 +239,7 @@ impl Users {
     ///             (Typically reserved for former admins, trusted players)
     ///         admin_value = 3     -> Developer admin
     ///             (Has admin permissions as an activen developer only)
-    pub async fn get_all_admins(pool: &PgPool, admin_value: i32) -> Result<Option<UsersPage>> {
+    pub async fn get_all_admins(pool: &PgPool, admin_value: i32) -> Result<Option<Vec<UsersPage>>> {
         let res = sqlx::query_as::<_, UsersPage>(r#"
                 SELECT            
                 CASE 
@@ -251,9 +252,9 @@ impl Users {
                 WHERE users.admin = $1
                 "#)
             .bind(admin_value)
-            .fetch_one(pool)
+            .fetch_all(pool)
             .await;
-        match res{
+        match res {
             Ok(user_data) => Ok(Some(user_data)),
             Err(e) => {
                 eprintln!("User not found get_user_data -> {}", e);
@@ -267,14 +268,14 @@ impl Users {
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<bool> {
         let mut res = String::new();
         // We do not care about the returning profile_number. As it is not generated and we already have it
-        let _ = sqlx::query(r#"
+        let test = sqlx::query(r#"
                 INSERT INTO "p2boards".Users
-                (profile_number, board_name, steam_name, banned, registred, 
+                (profile_number, board_name, steam_name, banned, registered, 
                 avatar, twitch, youtube, title, admin, donation_amount, discord_id)
-                VALUSE ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 RETURNING profile_number"#)
             .bind(new_user.profile_number.clone()).bind(new_user.board_name).bind(new_user.steam_name)
-            .bind(new_user.banned).bind(new_user.registred).bind(new_user.avatar)
+            .bind(new_user.banned).bind(new_user.registered).bind(new_user.avatar)
             .bind(new_user.twitch).bind(new_user.youtube).bind(new_user.title)
             .bind(new_user.admin).bind(new_user.donation_amount).bind(new_user.discord_id)
             .map(|row: PgRow| {
@@ -282,6 +283,7 @@ impl Users {
             })
             .fetch_one(pool)
             .await?;
+        eprintln!("DEBUG -> {:?}", test);
         if res == new_user.profile_number {
             return Ok(true);
         } else {
@@ -298,15 +300,29 @@ impl Users {
                 SET board_name = $1, steam_name = $2, banned = $3, registered = $4, 
                 avatar = $5, twitch = $6, youtube = $7, title = $8, admin = $9,
                 donation_amount = $10, discord_id = $11
-                WHERE profile_numer = $12"#)
+                WHERE profile_number = $12"#)
             .bind(updated_user.board_name).bind(updated_user.steam_name)
-            .bind(updated_user.banned).bind(updated_user.registred).bind(updated_user.avatar)
+            .bind(updated_user.banned).bind(updated_user.registered).bind(updated_user.avatar)
             .bind(updated_user.twitch).bind(updated_user.youtube).bind(updated_user.title)
             .bind(updated_user.admin).bind(updated_user.donation_amount)
             .bind(updated_user.discord_id).bind(updated_user.profile_number)
-            .fetch_one(pool)
+            .fetch_optional(pool)
             .await?;
         Ok(true)
+    }
+    pub async fn delete_user(pool: &PgPool, profile_number: String) -> Result<bool> {
+        let res = sqlx::query_as::<_, Users>(r#"DELETE FROM "p2boards".users 
+                WHERE profile_number = $1 RETURNING *"#)
+            .bind(profile_number)
+            .fetch_one(pool)
+            .await;
+        match res {
+            Ok(_) => Ok(true),
+            Err(e) => {
+                eprintln!("Error deleting user -> {}", e);
+                Ok(false)
+            },
+        }
     }
 }
 

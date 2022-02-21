@@ -14,6 +14,8 @@ mod api;
 mod tools;
 /// Module for database interactions and models.
 mod controllers;
+/// Module for testing
+mod tests;
 
 /// Driver code to start and mount all compontents to the webserver we create.
 #[actix_web::main]
