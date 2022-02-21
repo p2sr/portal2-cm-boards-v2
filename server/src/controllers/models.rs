@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use chrono::NaiveDateTime;
 
 /// One-to-one struct for changelog data.
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
 pub struct Changelog {
     pub id: i64,
     pub timestamp: Option<NaiveDateTime>,
@@ -20,7 +20,7 @@ pub struct Changelog {
     pub demo_id: Option<i64>,
     pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i32>, // TODO: This needs to be an i64
+    pub previous_id: Option<i64>,
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
