@@ -158,7 +158,7 @@ impl Users {
             Err(e) => {
                 eprintln!("User not found get_user_data -> {}", e);
                 // return Err(anyhow::Error::new(e).context("Error with user data."))
-                return Ok(None)
+                Ok(None)
             }
         }
     }
@@ -259,7 +259,7 @@ impl Users {
             Err(e) => {
                 eprintln!("User not found get_user_data -> {}", e);
                 // return Err(anyhow::Error::new(e).context("Error with user data."))
-                return Ok(None)
+                Ok(None)
             }
         }
     }
@@ -284,9 +284,9 @@ impl Users {
             .fetch_one(pool)
             .await?;
         if res == new_user.profile_number {
-            return Ok(true);
+            Ok(true)
         } else {
-            return Ok(false);
+            Ok(false)
         }
     }
     pub async fn update_existing_user(pool: &PgPool, updated_user: Users) -> Result<bool> {
@@ -444,8 +444,8 @@ impl Changelog {
             .fetch_optional(pool)
             .await?;
         match res {
-            Some(_) => return Ok(true),
-            None => return Ok(false),
+            Some(_) => Ok(true),
+            None => Ok(false),
         }
     }
     // Returns a vec of changelog for a user's PB history on a given SP map.
@@ -461,10 +461,8 @@ impl Changelog {
             .fetch_all(pool)
             .await;
         match res{
-            Ok(pb_history) => return Ok(pb_history),
-            Err(e) => {
-                return Err(anyhow::Error::new(e).context("Could not find SP PB History"))
-            },
+            Ok(pb_history) => Ok(pb_history),
+            Err(e) => Err(anyhow::Error::new(e).context("Could not find SP PB History")),
         }
     }
     /// Insert a new changelog entry.
@@ -559,10 +557,10 @@ impl ChangelogPage {
             .fetch_all(pool)
             .await;
         match res{
-            Ok(res) => return Ok(Some(res)),
+            Ok(res) => Ok(Some(res)),
             Err(e) => {
                 eprintln!("{}", e);
-                return Err(anyhow::Error::new(e).context("Error with SP Maps"))
+                Err(anyhow::Error::new(e).context("Error with SP Maps"))
             },
         }
     }
@@ -619,7 +617,7 @@ impl ChangelogPage {
         //#[allow(irrefutable_let_patterns)]
         if let Some(nick_name) = params.nick_name {
             //eprintln!("{}", nick_name);
-            if let Some(profile_numbers) = Users::check_board_name(&pool, nick_name.clone()).await?.as_mut(){
+            if let Some(profile_numbers) = Users::check_board_name(pool, nick_name.clone()).await?.as_mut(){
                 if profile_numbers.len() == 1 {
                     filters.push(format!("cl.profile_number = '{}'", &profile_numbers[0].to_string()));
                 } else {
@@ -655,7 +653,7 @@ impl ChangelogPage {
             Ok(changelog_filtered) => Ok(Some(changelog_filtered)),
             Err(e) => {
                 eprintln!("{}", e);
-                return Err(anyhow::Error::new(e).context("Error with SP Maps"))
+                Err(anyhow::Error::new(e).context("Error with SP Maps"))
             },
         }
         // Ok(Some(res))
@@ -698,10 +696,10 @@ impl SpMap {
             .fetch_all(pool)
             .await;
         match res{
-            Ok(res) => return Ok(res),
+            Ok(res) => Ok(res),
             Err(e) => {
                 eprintln!("{}", e);
-                return Err(anyhow::Error::new(e).context("Error with SP Maps"))
+                Err(anyhow::Error::new(e).context("Error with SP Maps"))
             },
         }
         //Ok(res)
@@ -754,10 +752,10 @@ impl CoopMap {
             .fetch_all(pool)
             .await;
         match res{
-            Ok(res) => return Ok(res),
+            Ok(res) => Ok(res),
             Err(e) => {
                 eprintln!("{}", e);
-                return Err(anyhow::Error::new(e).context("Error with SP Maps"))
+                Err(anyhow::Error::new(e).context("Error with SP Maps"))
             },
         }
     }
@@ -794,7 +792,7 @@ impl SpPreview {
             Ok(sp_previews) => Ok(sp_previews),
             Err(e) => {
                 eprintln!("{}", e);
-                return Err(anyhow::Error::new(e).context("Error with SP Previews"))
+                Err(anyhow::Error::new(e).context("Error with SP Previews"))
             }
         }
     }
@@ -803,10 +801,10 @@ impl SpPreview {
 impl SpPreviews{
     // Collects the top 7 preview data for all SP maps.
     pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<SpPreviews>> {
-        let map_id_vec = Maps::get_steam_ids(&pool, false).await?;
+        let map_id_vec = Maps::get_steam_ids(pool, false).await?;
         let mut vec_final = Vec::new();
         for map_id in map_id_vec.iter(){
-            let vec_temp = SpPreview::get_sp_preview(&pool, map_id.to_string()).await?;
+            let vec_temp = SpPreview::get_sp_preview(pool, map_id.to_string()).await?;
             vec_final.push(SpPreviews{
                 map_id : map_id.clone(),
                 scores : vec_temp,
@@ -891,10 +889,10 @@ impl CoopPreview {
 impl CoopPreviews {
     // Collects the top 7 preview data for all Coop maps.
     pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<CoopPreviews>> {
-        let map_id_vec = Maps::get_steam_ids(&pool, true).await?;
+        let map_id_vec = Maps::get_steam_ids(pool, true).await?;
         let mut vec_final = Vec::new();
         for map_id in map_id_vec.iter(){
-            let vec_temp = CoopPreview::get_coop_preview(&pool, map_id.to_string()).await?;
+            let vec_temp = CoopPreview::get_coop_preview(pool, map_id.to_string()).await?;
             vec_final.push(CoopPreviews{
                 map_id : map_id.clone(),
                 scores : vec_temp,
@@ -921,7 +919,7 @@ impl SpBanned {
             Ok(sp_banned) => Ok(sp_banned),
             Err(e) => {
                 eprintln!("{}", e);
-                return Err(anyhow::Error::new(e).context("Error with SP Banned."))
+                Err(anyhow::Error::new(e).context("Error with SP Banned."))
             }
         }
     }

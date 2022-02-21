@@ -32,7 +32,7 @@ async fn test_db_maps() {
     let id = Maps::get_steam_id_by_name(&pool, pgun.clone()).await.unwrap().unwrap();
     assert_eq!(sp[0], id[0]);
     let public = Maps::get_is_public_by_steam_id(&pool, sp[0].clone()).await.unwrap().unwrap();
-    assert_eq!(true, public);
+    assert!(public);
 }
 
 #[actix_web::test]
@@ -107,7 +107,7 @@ async fn test_db_users() {
     let banned = Users::get_banned(&pool).await.unwrap();
     assert_eq!(banned.len(), 148);
     let banned = Users::check_banned(&pool, user.profile_number.clone()).await.unwrap();
-    assert_eq!(banned, false);
+    assert!(!banned);
     let title = Users::get_title(&pool, user.profile_number.clone()).await.unwrap();
     assert_eq!(user.title, title);
     let socials = Users::get_socials(&pool, user.profile_number.clone()).await.unwrap().unwrap();
@@ -121,13 +121,13 @@ async fn test_db_users() {
     assert_eq!(admin_vec[7].user_name, "Lathil".to_string());
     insert_user.profile_number = "0".to_string();
     // Test inserts/updates/deletes
-    assert_eq!(Users::insert_new_users(&pool, insert_user.clone()).await.unwrap(), true);
+    assert!(Users::insert_new_users(&pool, insert_user.clone()).await.unwrap());
     let insert_user_data = Users::get_user_data(&pool, insert_user.profile_number.clone()).await.unwrap().unwrap();
     assert_eq!(insert_user.board_name, Some(insert_user_data.user_name));
     assert_eq!(insert_user.avatar, Some(insert_user_data.avatar));
     insert_user.board_name = Some("BigDaniel11AtlasPog".to_string());
-    assert_eq!(Users::update_existing_user(&pool, insert_user.clone()).await.unwrap(), true);
-    assert_eq!(Users::delete_user(&pool, insert_user.profile_number.clone()).await.unwrap(), true);
+    assert!(Users::update_existing_user(&pool, insert_user.clone()).await.unwrap());
+    assert!(Users::delete_user(&pool, insert_user.profile_number.clone()).await.unwrap());
     let _res = Users::get_user_data(&pool, insert_user.profile_number.clone()).await;
 }
 
@@ -177,10 +177,10 @@ async fn test_db_demos() {
     assert_eq!(new_demo.cl_id, check_insert.cl_id);
     let new_fid = "Hello World".to_string();
     check_insert.file_id = new_fid.clone();
-    assert_eq!(Demos::update_demo(&pool, check_insert.clone()).await.unwrap(), true);
+    assert!(Demos::update_demo(&pool, check_insert.clone()).await.unwrap());
     let check_updated = Demos::get_demo(&pool, check_insert.id).await.unwrap().unwrap();
     assert_eq!(check_updated.file_id, new_fid);
-    assert_eq!(Demos::delete_demo(&pool, check_insert.id).await.unwrap(), true);
+    assert!(Demos::delete_demo(&pool, check_insert.id).await.unwrap());
     let _res = Demos::get_demo(&pool, check_insert.id).await;
 }
 
@@ -250,14 +250,14 @@ async fn test_db_changelog() {
     assert_eq!(changelog.admin_note, cl.admin_note);
 
     let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string()).await.unwrap();
-    assert_eq!(banned_scores, false);
+    assert!(banned_scores);
     let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247".to_string(), "47763".to_string()).await.unwrap();
     assert_eq!(11, pb_history.len());
     let new_cl_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
     let mut new_cl = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
     new_cl.note = Some("fat time".to_string());
     let is_updated = Changelog::update_changelog(&pool, new_cl.clone()).await.unwrap();
-    assert_eq!(is_updated, true);
+    assert!(is_updated);
     let updated_changelog = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
     assert_eq!(new_cl.id, updated_changelog.id);
     assert_eq!(new_cl.timestamp, updated_changelog.timestamp);
@@ -277,6 +277,6 @@ async fn test_db_changelog() {
     assert_eq!(new_cl.verified, updated_changelog.verified);
     assert_eq!(new_cl.admin_note, updated_changelog.admin_note);
     let deleted = Changelog::delete_changelog(&pool, new_cl_id).await.unwrap();
-    assert_eq!(deleted, true);
+    assert!(deleted);
     let _res = Changelog::get_changelog(&pool, new_cl_id).await;
 }
