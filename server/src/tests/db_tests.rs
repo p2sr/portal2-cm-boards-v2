@@ -5,6 +5,8 @@ use dotenv::dotenv;
 use anyhow::Result;
 use crate::tools::config::Config;
 
+const DEFAULT_PAGE_SIZE: usize = 200;
+
 #[allow(dead_code)]
 async fn get_config() -> Result<(Config, PgPool)> {
     dotenv().ok();
@@ -280,9 +282,9 @@ async fn test_db_changelog() {
     assert!(deleted);
     let _res = Changelog::get_changelog(&pool, new_cl_id).await;
 
-    // Changelog Page
-    let cl_page = ChangelogPage::get_cl_page(&pool, 200).await.unwrap().unwrap();
-    assert_eq!(cl_page.len(), 200);
+    // ChangelogPage
+    let cl_page = ChangelogPage::get_cl_page(&pool, DEFAULT_PAGE_SIZE as i32).await.unwrap().unwrap();
+    assert_eq!(cl_page.len(), DEFAULT_PAGE_SIZE);
     let filter = ChangelogQueryParams {
         limit: Some(200),
         nick_name: Some("Daniel".to_string()),
@@ -299,4 +301,23 @@ async fn test_db_changelog() {
     assert_eq!(filtered_cl_page[0].id, 127825);
 }
 
+#[actix_web::test]
+async fn test_db_pages() {
+    use crate::controllers::models::*;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
 
+    let sp_map_id = "47763".to_string();
+    let coop_map_id = "52642".to_string();
+    let smp = SpMap::get_sp_map_page(&pool, sp_map_id.clone()).await.unwrap();
+    assert_eq!(smp.len(), DEFAULT_PAGE_SIZE);
+    let cmp = CoopMap::get_coop_map_page(&pool, coop_map_id.clone()).await.unwrap();
+    assert_eq!(cmp.len(), DEFAULT_PAGE_SIZE);
+
+    let sppres = SpPreviews::get_sp_previews(&pool).await.unwrap();
+    assert_eq!(sppres.len(), 60);
+    let cooppres = CoopPreviews::get_coop_previews(&pool).await.unwrap();
+    assert_eq!(cooppres.len(), 48);
+
+    let _spbanned = SpBanned::get_sp_banned(&pool, sp_map_id).await.unwrap();
+    let _coopbanned = CoopBanned::get_coop_banned(&pool, coop_map_id).await.unwrap();
+}

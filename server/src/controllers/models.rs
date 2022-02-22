@@ -157,11 +157,11 @@ pub struct UsersPage {
 pub struct Socials {
     pub twitch: Option<String>,
     pub youtube: Option<String>,
-    pub discord_id: Option<String>
+    pub discord_id: Option<String>,
 }
 
 /// The minimal data we want for SP map pages to lower bandwidth usage.
-#[derive(Serialize, FromRow)]
+#[derive(Serialize, FromRow, Debug)]
 pub struct SpMap {
     pub timestamp: Option<NaiveDateTime>,
     #[sqlx(rename = "cl_profile_number")]

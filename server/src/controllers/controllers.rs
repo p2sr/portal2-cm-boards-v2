@@ -756,7 +756,10 @@ impl CoopMap {
             .fetch_all(pool)
             .await;
         match res{
-            Ok(res) => Ok(res),
+            Ok(mut res) => {
+                res.truncate(200);
+                Ok(res)
+            },
             Err(e) => {
                 eprintln!("{}", e);
                 Err(anyhow::Error::new(e).context("Error with SP Maps"))
@@ -935,7 +938,7 @@ impl CoopBanned {
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
         // TODO: How to handle one player in coop not-being banned/unverified but the other is.
         let res = sqlx::query_as::<_, CoopBanned>(r#"
-                SELECT c1.score, p1.profile_number, p2.profile_number
+                SELECT c1.score, p1.profile_number AS profile_number1, p2.profile_number AS profile_number2
                 FROM (SELECT * FROM 
                     "p2boards".coop_bundled 
                     WHERE id IN 
