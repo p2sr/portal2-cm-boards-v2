@@ -250,7 +250,7 @@ async fn test_db_changelog() {
     assert_eq!(changelog.admin_note, cl.admin_note);
 
     let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string()).await.unwrap();
-    assert!(banned_scores);
+    assert!(!banned_scores);
     let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247".to_string(), "47763".to_string()).await.unwrap();
     assert_eq!(11, pb_history.len());
     let new_cl_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
