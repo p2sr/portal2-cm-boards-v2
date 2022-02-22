@@ -41,7 +41,7 @@ pub struct ChangelogInsert {
     pub demo_id: Option<i64>,
     pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i32>,
+    pub previous_id: Option<i64>,
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
@@ -265,7 +265,7 @@ pub struct CoopPreviews {
 // }
 // TODO: rustc issues.
 // TODO: Name ChangelogPageEntry
-#[derive(Serialize, FromRow)]
+#[derive(Serialize, FromRow, Debug)]
 pub struct ChangelogPage {
     pub id: i64,
     pub timestamp: Option<NaiveDateTime>,
@@ -275,7 +275,7 @@ pub struct ChangelogPage {
     pub demo_id: Option<i64>,
     pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i32>,
+    pub previous_id: Option<i64>,
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
@@ -342,7 +342,7 @@ pub struct SpPbHistory {
 
 #[derive(Default, Debug, Serialize)]
 pub struct CalcValues {
-    pub previous_id: Option<i32>,
+    pub previous_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
     pub score_delta: Option<i32>,

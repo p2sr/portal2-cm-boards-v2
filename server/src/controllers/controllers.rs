@@ -546,8 +546,7 @@ impl ChangelogPage {
                         THEN u.steam_name
                     WHEN u.board_name IS NOT NULL
                         THEN u.board_name
-                END user_name,
-                u.avatar
+                END user_name, u.avatar
                 FROM "p2boards".changelog AS cl
                 INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
                 INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
@@ -582,50 +581,53 @@ impl ChangelogPage {
             FROM "p2boards".changelog AS cl
             INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
             INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
-            INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)"#);
+            INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)
+        "#);
         
         if !params.coop {
-            filters.push("chapters.is_multiplayer = False".to_string());
+            filters.push("chapters.is_multiplayer = False\n".to_string());
         } else if !params.sp {
-            filters.push("chapters.is_multiplayer = True".to_string());
+            filters.push("chapters.is_multiplayer = True\n".to_string());
         }
         if let Some(has_demo) = params.has_demo {
             if has_demo {
-                filters.push("cl.demo_id IS NOT NULL".to_string());
+                filters.push("cl.demo_id IS NOT NULL\n".to_string());
             } else {
-                filters.push("cl.demo_id IS NULL".to_string());
+                filters.push("cl.demo_id IS NULL\n".to_string());
             }
         }
         if let Some(yt) = params.yt {
             if yt {
-                filters.push("cl.youtube_id IS NOT NULL".to_string());
+                filters.push("cl.youtube_id IS NOT NULL\n".to_string());
             } else {
-                filters.push("cl.youtube_id IS NULL".to_string());
+                filters.push("cl.youtube_id IS NULL\n".to_string());
             }
         }
         if let Some(wr_gain) = params.wr_gain {
             if wr_gain {
-                filters.push("cl.post_rank = 1".to_string());
+                filters.push("cl.post_rank = 1\n".to_string());
             }
         }
         if let Some(chamber) = params.chamber {
-            filters.push(format!("cl.map_id = {}", &chamber));
+            filters.push(format!("cl.map_id = '{}'\n", &chamber));
         }
         if let Some(profile_number) = params.profile_number {
-            filters.push(format!("cl.profile_number = {}", &profile_number));
+            filters.push(format!("cl.profile_number = {}\n", &profile_number));
         }
         //#[allow(irrefutable_let_patterns)]
         if let Some(nick_name) = params.nick_name {
             //eprintln!("{}", nick_name);
             if let Some(profile_numbers) = Users::check_board_name(pool, nick_name.clone()).await?.as_mut(){
                 if profile_numbers.len() == 1 {
-                    filters.push(format!("cl.profile_number = '{}'", &profile_numbers[0].to_string()));
+                    filters.push(format!("cl.profile_number = '{}'\n", &profile_numbers[0].to_string()));
                 } else {
-                    filters.push(format!("cl.profile_number = '{}'", &profile_numbers[0].to_string()));
+                    let mut profile_str = format!("(cl.profile_number = '{}'\n", &profile_numbers[0].to_string());
                     profile_numbers.remove(0);
                     for num in profile_numbers.iter(){
-                        filters.push(format!("cl.profile_number = '{}'", num));
+                        profile_str.push_str(&format!(" OR cl.profile_number = '{}'\n", num));
                     }
+                    profile_str.push_str(")");
+                    filters.push(profile_str);
                 }
             }
             else {
@@ -637,21 +639,23 @@ impl ChangelogPage {
             if i == 0 {
                 query_string = format!("{} WHERE {}", &query_string, entry);
             } else {
-                query_string = format!("{} OR {} ", &query_string, entry);
+                query_string = format!("{} AND {}", &query_string, entry);
             }
         }
         //TODO: Maybe allow for custom order params????
-        query_string = format!("{} ORDER BY cl.timestamp DESC NULLS LAST", &query_string);
+        query_string = format!("{} ORDER BY cl.timestamp DESC NULLS LAST\n", &query_string);
         if let Some(limit) = params.limit{
-            query_string = format!("{} LIMIT {}", &query_string, limit);
+            query_string = format!("{} LIMIT {}\n", &query_string, limit);
         } else{ // Default limit
-            query_string = format!("{} LMIT 1000", &query_string)
+            query_string = format!("{} LMIT 1000\n", &query_string)
         }
-        //eprintln!("{}", query_string);
+        // eprintln!("{}", query_string);
+
         let res = sqlx::query_as::<_, ChangelogPage>(&query_string).fetch_all(pool).await;
         match res{
             Ok(changelog_filtered) => Ok(Some(changelog_filtered)),
             Err(e) => {
+                eprintln!("{}", query_string);
                 eprintln!("{}", e);
                 Err(anyhow::Error::new(e).context("Error with SP Maps"))
             },

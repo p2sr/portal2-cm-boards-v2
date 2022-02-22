@@ -279,4 +279,24 @@ async fn test_db_changelog() {
     let deleted = Changelog::delete_changelog(&pool, new_cl_id).await.unwrap();
     assert!(deleted);
     let _res = Changelog::get_changelog(&pool, new_cl_id).await;
+
+    // Changelog Page
+    let cl_page = ChangelogPage::get_cl_page(&pool, 200).await.unwrap().unwrap();
+    assert_eq!(cl_page.len(), 200);
+    let filter = ChangelogQueryParams {
+        limit: Some(200),
+        nick_name: Some("Daniel".to_string()),
+        profile_number: None,
+        chamber: Some("47763".to_string()),
+        sp: true,
+        coop: true,
+        wr_gain: Some(true),
+        has_demo: Some(true),
+        yt: None,
+    };
+    let filtered_cl_page = ChangelogPage::get_cl_page_filtered(&pool, filter).await.unwrap().unwrap();
+    assert_eq!(filtered_cl_page.len(), 1);
+    assert_eq!(filtered_cl_page[0].id, 127825);
 }
+
+
