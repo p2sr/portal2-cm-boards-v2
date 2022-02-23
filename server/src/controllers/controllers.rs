@@ -56,7 +56,7 @@ impl Maps {
         Ok(Some(res))
     }
     /// Searches for all chapter IDs that match a given search pattern.
-    pub async fn get_steam_id_by_name(pool: &PgPool, map_name: String) -> Result<Option<Vec<i32>>> {
+    pub async fn get_steam_id_by_name(pool: &PgPool, map_name: String) -> Result<Option<Vec<String>>> {
         let query_map_name = format!("%{}%", &map_name);
         let res = sqlx::query(r#"SELECT steam_id FROM "p2boards".maps 
                 WHERE LOWER(name) LIKE LOWER($1)"#)
@@ -201,14 +201,15 @@ impl Users {
             .await?;
         Ok(res)
     }
-    /// Returns the title associated with the user
+    /// Returns the title associated with the user (CAN BE NONE)
     pub async fn get_title(pool: &PgPool, profile_number: String) -> Result<Option<String>> {
-        let res = sqlx::query(r#"SELECT title FROM "p2boards".users WHERE users.profile_number = $1"#)
+        // Result of query can be None, None is valid and should not return an error.
+        let res: Option<String> = sqlx::query(r#"SELECT title FROM "p2boards".users WHERE users.profile_number = $1"#)
             .bind(profile_number)
             .map(|row: PgRow|{row.get(0)})
             .fetch_one(pool)
             .await?;
-        Ok(Some(res))
+        Ok(res)
     } 
     /// Returns the social media informatio associated with a given user's profile_number
     pub async fn get_socials(pool: &PgPool, profile_number: String) -> Result<Option<Socials>> {
@@ -238,7 +239,7 @@ impl Users {
     ///             (Typically reserved for former admins, trusted players)
     ///         admin_value = 3     -> Developer admin
     ///             (Has admin permissions as an activen developer only)
-    pub async fn get_all_admins(pool: &PgPool, admin_value: i32) -> Result<Option<UsersPage>> {
+    pub async fn get_all_admins(pool: &PgPool, admin_value: i32) -> Result<Option<Vec<UsersPage>>> {
         let res = sqlx::query_as::<_, UsersPage>(r#"
                 SELECT            
                 CASE 
@@ -251,9 +252,9 @@ impl Users {
                 WHERE users.admin = $1
                 "#)
             .bind(admin_value)
-            .fetch_one(pool)
+            .fetch_all(pool)
             .await;
-        match res{
+        match res {
             Ok(user_data) => Ok(Some(user_data)),
             Err(e) => {
                 eprintln!("User not found get_user_data -> {}", e);
@@ -269,12 +270,12 @@ impl Users {
         // We do not care about the returning profile_number. As it is not generated and we already have it
         let _ = sqlx::query(r#"
                 INSERT INTO "p2boards".Users
-                (profile_number, board_name, steam_name, banned, registred, 
+                (profile_number, board_name, steam_name, banned, registered, 
                 avatar, twitch, youtube, title, admin, donation_amount, discord_id)
-                VALUSE ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 RETURNING profile_number"#)
             .bind(new_user.profile_number.clone()).bind(new_user.board_name).bind(new_user.steam_name)
-            .bind(new_user.banned).bind(new_user.registred).bind(new_user.avatar)
+            .bind(new_user.banned).bind(new_user.registered).bind(new_user.avatar)
             .bind(new_user.twitch).bind(new_user.youtube).bind(new_user.title)
             .bind(new_user.admin).bind(new_user.donation_amount).bind(new_user.discord_id)
             .map(|row: PgRow| {
@@ -298,15 +299,29 @@ impl Users {
                 SET board_name = $1, steam_name = $2, banned = $3, registered = $4, 
                 avatar = $5, twitch = $6, youtube = $7, title = $8, admin = $9,
                 donation_amount = $10, discord_id = $11
-                WHERE profile_numer = $12"#)
+                WHERE profile_number = $12"#)
             .bind(updated_user.board_name).bind(updated_user.steam_name)
-            .bind(updated_user.banned).bind(updated_user.registred).bind(updated_user.avatar)
+            .bind(updated_user.banned).bind(updated_user.registered).bind(updated_user.avatar)
             .bind(updated_user.twitch).bind(updated_user.youtube).bind(updated_user.title)
             .bind(updated_user.admin).bind(updated_user.donation_amount)
             .bind(updated_user.discord_id).bind(updated_user.profile_number)
-            .fetch_one(pool)
+            .fetch_optional(pool)
             .await?;
         Ok(true)
+    }
+    pub async fn delete_user(pool: &PgPool, profile_number: String) -> Result<bool> {
+        let res = sqlx::query_as::<_, Users>(r#"DELETE FROM "p2boards".users 
+                WHERE profile_number = $1 RETURNING *"#)
+            .bind(profile_number)
+            .fetch_one(pool)
+            .await;
+        match res {
+            Ok(_) => Ok(true),
+            Err(e) => {
+                eprintln!("Error deleting user -> {}", e);
+                Ok(false)
+            },
+        }
     }
 }
 
@@ -327,6 +342,15 @@ impl Demos {
             .fetch_one(pool)
             .await?;
         Ok(Some(res))
+    }
+    /// Returns the partner's name
+    pub async fn get_partner_name(pool: &PgPool, demo_id: i64) -> Result<Option<String>> {
+        let res = sqlx::query(r#"SELECT partner_name FROM "p2boards".demos WHERE id = $1"#)
+            .bind(demo_id)
+            .map(|row: PgRow|{row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(res)
     }
     /// Check to see if a demo was parsed successfully
     pub async fn check_parsed(pool: &PgPool, demo_id: i64) -> Result<bool> {
@@ -372,20 +396,41 @@ impl Demos {
             .bind(updated_demo.file_id).bind(updated_demo.partner_name)
             .bind(updated_demo.parsed_successfully).bind(updated_demo.sar_version)
             .bind(updated_demo.cl_id).bind(updated_demo.id)
-            .fetch_one(pool)
+            .fetch_optional(pool)
             .await?;
         Ok(true)
     }
-    
+    /// Deletes a demo
+    pub async fn delete_demo(pool: &PgPool, demo_id: i64) -> Result<bool> {
+        let res = sqlx::query_as::<_, Demos>(r#"DELETE FROM "p2boards".demos 
+                WHERE id = $1 RETURNING *"#)
+            .bind(demo_id)
+            .fetch_one(pool)
+            .await;
+        match res {
+            Ok(_) => Ok(true),
+            Err(e) => {
+                eprintln!("Error deleting demo -> {}", e);
+                Ok(false)
+            },
+        }        
+    }
 }
 
 // Implementations of associated functions for Changelog
 impl Changelog {
+    pub async fn get_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<Changelog>> {
+        let res = sqlx::query_as::<_, Changelog>(r#"SELECT * FROM "p2boards".changelog WHERE id = $1"#)
+            .bind(cl_id)
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
     pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String) -> Result<bool> {
         // We don't care about the result, we only care if there is a result.
-        let query = sqlx::query(r#" 
+        let res = sqlx::query(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
                 WHERE changelog.score = $1
@@ -395,9 +440,10 @@ impl Changelog {
             .bind(score)
             .bind(map_id)
             .bind(profile_number)
-            .bind(true);
-        let res = query.fetch_optional(pool).await?;
-        match res{
+            .bind(true)
+            .fetch_optional(pool)
+            .await?;
+        match res {
             Some(_) => Ok(true),
             None => Ok(false),
         }
@@ -440,23 +486,34 @@ impl Changelog {
         Ok(res)
     }
     /// Updates all fields (except ID) for a given changelog entry. Returns the updated Changelog struct.
-    pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<Changelog> {
-        let res = sqlx::query_as::<_, Changelog>(r#"
-                UPDATE "p2boards".changelog
+    pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<bool> {
+        let _ = sqlx::query(r#"UPDATE "p2boards".changelog 
                 SET timestamp = $1, profile_number = $2, score = $3, map_id = $4, demo_id = $5, banned = $6, 
                 youtube_id = $7, coop_id = $8, post_rank = $9, pre_rank = $10, submission = $11, note = $12,
-                category_id = $13, score_delta = $14, verified = $15, admin_note = $15
-                WHERE changelog.id = $16
-                RETURNING *"#)
+                category_id = $13, score_delta = $14, verified = $15, admin_note = $16
+                WHERE id = $17"#)
             .bind(update.timestamp).bind(update.profile_number).bind(update.score).bind(update.map_id) 
             .bind(update.demo_id).bind(update.banned).bind(update.youtube_id).bind(update.coop_id)
             .bind(update.post_rank).bind(update.pre_rank).bind(update.submission).bind(update.note)
             .bind(update.category_id).bind(update.score_delta).bind(update.verified).bind(update.admin_note)
             .bind(update.id)
-            .fetch_one(pool)
+            .fetch_optional(pool)
             .await?;
-        Ok(res)
+        Ok(true)
     }
+    pub async fn delete_changelog(pool: &PgPool, cl_id: i64) -> Result<bool> {
+        let res = sqlx::query_as::<_, Changelog>(r#"DELETE FROM "p2boards".changelog WHERE id = $1 RETURNING *"#)
+            .bind(cl_id)
+            .fetch_one(pool)
+            .await;
+        match res {
+            Ok(_) => Ok(true),
+            Err(e) => {
+                eprintln!("Error deleting demo -> {}", e);
+                Ok(false)
+            },
+        }
+    }  
 }
 
 impl CoopBundled {
@@ -489,8 +546,7 @@ impl ChangelogPage {
                         THEN u.steam_name
                     WHEN u.board_name IS NOT NULL
                         THEN u.board_name
-                END user_name,
-                u.avatar
+                END user_name, u.avatar
                 FROM "p2boards".changelog AS cl
                 INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
                 INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
@@ -525,50 +581,53 @@ impl ChangelogPage {
             FROM "p2boards".changelog AS cl
             INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
             INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
-            INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)"#);
+            INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)
+        "#);
         
         if !params.coop {
-            filters.push("chapters.is_multiplayer = False".to_string());
+            filters.push("chapters.is_multiplayer = False\n".to_string());
         } else if !params.sp {
-            filters.push("chapters.is_multiplayer = True".to_string());
+            filters.push("chapters.is_multiplayer = True\n".to_string());
         }
         if let Some(has_demo) = params.has_demo {
             if has_demo {
-                filters.push("cl.demo_id IS NOT NULL".to_string());
+                filters.push("cl.demo_id IS NOT NULL\n".to_string());
             } else {
-                filters.push("cl.demo_id IS NULL".to_string());
+                filters.push("cl.demo_id IS NULL\n".to_string());
             }
         }
         if let Some(yt) = params.yt {
             if yt {
-                filters.push("cl.youtube_id IS NOT NULL".to_string());
+                filters.push("cl.youtube_id IS NOT NULL\n".to_string());
             } else {
-                filters.push("cl.youtube_id IS NULL".to_string());
+                filters.push("cl.youtube_id IS NULL\n".to_string());
             }
         }
         if let Some(wr_gain) = params.wr_gain {
             if wr_gain {
-                filters.push("cl.post_rank = 1".to_string());
+                filters.push("cl.post_rank = 1\n".to_string());
             }
         }
         if let Some(chamber) = params.chamber {
-            filters.push(format!("cl.map_id = {}", &chamber));
+            filters.push(format!("cl.map_id = '{}'\n", &chamber));
         }
         if let Some(profile_number) = params.profile_number {
-            filters.push(format!("cl.profile_number = {}", &profile_number));
+            filters.push(format!("cl.profile_number = {}\n", &profile_number));
         }
         //#[allow(irrefutable_let_patterns)]
         if let Some(nick_name) = params.nick_name {
             //eprintln!("{}", nick_name);
             if let Some(profile_numbers) = Users::check_board_name(pool, nick_name.clone()).await?.as_mut(){
                 if profile_numbers.len() == 1 {
-                    filters.push(format!("cl.profile_number = '{}'", &profile_numbers[0].to_string()));
+                    filters.push(format!("cl.profile_number = '{}'\n", &profile_numbers[0].to_string()));
                 } else {
-                    filters.push(format!("cl.profile_number = '{}'", &profile_numbers[0].to_string()));
+                    let mut profile_str = format!("(cl.profile_number = '{}'\n", &profile_numbers[0].to_string());
                     profile_numbers.remove(0);
                     for num in profile_numbers.iter(){
-                        filters.push(format!("cl.profile_number = '{}'", num));
+                        profile_str.push_str(&format!(" OR cl.profile_number = '{}'\n", num));
                     }
+                    profile_str.push_str(")");
+                    filters.push(profile_str);
                 }
             }
             else {
@@ -580,21 +639,23 @@ impl ChangelogPage {
             if i == 0 {
                 query_string = format!("{} WHERE {}", &query_string, entry);
             } else {
-                query_string = format!("{} OR {} ", &query_string, entry);
+                query_string = format!("{} AND {}", &query_string, entry);
             }
         }
         //TODO: Maybe allow for custom order params????
-        query_string = format!("{} ORDER BY cl.timestamp DESC NULLS LAST", &query_string);
+        query_string = format!("{} ORDER BY cl.timestamp DESC NULLS LAST\n", &query_string);
         if let Some(limit) = params.limit{
-            query_string = format!("{} LIMIT {}", &query_string, limit);
+            query_string = format!("{} LIMIT {}\n", &query_string, limit);
         } else{ // Default limit
-            query_string = format!("{} LMIT 1000", &query_string)
+            query_string = format!("{} LMIT 1000\n", &query_string)
         }
-        //eprintln!("{}", query_string);
+        // eprintln!("{}", query_string);
+
         let res = sqlx::query_as::<_, ChangelogPage>(&query_string).fetch_all(pool).await;
         match res{
             Ok(changelog_filtered) => Ok(Some(changelog_filtered)),
             Err(e) => {
+                eprintln!("{}", query_string);
                 eprintln!("{}", e);
                 Err(anyhow::Error::new(e).context("Error with SP Maps"))
             },
@@ -694,8 +755,11 @@ impl CoopMap {
             .bind(map_id)
             .fetch_all(pool)
             .await;
-        match res{
-            Ok(res) => Ok(res),
+        match res {
+            Ok(mut res) => {
+                res.truncate(200);
+                Ok(res)
+            },
             Err(e) => {
                 eprintln!("{}", e);
                 Err(anyhow::Error::new(e).context("Error with SP Maps"))
@@ -874,7 +938,7 @@ impl CoopBanned {
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
         // TODO: How to handle one player in coop not-being banned/unverified but the other is.
         let res = sqlx::query_as::<_, CoopBanned>(r#"
-                SELECT c1.score, p1.profile_number, p2.profile_number
+                SELECT c1.score, p1.profile_number AS profile_number1, p2.profile_number AS profile_number2
                 FROM (SELECT * FROM 
                     "p2boards".coop_bundled 
                     WHERE id IN 

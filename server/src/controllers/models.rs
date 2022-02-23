@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use chrono::NaiveDateTime;
 
 /// One-to-one struct for changelog data.
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
 pub struct Changelog {
     pub id: i64,
     pub timestamp: Option<NaiveDateTime>,
@@ -20,7 +20,7 @@ pub struct Changelog {
     pub demo_id: Option<i64>,
     pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i32>, // TODO: This needs to be an i64
+    pub previous_id: Option<i64>,
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
@@ -32,7 +32,7 @@ pub struct Changelog {
     pub admin_note: Option<String>,
 }
 /// All changelog data except for the ID, for table insertion.
-#[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct ChangelogInsert {
     pub timestamp: Option<NaiveDateTime>,
     pub profile_number: String,
@@ -41,7 +41,7 @@ pub struct ChangelogInsert {
     pub demo_id: Option<i64>,
     pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i32>,
+    pub previous_id: Option<i64>,
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
@@ -92,7 +92,7 @@ pub struct CoopBundledInsert {
 }
 
 /// One-to-one struct for demo data.
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
 pub struct Demos {
     pub id: i64,
     pub file_id: String,
@@ -102,7 +102,7 @@ pub struct Demos {
     pub cl_id: i64,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Default, Serialize, Deserialize, FromRow, Clone)]
 pub struct DemoInsert {
     pub file_id: String,
     pub partner_name: Option<String>,
@@ -137,7 +137,7 @@ pub struct Users {
     pub board_name: Option<String>,
     pub steam_name: Option<String>,
     pub banned: bool,
-    pub registred: bool,
+    pub registered: i32,
     pub avatar: Option<String>,
     pub twitch: Option<String>,
     pub youtube: Option<String>,
@@ -147,7 +147,7 @@ pub struct Users {
     pub discord_id: Option<String>,
 }
 
-#[derive(Serialize, FromRow, Clone)]
+#[derive(Serialize, FromRow, Clone, Debug)]
 pub struct UsersPage {
     pub user_name: String,
     pub avatar: String,
@@ -157,11 +157,11 @@ pub struct UsersPage {
 pub struct Socials {
     pub twitch: Option<String>,
     pub youtube: Option<String>,
-    pub discord_id: Option<String>
+    pub discord_id: Option<String>,
 }
 
 /// The minimal data we want for SP map pages to lower bandwidth usage.
-#[derive(Serialize, FromRow)]
+#[derive(Serialize, FromRow, Debug)]
 pub struct SpMap {
     pub timestamp: Option<NaiveDateTime>,
     #[sqlx(rename = "cl_profile_number")]
@@ -265,7 +265,7 @@ pub struct CoopPreviews {
 // }
 // TODO: rustc issues.
 // TODO: Name ChangelogPageEntry
-#[derive(Serialize, FromRow)]
+#[derive(Serialize, FromRow, Debug)]
 pub struct ChangelogPage {
     pub id: i64,
     pub timestamp: Option<NaiveDateTime>,
@@ -275,7 +275,7 @@ pub struct ChangelogPage {
     pub demo_id: Option<i64>,
     pub banned: bool,
     pub youtube_id: Option<String>,
-    pub previous_id: Option<i32>,
+    pub previous_id: Option<i64>,
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
@@ -342,7 +342,7 @@ pub struct SpPbHistory {
 
 #[derive(Default, Debug, Serialize)]
 pub struct CalcValues {
-    pub previous_id: Option<i32>,
+    pub previous_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
     pub score_delta: Option<i32>,
