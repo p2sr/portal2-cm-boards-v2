@@ -1,21 +1,69 @@
 use actix_web::{get, post, put, web, HttpResponse, Responder};
-use anyhow::{bail, Result};
+use anyhow::{bail, Error, Result};
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use std::fs::File;
+use std::io::BufReader;
+use std::path::Path;
 
-use crate::tools::calc::score;
 use crate::controllers::models::{
     CalcValues, Changelog, ChangelogInsert, ScoreParams, SpBanned, SpMap, SpPbHistory, SpPreviews,
     SpRanked, Users, UsersPage,
 };
+use crate::tools::cache::CacheState;
+use crate::tools::calc::score;
+
+/// Writes data to a file if the type implements Serialize
+pub async fn write_to_file<T: Serialize>(id: &str, data: &T) -> Result<(), Error> {
+    use std::fs;
+    fs::create_dir_all("./cache")?;
+    let path_str = format!("./cache/{}.json", id);
+    let path = Path::new(&path_str);
+    serde_json::to_writer(&File::create(path)?, data)
+        .map(|_| ())
+        .map_err(|err| err.into())
+}
+
+// Reads data from a file for any type that implements Deserialize
+pub async fn read_from_file<T: for<'de> serde::Deserialize<'de>>(id: &str) -> Result<T, Error> {
+    let path_str = format!("./cache/{}.json", id);
+    let path = Path::new(&path_str);
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    let res: T = serde_json::from_reader(reader)?;
+    Ok(res)
+}
 
 /// GET endpoint to handle the preview page showing all sp maps.
 /// Returns: Json wrapped values -> {map_id, scores{ steam_id, profile_number, score, youtube_id, category_id, user_name } }
 #[get("/sp")]
-async fn get_singleplayer_preview(pool: web::Data<PgPool>) -> impl Responder {
-    let res = SpPreviews::get_sp_previews(pool.get_ref()).await;
-    match res {
-        Ok(sp_previews) => HttpResponse::Ok().json(sp_previews),
-        _ => HttpResponse::NotFound().body("Error fetching previews"),
+async fn get_singleplayer_preview(
+    pool: web::Data<PgPool>,
+    cache: web::Data<CacheState>,
+) -> impl Responder {
+    // See if we can utilize the cache
+    let state_data = &mut cache.current_state.lock().await;
+    let is_cached = state_data.get_mut("sp_previews").unwrap();
+    if !*is_cached {
+        let res = SpPreviews::get_sp_previews(pool.get_ref()).await;
+        match res {
+            Ok(sp_previews) => {
+                if write_to_file("sp_previews", &sp_previews).await.is_ok() {
+                    *is_cached = true;
+                    HttpResponse::Ok().json(sp_previews)
+                } else {
+                    eprintln!("Could not write cache for sp previews");
+                    HttpResponse::Ok().json(sp_previews)
+                }
+            }
+            _ => HttpResponse::NotFound().body("Error fetching previews"),
+        }
+    } else {
+        let res = read_from_file::<Vec<SpPreviews>>("sp_previews").await;
+        match res {
+            Ok(sp_previews) => HttpResponse::Ok().json(sp_previews),
+            _ => HttpResponse::NotFound().body("Error fetching previews"),
+        }
     }
 }
 

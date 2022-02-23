@@ -10,12 +10,12 @@ use sqlx::PgPool;
 
 /// Module for the API versions containing handlers for API endpoints.
 mod api;
-/// Helpter functions used for the boards
-mod tools;
 /// Module for database interactions and models.
 mod controllers;
 /// Module for testing
 mod tests;
+/// Helpter functions used for the boards
+mod tools;
 
 /// Driver code to start and mount all compontents to the webserver we create.
 #[actix_web::main]
@@ -38,17 +38,19 @@ async fn main() -> Result<(), Error> {
         "Server starting at http://{}:{}/",
         config.server.host, config.server.port
     );
+    let init_data = crate::tools::cache::CacheState::new();
     // Start our web server, mount and set up routes, data, wrapping, middleware and loggers
     HttpServer::new(move || {
         let cors = Cors::default()
             .allowed_origin("http://localhost:3000")
-            .allowed_methods(vec!["GET"])
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
             .max_age(3600);
         App::new()
             .wrap(cors)
             .wrap(Logger::default())
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(config.clone()))
+            .app_data(web::Data::new(init_data.clone()))
             .configure(api::v1::handlers::init::init)
     })
     .bind(format!("{}:{}", host, port))?

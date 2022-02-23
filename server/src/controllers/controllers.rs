@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 
+use anyhow::{Result, bail};
 use std::collections::HashMap;
 use sqlx::postgres::PgRow;
 use sqlx::{Row, PgPool};
-use anyhow::{Result, bail};
 //use log::{debug};
 use crate::controllers::models::*;
 
@@ -771,6 +771,8 @@ impl CoopMap {
 impl SpPreview {
     /// Gets preview information for top 7 on an SP Map.
     pub async fn get_sp_preview(pool: &PgPool, map_id: String) -> Result<Vec<SpPreview>> {
+        // use std::time::Instant;
+        // let now = Instant::now();
         let res = sqlx::query_as::<_, SpPreview>(r#"
                 SELECT t.CL_profile_number, t.score, t.youtube_id, t.category_id,
                 CASE
@@ -795,6 +797,8 @@ impl SpPreview {
             .bind(map_id.clone())
             .fetch_all(pool)
             .await;
+        // let elapsed = now.elapsed();
+        // println!("Elapsed: {:.2?}", elapsed);
         match res{
             Ok(sp_previews) => Ok(sp_previews),
             Err(e) => {
@@ -806,7 +810,7 @@ impl SpPreview {
 }
 
 impl SpPreviews{
-    // Collects the top 7 preview data for all SP maps.
+    /// Collects the top 7 preview data for all SP maps.
     pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<SpPreviews>> {
         let map_id_vec = Maps::get_steam_ids(pool, false).await?;
         let mut vec_final = Vec::new();
