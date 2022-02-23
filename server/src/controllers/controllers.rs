@@ -755,7 +755,7 @@ impl CoopMap {
             .bind(map_id)
             .fetch_all(pool)
             .await;
-        match res{
+        match res {
             Ok(mut res) => {
                 res.truncate(200);
                 Ok(res)
