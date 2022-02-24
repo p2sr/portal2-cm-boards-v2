@@ -1,4 +1,9 @@
+use anyhow::Error;
+use serde::Serialize;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::BufReader;
+use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -41,4 +46,25 @@ impl CacheState {
             current_state: Arc::new(Mutex::new(hm)),
         }
     }
+}
+
+/// Writes data to a file if the type implements Serialize
+pub async fn write_to_file<T: Serialize>(id: &str, data: &T) -> Result<(), Error> {
+    use std::fs;
+    fs::create_dir_all("./cache")?;
+    let path_str = format!("./cache/{}.json", id);
+    let path = Path::new(&path_str);
+    serde_json::to_writer(&File::create(path)?, data)
+        .map(|_| ())
+        .map_err(|err| err.into())
+}
+
+// Reads data from a file for any type that implements Deserialize
+pub async fn read_from_file<T: for<'de> serde::Deserialize<'de>>(id: &str) -> Result<T, Error> {
+    let path_str = format!("./cache/{}.json", id);
+    let path = Path::new(&path_str);
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+    let res: T = serde_json::from_reader(reader)?;
+    Ok(res)
 }

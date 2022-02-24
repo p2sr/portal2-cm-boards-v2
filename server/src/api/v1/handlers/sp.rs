@@ -1,38 +1,14 @@
 use actix_web::{get, post, put, web, HttpResponse, Responder};
-use anyhow::{bail, Error, Result};
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
 
 use crate::controllers::models::{
     CalcValues, Changelog, ChangelogInsert, ScoreParams, SpBanned, SpMap, SpPbHistory, SpPreviews,
     SpRanked, Users, UsersPage,
 };
-use crate::tools::cache::CacheState;
-use crate::tools::calc::score;
-
-/// Writes data to a file if the type implements Serialize
-pub async fn write_to_file<T: Serialize>(id: &str, data: &T) -> Result<(), Error> {
-    use std::fs;
-    fs::create_dir_all("./cache")?;
-    let path_str = format!("./cache/{}.json", id);
-    let path = Path::new(&path_str);
-    serde_json::to_writer(&File::create(path)?, data)
-        .map(|_| ())
-        .map_err(|err| err.into())
-}
-
-// Reads data from a file for any type that implements Deserialize
-pub async fn read_from_file<T: for<'de> serde::Deserialize<'de>>(id: &str) -> Result<T, Error> {
-    let path_str = format!("./cache/{}.json", id);
-    let path = Path::new(&path_str);
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let res: T = serde_json::from_reader(reader)?;
-    Ok(res)
-}
+use crate::tools::cache::{read_from_file, write_to_file, CacheState};
+use crate::tools::{calc::score, config::Config};
 
 /// GET endpoint to handle the preview page showing all sp maps.
 /// Returns: Json wrapped values -> {map_id, scores{ steam_id, profile_number, score, youtube_id, category_id, user_name } }
@@ -62,27 +38,52 @@ async fn get_singleplayer_preview(
         let res = read_from_file::<Vec<SpPreviews>>("sp_previews").await;
         match res {
             Ok(sp_previews) => HttpResponse::Ok().json(sp_previews),
-            _ => HttpResponse::NotFound().body("Error fetching previews"),
+            _ => HttpResponse::NotFound().body("Error fetching sp previews from cache"),
         }
     }
 }
 
-/// Calls models::SpMap to grab the entries for a particular map_id, returns a vector of the top 200 times, in a slimmed down fashion (only essential data)
-/// Handles filtering out obsolete times (1 time per runner)
-#[get("/maps/sp/{map_id}")]
-async fn get_singleplayer_maps(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {
-    let res = SpMap::get_sp_map_page(pool.get_ref(), map_id.to_string()).await;
+// Currently a dumbass work around to issues with deserializing an option natively theough the Query
+#[derive(Debug, Deserialize)]
+pub struct Opti32 {
+    pub cat_id: Option<i32>,
+}
+
+/// Generates a map page for a given map_id
+/// OPTIONAL PARAMETER cat_id
+///   Example endpoint  -> /maps/sp/47802               Will assume default category ID
+///                     -> /maps/sp/47802?cat_id=40     Will use cat_id of 40
+#[get("/map/sp/{map_id}")]
+pub async fn get_singleplayer_maps(
+    map_id: web::Path<String>,
+    cat_id: web::Query<Opti32>,
+    config: web::Data<Config>,
+    pool: web::Data<PgPool>,
+) -> impl Responder {
+    let res = SpMap::get_sp_map_page(
+        pool.get_ref(),
+        map_id.into_inner(),
+        config.proof.results,
+        cat_id.into_inner().cat_id,
+    )
+    .await;
     match res {
         Ok(sp_map) => {
-            let mut i = 1;
-            let mut ranked_vec = Vec::with_capacity(200);
-            for entry in sp_map {
-                ranked_vec.push(SpRanked {
-                    map_data: entry,
-                    rank: i,
-                    points: score(i),
-                });
-                i += 1;
+            let mut ranked_vec = Vec::with_capacity(config.proof.results as usize);
+            for (i, entry) in sp_map.into_iter().enumerate() {
+                if i > 200 {
+                    ranked_vec.push(SpRanked {
+                        map_data: entry,
+                        rank: i as i32 + 1,
+                        points: score(i as i32 + 1),
+                    });
+                } else {
+                    ranked_vec.push(SpRanked {
+                        map_data: entry,
+                        rank: i as i32 + 1,
+                        points: 0.0,
+                    });
+                }
             }
             HttpResponse::Ok().json(ranked_vec)
         }
@@ -206,12 +207,14 @@ pub struct ScoreLookup {
 pub async fn get_newscore_details(
     pool: web::Data<PgPool>,
     data: web::Json<ScoreLookup>,
+    config: web::Data<Config>,
 ) -> impl Responder {
     let res = check_for_valid_score(
         pool.get_ref(),
         data.profile_number.clone(),
         data.score,
         data.map_id.clone(),
+        config.proof.results,
     )
     .await;
     match res {
@@ -228,6 +231,7 @@ pub async fn check_for_valid_score(
     profile_number: String,
     score: i32,
     map_id: String,
+    limit: i32,
 ) -> Result<CalcValues> {
     let mut values = CalcValues::default();
     match Users::check_banned(pool, profile_number.clone()).await {
@@ -257,7 +261,9 @@ pub async fn check_for_valid_score(
     values.score_delta = Some(cl[0].score - score);
     values.previous_id = Some(cl[0].id);
     // Assuming there is a PB History, there must be other scores, this should return a valid list of ranked maps.
-    let cl_ranked = SpMap::get_sp_map_page(pool, map_id).await.unwrap();
+    let cl_ranked = SpMap::get_sp_map_page(pool, map_id, limit, None)
+        .await
+        .unwrap();
     for (i, entry) in cl_ranked.iter().enumerate() {
         if entry.score >= score {
             values.post_rank = Some(i as i32 + 1);

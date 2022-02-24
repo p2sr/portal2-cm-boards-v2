@@ -14,6 +14,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api")
             .service(get_singleplayer_maps) // SP
+            // .service(web::resource(["/map/sp/{map_id}"]).to(get_singleplayer_maps))
             .service(get_singleplayer_preview)
             .service(get_banned_scores_sp)
             .service(post_banned_scores_sp)

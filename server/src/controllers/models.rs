@@ -236,7 +236,7 @@ pub struct SpPreviews {
 }
 
 /// The data for the preview page for all Coop Maps
-#[derive(Serialize, FromRow, Clone)]
+#[derive(Serialize, Deserialize, FromRow, Clone)]
 pub struct CoopPreview {
     pub profile_number1: String,
     pub profile_number2: Option<String>,
@@ -249,7 +249,7 @@ pub struct CoopPreview {
 }
 
 /// Wrapper for prevciewing the top 7 for all Coop maps=.
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct CoopPreviews {
     pub map_id: String,
     pub scores: Vec<CoopPreview>,

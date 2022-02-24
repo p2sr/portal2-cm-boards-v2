@@ -1,19 +1,41 @@
-use crate::tools::calc::score;
 use crate::controllers::models::{
     Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, CoopRanked,
     ScoreParams,
 };
+use crate::tools::cache::{read_from_file, write_to_file, CacheState};
+use crate::tools::calc::score;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
 use std::collections::HashMap;
 
 /// Endpoint to handle the preview page showing all coop maps.
 #[get("/coop")]
-async fn get_cooperative_preview(pool: web::Data<PgPool>) -> impl Responder {
-    let res = CoopPreviews::get_coop_previews(pool.get_ref()).await;
-    match res {
-        Ok(previews) => HttpResponse::Ok().json(previews),
-        _ => HttpResponse::NotFound().body("Error fetching coop map previews."),
+async fn get_cooperative_preview(
+    pool: web::Data<PgPool>,
+    cache: web::Data<CacheState>,
+) -> impl Responder {
+    let state_data = &mut cache.current_state.lock().await;
+    let is_cached = state_data.get_mut("coop_previews").unwrap();
+    if !*is_cached {
+        let res = CoopPreviews::get_coop_previews(pool.get_ref()).await;
+        match res {
+            Ok(previews) => {
+                if write_to_file("coop_previews", &previews).await.is_ok() {
+                    *is_cached = true;
+                    HttpResponse::Ok().json(previews)
+                } else {
+                    eprintln!("Could not write cache for coop previews");
+                    HttpResponse::Ok().json(previews)
+                }
+            }
+            _ => HttpResponse::NotFound().body("Error fetching coop map previews."),
+        }
+    } else {
+        let res = read_from_file::<Vec<CoopPreviews>>("coop_previews").await;
+        match res {
+            Ok(previews) => HttpResponse::Ok().json(previews),
+            _ => HttpResponse::NotFound().body("Error fetching coop previews from cache"),
+        }
     }
 }
 

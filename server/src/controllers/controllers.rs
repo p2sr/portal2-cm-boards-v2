@@ -665,7 +665,17 @@ impl ChangelogPage {
 }
 
 impl SpMap {
-    pub async fn get_sp_map_page(pool: &PgPool, map_id: String) -> Result<Vec<SpMap>> {
+    pub async fn get_sp_map_page(pool: &PgPool, map_id: String, limit: i32, cat_id: Option<i32>) -> Result<Vec<SpMap>> {
+        let mut category_id: i32;
+        if let Some(x) = cat_id {
+            category_id = x;
+        } else {
+            let dcid = Maps::get_deafult_cat(&pool, map_id.clone()).await;
+            category_id = match dcid {
+                Ok(Some(id)) => id,
+                _ => bail!("Could not find a default cat_id for the map provided"),
+            };
+        }
         let res = sqlx::query_as::<_, SpMap>(r#" 
                 SELECT t.timestamp,
                     t.CL_profile_number,
@@ -692,11 +702,14 @@ impl SpMap {
                         AND users.banned = False
                         AND changelog.verified = True
                         AND changelog.banned = False
+                        AND changelog.category_id = $2
                     ORDER BY changelog.profile_number, changelog.score ASC
                 ) t
                 ORDER BY score
-                LIMIT 200"#)
+                LIMIT $3"#)
             .bind(map_id)
+            .bind(category_id)
+            .bind(limit)
             .fetch_all(pool)
             .await;
         match res{
