@@ -25,7 +25,7 @@ pub fn post_sp_pb(
     }
     // Grab the PB history.
     let url = format!(
-        "http://localhost:8080/api/maps/sp/{}/{}",
+        "http://localhost:8080/api/v1/map/sp/{}/{}",
         id, profile_number
     );
     let res = reqwest::blocking::get(&url)
@@ -81,7 +81,10 @@ pub fn post_sp_pb(
         score_delta = Some(score - i);
     }
     let mut cat_id = 0;
-    let url = format!("http://localhost:8080/api/category/default_category/{}", id);
+    let url = format!(
+        "http://localhost:8080/api/v1/category/default_category/{}",
+        id
+    );
     let res = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json::<i32>();
@@ -111,7 +114,7 @@ pub fn post_sp_pb(
         admin_note: None,
     };
     let client = reqwest::blocking::Client::new();
-    let post_url = "http://localhost:8080/api/sp/post_score".to_string();
+    let post_url = "http://localhost:8080/api/v1/sp/post_score".to_string();
     let res = client
         .post(&post_url)
         .json(&new_score)
@@ -149,7 +152,7 @@ pub fn post_coop_pb(
     if let Some(profile_number2) = profile_number2 {
         // Grab the PB history. For now, we're just going to use 2 calls to our API rather than a combined call. (We'll use SP here).
         let url = format!(
-            "http://localhost:8080/api/maps/sp/{}/{}",
+            "http://localhost:8080/api/v1/map/sp/{}/{}",
             id, profile_number1
         ); // TODO: Handle crashing if no PB history is found.
         let pb_history1: SpPbHistory = reqwest::blocking::get(&url)
@@ -157,7 +160,7 @@ pub fn post_coop_pb(
             .json()
             .expect("Error in converting our API values to JSON");
         let url = format!(
-            "http://localhost:8080/api/maps/sp/{}/{}",
+            "http://localhost:8080/api/v1/map/sp/{}/{}",
             id, profile_number2
         ); // TODO: Handle crashing if no PB history is found.
         let pb_history2: SpPbHistory = reqwest::blocking::get(&url)
@@ -229,7 +232,10 @@ pub fn post_coop_pb(
             score_delta2 = Some(score - i);
         }
         let mut cat_id = 0;
-        let url = format!("http://localhost:8080/api/category/default_category/{}", id);
+        let url = format!(
+            "http://localhost:8080/api/v1/category/default_category/{}",
+            id
+        );
         let res = reqwest::blocking::get(&url)
             .expect("Error in query to our local API (Make sure the webserver is running")
             .json::<i32>();
@@ -289,7 +295,7 @@ pub fn post_coop_pb(
         let client = reqwest::blocking::Client::new();
         let mut new_id1 = 0;
         let mut new_id2 = 0;
-        let post_url = "http://localhost:8080/api/sp/post_score".to_string();
+        let post_url = "http://localhost:8080/api/v1/sp/post_score".to_string();
         let res = client
             .post(&post_url)
             .json(&score1)
@@ -325,7 +331,7 @@ pub fn post_coop_pb(
             cl_id1: new_id1,
             cl_id2: Some(new_id2),
         };
-        let post_url = "http://localhost:8080/api/coop/post_score".to_string();
+        let post_url = "http://localhost:8080/api/v1/coop/post_score".to_string();
         let res = client
             .post(&post_url)
             .json(&bundle)

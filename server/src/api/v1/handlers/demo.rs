@@ -233,7 +233,6 @@ pub async fn changelog_with_demo(
                 .await;
                 match res {
                     Ok(details) => {
-                        // TODO: NEED TO FIX THIS i32
                         if !details.banned {
                             changelog_insert.previous_id = details.previous_id;
                             changelog_insert.post_rank = details.post_rank;

@@ -12,7 +12,7 @@ use crate::api::v1::handlers::users::*;
 /// Mounts the routes to /api/..
 pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        web::scope("/api")
+        web::scope("/api/v1")
             .service(get_singleplayer_maps) // SP
             // .service(web::resource(["/map/sp/{map_id}"]).to(get_singleplayer_maps))
             .service(get_singleplayer_preview)

@@ -317,6 +317,12 @@ pub struct ScoreParams {
     pub score: i32,
 }
 
+// Currently a dumbass work around to issues with deserializing an option natively theough the Query
+#[derive(Debug, Deserialize)]
+pub struct Opti32 {
+    pub cat_id: Option<i32>,
+}
+
 /// Banned times for SP
 #[derive(Serialize, FromRow)]
 pub struct SpBanned {

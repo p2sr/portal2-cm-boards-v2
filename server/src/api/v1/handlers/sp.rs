@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
 use crate::controllers::models::{
-    CalcValues, Changelog, ChangelogInsert, ScoreParams, SpBanned, SpMap, SpPbHistory, SpPreviews,
-    SpRanked, Users, UsersPage,
+    CalcValues, Changelog, ChangelogInsert, Opti32, ScoreParams, SpBanned, SpMap, SpPbHistory,
+    SpPreviews, SpRanked, Users, UsersPage,
 };
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
 use crate::tools::{calc::score, config::Config};
@@ -43,16 +43,10 @@ async fn get_singleplayer_preview(
     }
 }
 
-// Currently a dumbass work around to issues with deserializing an option natively theough the Query
-#[derive(Debug, Deserialize)]
-pub struct Opti32 {
-    pub cat_id: Option<i32>,
-}
-
 /// Generates a map page for a given map_id
 /// OPTIONAL PARAMETER cat_id
-///   Example endpoint  -> /maps/sp/47802               Will assume default category ID
-///                     -> /maps/sp/47802?cat_id=40     Will use cat_id of 40
+///   Example endpoint  -> /map/sp/47802               Will assume default category ID
+///                     -> /map/sp/47802?cat_id=40     Will use cat_id of 40
 #[get("/map/sp/{map_id}")]
 pub async fn get_singleplayer_maps(
     map_id: web::Path<String>,
@@ -121,7 +115,7 @@ async fn post_banned_scores_sp(
 }
 
 /// Returns a players PB history on an SP map
-#[get("/maps/sp/{map_id}/{profile_number}")]
+#[get("/map/sp/{map_id}/{profile_number}")]
 async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) -> impl Responder {
     let map_id = info.0.clone();
     let profile_number = info.1.clone();

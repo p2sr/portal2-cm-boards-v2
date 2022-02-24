@@ -1,9 +1,9 @@
 use crate::controllers::models::{
     Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, CoopRanked,
-    ScoreParams,
+    Opti32, ScoreParams,
 };
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
-use crate::tools::calc::score;
+use crate::tools::{calc::score, config::Config};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -40,9 +40,24 @@ async fn get_cooperative_preview(
 }
 
 /// Handles filtering out obsolete times (1 per runner, allowed for more than 1 if a time is with a player without a better time)
-#[get("/maps/coop/{map_id}")]
-async fn get_cooperative_maps(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {
-    let res = CoopMap::get_coop_map_page(pool.get_ref(), map_id.to_string()).await;
+/// Generates a coop map page for a given map_id
+/// OPTIONAL PARAMETER cat_id
+///   Example endpoint  -> /map/coop/47802               Will assume default category ID
+///                     -> /map/coop/47802?cat_id=65     Will use cat_id of 65
+#[get("/map/coop/{map_id}")]
+async fn get_cooperative_maps(
+    map_id: web::Path<u64>,
+    cat_id: web::Query<Opti32>,
+    config: web::Data<Config>,
+    pool: web::Data<PgPool>,
+) -> impl Responder {
+    let res = CoopMap::get_coop_map_page(
+        pool.get_ref(),
+        map_id.to_string(),
+        config.proof.results,
+        cat_id.into_inner().cat_id,
+    )
+    .await;
     match res {
         Ok(coop_entries) => {
             //Filters out all obsolete times from the result, then truncates to 200 entries.

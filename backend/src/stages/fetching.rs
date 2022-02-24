@@ -39,7 +39,7 @@ pub fn fetch_entries(
     let leaderboard: Leaderboards = from_reader(text.as_bytes()).expect("XML Error in parsing");
     // Get banned players list.
     let banned_users: Vec<String> =
-        reqwest::blocking::get("http://localhost:8080/api/banned_users")
+        reqwest::blocking::get("http://localhost:8080/api/v1/banned_users")
             .expect("Error in query to our local API (Make sure the webserver is running")
             .json()
             .expect("Error in converting our API values to JSON");
@@ -75,7 +75,7 @@ pub fn filter_entries_sp(
     banned_users: Vec<String>,
     data: &XmlTag<Vec<Entry>>,
 ) {
-    let url = format!("http://localhost:8080/api/maps/sp/{id}", id = id);
+    let url = format!("http://localhost:8080/api/v1/map/sp/{id}", id = id);
     let map_json: Vec<SpRanked> = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json()
@@ -142,7 +142,7 @@ pub fn filter_entries_sp(
     // Filter out any times that are banned from the list of potential runs.
     // The list of new scores is probably relatively low, it would be easier to just send the score information to an endpoint and have it check.
     let client = reqwest::blocking::Client::new();
-    let ban_url = format!("http://localhost:8080/api/maps/sp/banned/{id}", id = id);
+    let ban_url = format!("http://localhost:8080/api/v1/maps/sp/banned/{id}", id = id);
     for entry in not_cheated.iter() {
         let res: bool = client
             .post(&ban_url)
@@ -195,7 +195,7 @@ pub fn filter_entries_coop(
     banned_users: Vec<String>,
     data: &XmlTag<Vec<Entry>>,
 ) {
-    let url = format!("http://localhost:8080/api/maps/coop/{id}", id = id);
+    let url = format!("http://localhost:8080/api/v1/map/coop/{id}", id = id);
     let map_json: Vec<CoopRanked> = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json()
@@ -265,7 +265,10 @@ pub fn filter_entries_coop(
     // to see that they're old, banned times on the leaderboard, our assumption about all scores being new and together
     // falls apart.
     let client = reqwest::blocking::Client::new();
-    let ban_url = format!("http://localhost:8080/api/maps/coop/banned/{id}", id = id);
+    let ban_url = format!(
+        "http://localhost:8080/api/v1/maps/coop/banned/{id}",
+        id = id
+    );
     let mut not_cheated = Vec::new(); // Becomes the vector of times that are not from banned players, and do not exist in the changelog.
     for entry in not_banned_player.iter() {
         let res: bool = client

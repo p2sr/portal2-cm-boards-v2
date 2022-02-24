@@ -725,7 +725,17 @@ impl SpMap {
 
 impl CoopMap {
     // TODO: Check to make sure this is filtered when returned (I think it is).
-    pub async fn get_coop_map_page(pool: &PgPool, map_id: String) -> Result<Vec<CoopMap>> {
+    pub async fn get_coop_map_page(pool: &PgPool, map_id: String, limit: i32, cat_id: Option<i32>) -> Result<Vec<CoopMap>> {
+        let category_id: i32;
+        if let Some(x) = cat_id {
+            category_id = x;
+        } else {
+            let dcid = Maps::get_deafult_cat(&pool, map_id.clone()).await;
+            category_id = match dcid {
+                Ok(Some(id)) => id,
+                _ => bail!("Could not find a default cat_id for the map provided"),
+            };
+        }
         let res = sqlx::query_as::<_, CoopMap>(r#"
                 SELECT  c1.timestamp, 
                     c1.score, cb.p1_is_host, c1.note AS note1, c2.note AS note2,
@@ -763,14 +773,16 @@ impl CoopMap {
                     AND c2.banned=False
                     AND c1.verified=True
                     AND c2.verified=True
+                    AND c1.category_id=$2
                 ORDER BY score ASC
                 "#)
             .bind(map_id)
+            .bind(category_id)
             .fetch_all(pool)
             .await;
         match res {
             Ok(mut res) => {
-                res.truncate(200);
+                res.truncate(limit as usize);
                 Ok(res)
             },
             Err(e) => {
