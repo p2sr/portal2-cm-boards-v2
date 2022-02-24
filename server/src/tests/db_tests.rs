@@ -6,7 +6,7 @@ use anyhow::Result;
 use crate::tools::config::Config;
 
 #[allow(dead_code)]
-const DEFAULT_PAGE_SIZE: usize = 200;
+const DEFAULT_PAGE_SIZE: usize = 500;
 
 #[allow(dead_code)]
 async fn get_config() -> Result<(Config, PgPool)> {
@@ -144,7 +144,7 @@ async fn test_db_demos() {
         file_id: "LaservsTurret_1763_76561198040982247_14598.dem".to_string(),
         partner_name: None,
         parsed_successfully: true,
-        sar_version: Some("".to_string()),
+        sar_version: None,
         cl_id: 127825
     };
     let new_demo = Demos::get_demo(&pool, demo.id).await.unwrap().unwrap();
@@ -192,7 +192,7 @@ async fn test_db_changelog() {
     use crate::controllers::models::*;
     use chrono::NaiveDateTime;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
-    
+    #[allow(unused_variables)]
     let changelog = Changelog {
         id: 127825,
         timestamp: Some(NaiveDateTime::parse_from_str("2020-10-16 12:11:56", "%Y-%m-%d %H:%M:%S").unwrap()),
@@ -233,24 +233,6 @@ async fn test_db_changelog() {
         verified: Some(true),
         admin_note: None,
     };
-    let cl = Changelog::get_changelog(&pool, 127825).await.unwrap().unwrap();
-    assert_eq!(changelog.id, cl.id);
-    assert_eq!(changelog.timestamp, cl.timestamp);
-    assert_eq!(changelog.score, cl.score);
-    assert_eq!(changelog.map_id, cl.map_id);
-    assert_eq!(changelog.demo_id, cl.demo_id);
-    assert_eq!(changelog.banned, cl.banned);
-    assert_eq!(changelog.youtube_id, cl.youtube_id);
-    assert_eq!(changelog.previous_id, cl.previous_id);
-    assert_eq!(changelog.coop_id, cl.coop_id);
-    assert_eq!(changelog.post_rank, cl.post_rank);
-    assert_eq!(changelog.pre_rank, cl.pre_rank);
-    assert_eq!(changelog.submission, cl.submission);
-    assert_eq!(changelog.note, cl.note);
-    assert_eq!(changelog.category_id, cl.category_id);
-    assert_eq!(changelog.score_delta, cl.score_delta);
-    assert_eq!(changelog.verified, cl.verified);
-    assert_eq!(changelog.admin_note, cl.admin_note);
 
     let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string()).await.unwrap();
     assert!(!banned_scores);
@@ -283,8 +265,20 @@ async fn test_db_changelog() {
     assert!(deleted);
     let _res = Changelog::get_changelog(&pool, new_cl_id).await;
 
+    let query_params = ChangelogQueryParams {
+        limit: Some(500),
+        nick_name: None,
+        profile_number: None,
+        chamber: None,
+        sp: None,
+        coop: None,
+        wr_gain: None,
+        has_demo: None,
+        yt: None,
+    };
+
     // ChangelogPage
-    let cl_page = ChangelogPage::get_cl_page(&pool, DEFAULT_PAGE_SIZE as i32).await.unwrap().unwrap();
+    let cl_page = ChangelogPage::get_changelog_page(&pool, query_params).await.unwrap().unwrap();
     assert_eq!(cl_page.len(), DEFAULT_PAGE_SIZE);
     let filter = ChangelogQueryParams {
         limit: Some(200),
@@ -297,7 +291,7 @@ async fn test_db_changelog() {
         has_demo: Some(true),
         yt: None,
     };
-    let filtered_cl_page = ChangelogPage::get_cl_page_filtered(&pool, filter).await.unwrap().unwrap();
+    let filtered_cl_page = ChangelogPage::get_changelog_page(&pool, filter).await.unwrap().unwrap();
     assert_eq!(filtered_cl_page.len(), 1);
     assert_eq!(filtered_cl_page[0].id, 127825);
 }

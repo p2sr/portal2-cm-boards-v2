@@ -1,7 +1,7 @@
 use crate::controllers::models::ChangelogPage;
 use crate::controllers::models::ChangelogQueryParams;
 
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 // pub limit: Option<u64>,
@@ -21,27 +21,9 @@ async fn get_changelog(
     pool: web::Data<PgPool>,
     query_params: web::Query<ChangelogQueryParams>,
 ) -> impl Responder {
-    // let limit: i32 = 200;
-    println!("{:#?}", query_params);
-    let res = ChangelogPage::get_cl_page_filtered(pool.get_ref(), query_params.into_inner()).await;
+    let res = ChangelogPage::get_changelog_page(pool.get_ref(), query_params.into_inner()).await;
     match res {
         Ok(changelog_entries) => HttpResponse::Ok().json(changelog_entries),
         _ => HttpResponse::NotFound().body("No changelog entries found."),
     }
 }
-
-// /// POST method for changelog that allows the user to submit a JSON body to filter for specific parameters. See the ChangelogQueryParams struct info on accepted query parameters.
-// #[post("/changelog")]
-// async fn post_changelog_filtered(
-//     params: web::Json<ChangelogQueryParams>,
-//     pool: web::Data<PgPool>,
-// ) -> impl Responder {
-//     let res = ChangelogPage::get_cl_page_filtered(pool.get_ref(), params.0).await;
-//     match res {
-//         Ok(changelog_entries) => HttpResponse::Ok().json(changelog_entries),
-//         Err(e) => {
-//             eprintln!("Error with filtering changelog page -> {}", e);
-//             HttpResponse::NotFound().body("No changelog entries found.")
-//         }
-//     }
-// }
