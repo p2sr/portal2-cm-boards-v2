@@ -5,6 +5,7 @@ use dotenv::dotenv;
 use anyhow::Result;
 use crate::tools::config::Config;
 
+#[allow(dead_code)]
 const DEFAULT_PAGE_SIZE: usize = 200;
 
 #[allow(dead_code)]
@@ -290,8 +291,8 @@ async fn test_db_changelog() {
         nick_name: Some("Daniel".to_string()),
         profile_number: None,
         chamber: Some("47763".to_string()),
-        sp: true,
-        coop: true,
+        sp: Some(true),
+        coop: Some(true),
         wr_gain: Some(true),
         has_demo: Some(true),
         yt: None,

@@ -576,18 +576,20 @@ impl ChangelogPage {
                     THEN u.steam_name
                 WHEN u.board_name IS NOT NULL
                     THEN u.board_name
-            END user_name,
-            u.avatar
+            END user_name, u.avatar
             FROM "p2boards".changelog AS cl
             INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
             INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
             INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)
         "#);
-        
-        if !params.coop {
-            filters.push("chapters.is_multiplayer = False\n".to_string());
-        } else if !params.sp {
-            filters.push("chapters.is_multiplayer = True\n".to_string());
+        if let Some(coop) = params.coop {
+            if !coop {
+                filters.push("chapters.is_multiplayer = False\n".to_string());
+            } else if let Some(sp) = params.sp {
+                if !sp {
+                    filters.push("chapters.is_multiplayer = True\n".to_string());
+                }
+            }
         }
         if let Some(has_demo) = params.has_demo {
             if has_demo {
@@ -666,7 +668,7 @@ impl ChangelogPage {
 
 impl SpMap {
     pub async fn get_sp_map_page(pool: &PgPool, map_id: String, limit: i32, cat_id: Option<i32>) -> Result<Vec<SpMap>> {
-        let mut category_id: i32;
+        let category_id: i32;
         if let Some(x) = cat_id {
             category_id = x;
         } else {

@@ -293,15 +293,31 @@ pub struct ChangelogPage {
 /// All the accepted query parameters for the changelog page.
 #[derive(Deserialize, Debug)]
 pub struct ChangelogQueryParams {
-    pub limit: Option<u64>,
+    pub limit: Option<u32>,
     pub nick_name: Option<String>,
     pub profile_number: Option<String>,
     pub chamber: Option<String>,
-    pub sp: bool,
-    pub coop: bool,
+    pub sp: Option<bool>,
+    pub coop: Option<bool>,
     pub wr_gain: Option<bool>,
     pub has_demo: Option<bool>,
     pub yt: Option<bool>,
+}
+
+impl Default for ChangelogQueryParams {
+    fn default() -> Self {
+        ChangelogQueryParams {
+            limit: Some(200),
+            nick_name: None,
+            profile_number: None,
+            chamber: None,
+            sp: Some(true),
+            coop: Some(true),
+            wr_gain: None,
+            has_demo: None,
+            yt: None,
+        }
+    }
 }
 
 /// Wrapper to send a profile number as a search result
