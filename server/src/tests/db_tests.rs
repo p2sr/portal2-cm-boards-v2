@@ -155,6 +155,7 @@ async fn test_db_demos() {
     // TODO: All sar_version values are empty strings for some reason...
     assert_eq!(demo.sar_version, new_demo.sar_version);
     assert_eq!(demo.cl_id, new_demo.cl_id);
+
     let fid = Demos::get_demo_file_id(&pool, demo.id).await.unwrap().unwrap();
     assert_eq!(demo.file_id, fid);
     let partner_name = Demos::get_partner_name(&pool, demo.id).await.unwrap();

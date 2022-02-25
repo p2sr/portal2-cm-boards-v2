@@ -151,16 +151,9 @@ impl Users {
                 WHERE users.profile_number = $1
                 "#)
             .bind(profile_number)
-            .fetch_one(pool)
-            .await;
-        match res{
-            Ok(user_data) => Ok(Some(user_data)),
-            Err(e) => {
-                eprintln!("User not found get_user_data -> {}", e);
-                // return Err(anyhow::Error::new(e).context("Error with user data."))
-                Ok(None)
-            }
-        }
+            .fetch_optional(pool)
+            .await?;
+        Ok(res)
     }
     /// Pattern match on a given string to find similar names (supports board/steam names). 
     pub async fn check_board_name(pool: &PgPool, nick_name: String) -> Result<Option<Vec<String>>> {
@@ -363,12 +356,12 @@ impl Demos {
     }
     /// Gets the SAR version associated with a demo
     pub async fn get_sar_version(pool: &PgPool, demo_id: i64) -> Result<Option<String>> {
-        let res = sqlx::query(r#"SELECT sar_version FROM "p2boards".demos WHERE id = $1"#)
+        let res: Option<String> = sqlx::query(r#"SELECT sar_version FROM "p2boards".demos WHERE id = $1"#)
             .bind(demo_id)
             .map(|row: PgRow|{row.get(0)})
             .fetch_one(pool)
             .await?;
-        Ok(Some(res))
+        Ok(res)
     }
     /// Adds a new demo to the database, returns the demo's id
     pub async fn insert_demo(pool: &PgPool, demo: DemoInsert) -> Result<i64> {
