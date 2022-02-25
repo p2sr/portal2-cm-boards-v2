@@ -516,6 +516,22 @@ impl Changelog {
     }  
 }
 
+impl Default for ChangelogQueryParams {
+    fn default() -> Self {
+        ChangelogQueryParams {
+            limit: Some(200),
+            nick_name: None,
+            profile_number: None,
+            chamber: None,
+            sp: Some(true),
+            coop: Some(true),
+            wr_gain: None,
+            has_demo: None,
+            yt: None,
+        }
+    }
+}
+
 impl CoopBundled {
     pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64> {
         let mut res: i64 = 0;

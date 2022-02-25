@@ -15,10 +15,10 @@ async fn get_banned_users(pool: web::Data<PgPool>) -> impl Responder {
 /// POST method to check the ban status of a given player.
 #[post("/banned_users")]
 async fn check_ban_status(
-    params: web::Json<UserParams>,
+    profile_number: web::Json<String>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
-    let res = Users::check_banned(pool.get_ref(), params.profile_number.clone()).await;
+    let res = Users::check_banned(pool.get_ref(), profile_number.into_inner().clone()).await;
     match res {
         Ok(banned_bool) => HttpResponse::Ok().json(banned_bool),
         _ => HttpResponse::NotFound().body("Error fetching previews"),
@@ -33,8 +33,11 @@ async fn post_new_user(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> i
         Ok(true) => HttpResponse::Ok().json(new_user.0),
         Ok(false) => HttpResponse::InternalServerError().body("Could not add user to database"),
         Err(e) => {
-            eprintln!("Adding user {:?} to DB failed with error -> {}", new_user.0, e);
+            eprintln!(
+                "Adding user {:?} to DB failed with error -> {}",
+                new_user.0, e
+            );
             HttpResponse::InternalServerError().body("Could not add user to database.")
-        },
+        }
     }
 }

@@ -1,13 +1,9 @@
-#![allow(unused)]
-#![allow(clippy::all)]
-
-use actix_web::{Error, HttpResponse};
-use sqlx::postgres::PgValueRef;
-use sqlx::{types::Type, FromRow, Postgres};
-use std::collections::HashMap;
-// use sqlx::decode::Decode;
-// use sqlx::postgres::types::PgRecordDecoder;
 use chrono::NaiveDateTime;
+use sqlx::FromRow;
+
+//
+// Database
+//
 
 /// One-to-one struct for changelog data.
 #[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
@@ -51,6 +47,31 @@ pub struct ChangelogInsert {
     pub score_delta: Option<i32>,
     pub verified: Option<bool>,
     pub admin_note: Option<String>,
+}
+
+#[derive(Serialize, FromRow, Debug)]
+pub struct ChangelogPage {
+    pub id: i64,
+    pub timestamp: Option<NaiveDateTime>,
+    pub profile_number: String,
+    pub score: i32,
+    pub map_id: String,
+    pub demo_id: Option<i64>,
+    pub banned: bool,
+    pub youtube_id: Option<String>,
+    pub previous_id: Option<i64>,
+    pub coop_id: Option<i64>,
+    pub post_rank: Option<i32>,
+    pub pre_rank: Option<i32>,
+    pub submission: bool,
+    pub note: Option<String>,
+    pub category_id: i32,
+    pub score_delta: Option<i32>,
+    pub verified: Option<bool>,
+    pub admin_note: Option<String>,
+    pub map_name: String,
+    pub user_name: String,
+    pub avatar: String,
 }
 
 /// One-to-one struct for Category data.
@@ -208,7 +229,6 @@ pub struct SpRanked {
 }
 
 /// Wrapper for the coop map data and the rank/score.
-// TODO: Could have nested map_data values that have less info
 #[derive(Serialize)]
 pub struct CoopRanked {
     pub map_data: CoopMap,
@@ -235,6 +255,14 @@ pub struct SpPreviews {
     pub scores: Vec<SpPreview>,
 }
 
+/// Wrapper for a player's SP PB history.
+#[derive(Serialize, Deserialize)]
+pub struct SpPbHistory {
+    pub user_name: Option<String>,
+    pub avatar: Option<String>,
+    pub pb_history: Option<Vec<Changelog>>,
+}
+
 /// The data for the preview page for all Coop Maps
 #[derive(Serialize, Deserialize, FromRow, Clone)]
 pub struct CoopPreview {
@@ -255,90 +283,6 @@ pub struct CoopPreviews {
     pub scores: Vec<CoopPreview>,
 }
 
-/// Changelog Wrapper that contains additional information on the changelog page.
-// #[derive(Serialize, FromRow)]
-// pub struct ChangelogPage{
-//     pub cl: Changelog,
-//     pub map_name: String,
-//     pub user_name: String,
-//     pub avatar: String,
-// }
-// TODO: rustc issues.
-// TODO: Name ChangelogPageEntry
-#[derive(Serialize, FromRow, Debug)]
-pub struct ChangelogPage {
-    pub id: i64,
-    pub timestamp: Option<NaiveDateTime>,
-    pub profile_number: String,
-    pub score: i32,
-    pub map_id: String,
-    pub demo_id: Option<i64>,
-    pub banned: bool,
-    pub youtube_id: Option<String>,
-    pub previous_id: Option<i64>,
-    pub coop_id: Option<i64>,
-    pub post_rank: Option<i32>,
-    pub pre_rank: Option<i32>,
-    pub submission: bool,
-    pub note: Option<String>,
-    pub category_id: i32,
-    pub score_delta: Option<i32>,
-    pub verified: Option<bool>,
-    pub admin_note: Option<String>,
-    pub map_name: String,
-    pub user_name: String,
-    pub avatar: String,
-}
-
-/// All the accepted query parameters for the changelog page.
-#[derive(Deserialize, Debug)]
-pub struct ChangelogQueryParams {
-    pub limit: Option<u32>,
-    pub nick_name: Option<String>,
-    pub profile_number: Option<String>,
-    pub chamber: Option<String>,
-    pub sp: Option<bool>,
-    pub coop: Option<bool>,
-    pub wr_gain: Option<bool>,
-    pub has_demo: Option<bool>,
-    pub yt: Option<bool>,
-}
-
-impl Default for ChangelogQueryParams {
-    fn default() -> Self {
-        ChangelogQueryParams {
-            limit: Some(200),
-            nick_name: None,
-            profile_number: None,
-            chamber: None,
-            sp: Some(true),
-            coop: Some(true),
-            wr_gain: None,
-            has_demo: None,
-            yt: None,
-        }
-    }
-}
-
-/// Wrapper to send a profile number as a search result
-#[derive(Deserialize, Debug)]
-pub struct UserParams {
-    pub profile_number: String,
-}
-
-/// Wrapper to send a profile number as a search result
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ScoreParams {
-    pub profile_number: String,
-    pub score: i32,
-}
-
-// Currently a dumbass work around to issues with deserializing an option natively theough the Query
-#[derive(Debug, Deserialize)]
-pub struct Opti32 {
-    pub cat_id: Option<i32>,
-}
-
 /// Banned times for SP
 #[derive(Serialize, FromRow)]
 pub struct SpBanned {
@@ -354,14 +298,11 @@ pub struct CoopBanned {
     pub score: i32,
 }
 
-/// Wrapper for a player's SP PB history.
-#[derive(Serialize, Deserialize)]
-pub struct SpPbHistory {
-    pub user_name: Option<String>,
-    pub avatar: Option<String>,
-    pub pb_history: Option<Vec<Changelog>>,
-}
+//
+// Helpers
+//
 
+/// Values that we return after checking if a score is valid to be added to the database.
 #[derive(Default, Debug, Serialize)]
 pub struct CalcValues {
     pub previous_id: Option<i64>,
@@ -369,4 +310,31 @@ pub struct CalcValues {
     pub pre_rank: Option<i32>,
     pub score_delta: Option<i32>,
     pub banned: bool,
+}
+
+// Currently a dumbass work around to issues with deserializing an option natively theough the Query
+#[derive(Debug, Deserialize)]
+pub struct Opti32 {
+    pub cat_id: Option<i32>,
+}
+
+/// Wrapper to send a profile number as a search result
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ScoreParams {
+    pub profile_number: String,
+    pub score: i32,
+}
+
+/// All the accepted query parameters for the changelog page.
+#[derive(Deserialize, Debug)]
+pub struct ChangelogQueryParams {
+    pub limit: Option<u32>,
+    pub nick_name: Option<String>,
+    pub profile_number: Option<String>,
+    pub chamber: Option<String>,
+    pub sp: Option<bool>,
+    pub coop: Option<bool>,
+    pub wr_gain: Option<bool>,
+    pub has_demo: Option<bool>,
+    pub yt: Option<bool>,
 }
