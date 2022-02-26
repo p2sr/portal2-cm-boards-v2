@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://github.com/p2sr/portal2-cm-boards-v2/tree/main/db/dbdump
+HostUrl=https://github.com/p2sr/portal2-cm-boards-v2/blob/main/db/dbdump/2022.2.24_PG_Dump.sql

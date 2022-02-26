@@ -337,4 +337,6 @@ pub struct ChangelogQueryParams {
     pub wr_gain: Option<bool>,
     pub has_demo: Option<bool>,
     pub yt: Option<bool>,
+    pub first: Option<i64>,
+    pub last: Option<i64>,
 }

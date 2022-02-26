@@ -521,6 +521,8 @@ impl Default for ChangelogQueryParams {
             wr_gain: None,
             has_demo: None,
             yt: None,
+            first: None,
+            last: None,
         }
     }
 }
@@ -608,13 +610,18 @@ impl ChangelogPage {
                     for num in profile_numbers.iter(){
                         profile_str.push_str(&format!(" OR cl.profile_number = '{}'\n", num));
                     }
-                    profile_str.push_str(")");
+                    profile_str.push(')');
                     filters.push(profile_str);
                 }
             }
             else {
                 bail!("No users found with specified username pattern.");
             }
+        }
+        if let Some(first) = params.first {
+            filters.push(format!("cl.id > {}\n", &first));
+        } else if let Some(last) = params.last {
+            filters.push(format!("cl.id < {}\n", &last));
         }
         // Build the statement based off the elements we added to our vector (used to make sure only first statement is WHERE, and additional are OR)
         for (i, entry) in filters.iter().enumerate() {
@@ -629,9 +636,8 @@ impl ChangelogPage {
         if let Some(limit) = params.limit{
             query_string = format!("{} LIMIT {}\n", &query_string, limit);
         } else{ // Default limit
-            query_string = format!("{} LMIT 1000\n", &query_string)
+            query_string = format!("{} LIMIT 1000\n", &query_string)
         }
-        // eprintln!("{}", query_string);
 
         let res = sqlx::query_as::<_, ChangelogPage>(&query_string).fetch_all(pool).await;
         match res{
@@ -652,7 +658,7 @@ impl SpMap {
         if let Some(x) = cat_id {
             category_id = x;
         } else {
-            let dcid = Maps::get_deafult_cat(&pool, map_id.clone()).await;
+            let dcid = Maps::get_deafult_cat(pool, map_id.clone()).await;
             category_id = match dcid {
                 Ok(Some(id)) => id,
                 _ => bail!("Could not find a default cat_id for the map provided"),

@@ -276,6 +276,8 @@ async fn test_db_changelog() {
         wr_gain: None,
         has_demo: None,
         yt: None,
+        first: None,
+        last: None,
     };
 
     // ChangelogPage
@@ -291,6 +293,8 @@ async fn test_db_changelog() {
         wr_gain: Some(true),
         has_demo: Some(true),
         yt: None,
+        first: None,
+        last: None,
     };
     let filtered_cl_page = ChangelogPage::get_changelog_page(&pool, filter).await.unwrap().unwrap();
     assert_eq!(filtered_cl_page.len(), 1);
