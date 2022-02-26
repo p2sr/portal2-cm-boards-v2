@@ -566,10 +566,10 @@ impl ChangelogPage {
         "#);
         if let Some(coop) = params.coop {
             if !coop {
-                filters.push("chapters.is_multiplayer = False\n".to_string());
+                filters.push("chapter.is_multiplayer = False\n".to_string());
             } else if let Some(sp) = params.sp {
                 if !sp {
-                    filters.push("chapters.is_multiplayer = True\n".to_string());
+                    filters.push("chapter.is_multiplayer = True\n".to_string());
                 }
             }
         }
@@ -597,9 +597,7 @@ impl ChangelogPage {
         }
         if let Some(profile_number) = params.profile_number {
             filters.push(format!("cl.profile_number = {}\n", &profile_number));
-        }
-        //#[allow(irrefutable_let_patterns)]
-        if let Some(nick_name) = params.nick_name {
+        } else if let Some(nick_name) = params.nick_name { // TODO: Should we allow for both profile_number and nick_name fields?
             //eprintln!("{}", nick_name);
             if let Some(profile_numbers) = Users::check_board_name(pool, nick_name.clone()).await?.as_mut(){
                 if profile_numbers.len() == 1 {
@@ -635,8 +633,8 @@ impl ChangelogPage {
         query_string = format!("{} ORDER BY cl.timestamp DESC NULLS LAST\n", &query_string);
         if let Some(limit) = params.limit{
             query_string = format!("{} LIMIT {}\n", &query_string, limit);
-        } else{ // Default limit
-            query_string = format!("{} LIMIT 1000\n", &query_string)
+        } else { // Default limit
+            query_string = format!("{} LIMIT 200\n", &query_string)
         }
 
         let res = sqlx::query_as::<_, ChangelogPage>(&query_string).fetch_all(pool).await;

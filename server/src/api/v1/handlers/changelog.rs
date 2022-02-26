@@ -4,18 +4,26 @@ use crate::controllers::models::ChangelogQueryParams;
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
-// pub limit: Option<u64>,
-// pub nick_name: Option<String>,
-// pub profile_number: Option<String>,
-// pub chamber: Option<String>,
-// pub sp: bool,
-// pub coop: bool,
-// pub wr_gain: Option<bool>,
-// pub has_demo: Option<bool>,
-// pub yt: Option<bool>,
-
-// TODO: We can consider making the limit higher in the future, or calculating it dynamically based off of scores in the last X amount of time.
-/// GET method for most recent 200 changelog entries.
+/// GET method for changelog entiries. Utilizes `ChangelogQueryParrams` as an optional addition to the query
+/// OPTIONAL QUERY PARAMETERS ChangelogQueryParrams
+/// The following is the set of parameters to query by:
+///     limit           -> The # of max returned results.
+///     nick_name       -> Filters for results from all profile_numbers were steam/board name matches (%TEXT%).
+///     profile_number  -> Returns scores only from a specific profile (steam) id.
+///     chamber         -> Filters for only a specfic map by id.
+///     sp              -> Boolean for determines if sp maps should be returned
+///     coop            -> Boolean that determines if coop maps should be returned
+///     wr_gain         -> Boolean that, if true, will only return scores that were originally World Records
+///     has_demo        -> Boolean that will filter for only scores with demos
+///     yt              -> Boolean that will filter for onlny scores with youtube links
+///     first           -> Will only return scores with an ID higher than the given amount
+///     last            -> Will only return scores with an ID lower than the given amount
+/// Example endpoints:
+///   Default           -> /changelog
+///   With parameters   -> /changelog?limit=200&nick_name=Zypeh&chamber=47759&sp=true&coop=false&wr_gain=true&has_demo=true&yt=true
+///   A refresh call    -> /changelog?limit=200&first=157804                                   
+///   A scroll call     -> /changelog?limit-200&last=157604
+///
 #[get("/changelog")]
 async fn get_changelog(
     pool: web::Data<PgPool>,
