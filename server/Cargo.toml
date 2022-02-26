@@ -5,15 +5,15 @@ authors = ["Daniel Bates <36864021+DanielBatesJ@users.noreply.github.com>"]
 edition = "2021"
 
 [dependencies]
-actix-web = "4.0.0-rc.1"
-actix-cors = "0.6.0-beta.8"
-actix-multipart = "0.4.0-beta.13"
-futures = "0.3.17"
+actix-web = "4.0.1"
+actix-cors = "0.6.0"
+actix-multipart = "0.4.0"
+futures = "0.3.21"
 raze = "0.4.1"
 reqwest = { version = "0.11.9", features = ["json", "stream"] }
-tokio = { version = "1.16.1", features = ["full"] }
+tokio = { version = "1.17.0", features = ["full"] }
 
-sqlx = { version = "0.5.7", features = [
+sqlx = { version = "0.5.11", features = [
     "runtime-actix-rustls",
     "postgres",
     "chrono",
@@ -21,16 +21,16 @@ sqlx = { version = "0.5.7", features = [
 ] }
 chrono = { version = "0.4.19", features = ["serde", "rustc-serialize"] }
 
-serde = "1.0.123"
-serde_json = "1.0.64"
-serde_derive = "1.0.123"
+serde = "1.0.136"
+serde_json = "1.0.79"
+serde_derive = "1.0.136"
 
 dotenv = "0.15.0"
 config = "0.11.0"
-num = "0.1.42"
-env_logger = "0.8.3"
+num = "0.4.0"
+env_logger = "0.9.0"
 log = "0.4.14"
-anyhow = "1.0.43"
+anyhow = "1.0.55"
 sanitize-filename = "0.3.0"
 
 #steam-auth = "1.0.0"
