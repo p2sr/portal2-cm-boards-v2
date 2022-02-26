@@ -545,7 +545,11 @@ impl CoopBundled {
 
 
 impl ChangelogPage {
-     // Handles filtering out changelog by different criteria.
+    /// Display page for the changelog
+    /// 
+    /// Takes a list of parameters, returns a filtered list of changelog entries.
+    /// 
+    /// Returns a [ChangelogPage], which contains information specifc for displaying on the web.
     pub async fn get_changelog_page(pool: &PgPool, params: ChangelogQueryParams) -> Result<Option<Vec<ChangelogPage>>> {
         // TODO: Add additonal filters
         let mut filters: Vec<String> = Vec::new();
@@ -597,7 +601,7 @@ impl ChangelogPage {
         }
         if let Some(profile_number) = params.profile_number {
             filters.push(format!("cl.profile_number = {}\n", &profile_number));
-        } else if let Some(nick_name) = params.nick_name { // TODO: Should we allow for both profile_number and nick_name fields?
+        } else if let Some(nick_name) = params.nick_name { // TODO: Should we allow for both profile_number and nick_name
             //eprintln!("{}", nick_name);
             if let Some(profile_numbers) = Users::check_board_name(pool, nick_name.clone()).await?.as_mut(){
                 if profile_numbers.len() == 1 {
