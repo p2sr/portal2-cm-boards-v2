@@ -2,20 +2,35 @@ use crate::controllers::models::Chapters;
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
-// TODO: We can consider making the limit higher in the future, or calculating it dynamically based off of scores in the last X amount of time.
-/// GET method for most recent 200 changelog entries.
-#[get("/chapters/{chapter_id}")]
+/// **GET** method for map_ids by chapter.
+///
+/// **Required Parameters**: ID of the chapter (number).
+///
+/// Example Endpoints:
+/// - `/api/v1/maps_from_chapter/1`
+#[get("/maps_from_chapter/{chapter_id}")]
 async fn get_map_ids_by_chapter(
     chapter_id: web::Path<i32>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     let res = Chapters::get_map_ids(pool.get_ref(), chapter_id.into_inner()).await;
-    let res = match res {
-        Ok(s) => s,
-        _ => None,
-    };
     match res {
-        Some(map_ids) => HttpResponse::Ok().json(map_ids),
-        None => HttpResponse::NotFound().body("No changelog entries found."),
+        Ok(Some(s)) => HttpResponse::Ok().json(s),
+        _ => HttpResponse::NotFound().body("No maps found for given chapter_id."),
+    }
+}
+/// **GET** method to return all chapters that match a specific name
+///
+/// **Required Parameters**: Name search string (space separated by `%20`)
+///
+/// Example Endpoints:
+/// - `/api/v1/chapters/The%20Part`
+#[get("/chapters/{name}")]
+async fn get_chapter_by_name(name: web::Path<String>, pool: web::Data<PgPool>) -> impl Responder {
+    println!("{}", name);
+    let res = Chapters::get_chapter_by_name(pool.get_ref(), name.into_inner()).await;
+    match res {
+        Ok(Some(s)) => HttpResponse::Ok().json(s),
+        _ => HttpResponse::NotFound().body("No maps found for given chapter_id."),
     }
 }

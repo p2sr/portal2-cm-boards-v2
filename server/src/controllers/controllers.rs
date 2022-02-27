@@ -88,13 +88,12 @@ impl Chapters {
         Ok(Some(res)) //We're not going to handle error cases I'm tired
         // TODO: Do this better
     }
-    /// Searches for all chapter IDs that match a given search pattern.
-    pub async fn get_chapter_id_by_name(pool: &PgPool, chapter_name: String) -> Result<Option<Vec<i32>>> {
+    /// Searches for all chapters that match a given search pattern.
+    pub async fn get_chapter_by_name(pool: &PgPool, chapter_name: String) -> Result<Option<Vec<Chapters>>> {
         let query_chapter_name = format!("%{}%", &chapter_name);
-        let res = sqlx::query(r#"SELECT id FROM "p2boards".chapters 
+        let res = sqlx::query_as::<_, Chapters>(r#"SELECT * FROM "p2boards".chapters 
                 WHERE LOWER(chapter_name) LIKE LOWER($1)"#)
             .bind(query_chapter_name) 
-            .map(|row: PgRow|{row.get(0)})
             .fetch_all(pool)
             .await?;
         Ok(Some(res))

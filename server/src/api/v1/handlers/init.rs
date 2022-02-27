@@ -33,6 +33,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(get_banned_users)
             .service(post_new_user)
             .service(get_map_ids_by_chapter) // Chapters
+            .service(get_chapter_by_name)
             .service(get_default_cat) // Maps
             .service(get_points_sp) // Points
             .service(post_points_sp)

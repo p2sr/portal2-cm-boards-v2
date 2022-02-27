@@ -32,13 +32,13 @@ use sqlx::PgPool;
 ///         - Will only return scores with an ID lower than the given amount
 /// ## Example endpoints:
 ///  - **Default**           
-///     - `/changelog`
+///     - `/api/v1/changelog`
 ///  - **With parameters**   
-///     - `/changelog?limit=200&nick_name=Zypeh&chamber=47759&sp=true&coop=false&wr_gain=true&has_demo=true&yt=true`
+///     - `/api/v1/changelog?limit=200&nick_name=Zypeh&chamber=47759&sp=true&coop=false&wr_gain=true&has_demo=true&yt=true`
 ///  - **A refresh call**    
-///     - `/changelog?limit=200&first=157804`
+///     - `/api/v1/changelog?limit=200&first=157804`
 ///  - **A scroll call**     
-///     - `/changelog?limit-200&last=157604`
+///     - `/api/v1/changelog?limit-200&last=157604`
 ///
 /// Makes a call to the underlying [ChangelogPage::get_changelog_page]
 #[get("/changelog")]

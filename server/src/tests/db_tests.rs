@@ -50,8 +50,8 @@ async fn test_db_chapters() {
     };
     let map_ids = Chapters::get_map_ids(&pool, chapter.id).await.unwrap().unwrap();
     assert_eq!(vec!["47458", "47455", "47452", "47106", "47735", "62761", "62758", "62763", "62759"], map_ids);
-    let ids = Chapters::get_chapter_id_by_name(&pool, "The Courtesy Call".to_string()).await.unwrap().unwrap();
-    assert_eq!(chapter.id, ids[0]);
+    let ids = Chapters::get_chapter_by_name(&pool, "The Courtesy Call".to_string()).await.unwrap().unwrap();
+    assert_eq!(7, ids[1].id);
     let new_chapter = Chapters::get_chapter_by_id(&pool, chapter.id).await.unwrap().unwrap();
     assert_eq!(chapter.id, new_chapter.id);
     assert_eq!(chapter.chapter_name, new_chapter.chapter_name);
