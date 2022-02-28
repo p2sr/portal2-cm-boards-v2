@@ -139,15 +139,21 @@ async fn post_banned_scores_coop(
     }
 }
 
+#[allow(unused_variables)]
 #[post("/coop/post_score")]
 async fn post_score_coop(
     params: web::Json<CoopBundledInsert>,
     pool: web::Data<PgPool>,
+    cache: web::Data<CacheState>,
 ) -> impl Responder {
-    #[allow(unused_variables)]
     let res = CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await;
     // match res {
-    //     Ok(id) => HttpResponse::Ok().json(id),
+    //     Ok(id) => {
+    //     let state_data = &mut cache.current_state.lock().await;
+    //     let is_cached = state_data.get_mut("coop_previews").unwrap();
+    //     *is_cached = false;
+    //     HttpResponse::Ok().json(id)
+    // },
     //     _ => HttpResponse::NotFound().body("Error adding new score to database."),
     // }
     let id = 1;

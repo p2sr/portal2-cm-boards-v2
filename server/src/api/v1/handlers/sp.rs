@@ -163,20 +163,23 @@ async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) 
 async fn post_score_sp(
     params: web::Json<ChangelogInsert>,
     pool: web::Data<PgPool>,
+    cache: web::Data<CacheState>,
 ) -> impl Responder {
     // TODO: Handle demo uploads.
     // TODO: Working with sequence re-sync. Need to implement role-back.
     let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
     match res {
-        Ok(id) => HttpResponse::Ok().json(id),
+        Ok(id) => {
+            let state_data = &mut cache.current_state.lock().await;
+            let is_cached = state_data.get_mut("sp_previews").unwrap();
+            *is_cached = false;
+            HttpResponse::Ok().json(id)
+        }
         Err(e) => {
             eprintln!("{}", e);
             HttpResponse::NotFound().body("Error adding new score to database.")
         }
     }
-    // TEMP WORK AROUND FOR TESTING
-    // let id = 1;
-    // HttpResponse::Ok().json(id)
 }
 
 /// Receives new data to update an existing score.

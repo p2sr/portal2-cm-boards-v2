@@ -538,7 +538,7 @@ impl CoopBundled {
             .map(|row: PgRow|{res = row.get(0)})
             .fetch_one(pool)
             .await?;
-            Ok(res)
+        Ok(res)
     }
 }
 
