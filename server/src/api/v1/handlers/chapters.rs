@@ -4,10 +4,11 @@ use sqlx::PgPool;
 
 /// **GET** method for map_ids by chapter.
 ///
-/// **Required Parameters**: ID of the chapter (number).
+/// **Required Parameters**: chapter_id.
 ///
 /// Example Endpoints:
-/// - `/api/v1/maps_from_chapter/1`
+/// - **Default** - Using the chapter_id of `1`
+///     - `/api/v1/maps_from_chapter/1`
 #[get("/maps_from_chapter/{chapter_id}")]
 async fn get_map_ids_by_chapter(
     chapter_id: web::Path<i32>,
@@ -24,7 +25,8 @@ async fn get_map_ids_by_chapter(
 /// **Required Parameters**: Name search string (space separated by `%20`)
 ///
 /// Example Endpoints:
-/// - `/api/v1/chapters/The%20Part`
+/// - **Default** - Uses the search string
+///     - `/api/v1/chapters/The%20Part`
 #[get("/chapters/{name}")]
 async fn get_chapter_by_name(name: web::Path<String>, pool: web::Data<PgPool>) -> impl Responder {
     println!("{}", name);

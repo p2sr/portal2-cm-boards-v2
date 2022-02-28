@@ -265,10 +265,8 @@ pub fn filter_entries_coop(
     // to see that they're old, banned times on the leaderboard, our assumption about all scores being new and together
     // falls apart.
     let client = reqwest::blocking::Client::new();
-    let ban_url = format!(
-        "http://localhost:8080/api/v1/maps/coop/banned/{id}",
-        id = id
-    );
+    let ban_url = format!("http://localhost:8080/api/v1/coop/banned/{id}", id = id);
+    // TODO: Fix this to work with GET endpoint.
     let mut not_cheated = Vec::new(); // Becomes the vector of times that are not from banned players, and do not exist in the changelog.
     for entry in not_banned_player.iter() {
         let res: bool = client

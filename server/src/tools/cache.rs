@@ -11,10 +11,11 @@ use tokio::sync::Mutex;
 #[derive(Debug, Clone)]
 pub struct CacheState {
     pub current_state: Arc<Mutex<HashMap<&'static str, bool>>>,
+    pub default_cat_ids: HashMap<String, i32>,
 }
 impl CacheState {
     /// Constructs a new hashmap for the cache state with static str's to represent all the values we want to cache
-    pub fn new() -> Self {
+    pub fn new(default_cat_ids: HashMap<String, i32>) -> Self {
         let mut hm = HashMap::new();
         let cached_endpoints: Vec<&'static str> = vec![
             "sp_previews",
@@ -44,6 +45,7 @@ impl CacheState {
         //println!("{:#?}", hm);
         CacheState {
             current_state: Arc::new(Mutex::new(hm)),
+            default_cat_ids,
         }
     }
 }

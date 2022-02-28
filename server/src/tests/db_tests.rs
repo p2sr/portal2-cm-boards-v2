@@ -27,7 +27,7 @@ async fn test_db_maps() {
     let map_name = Maps::get_map_name(&pool, sp[0].clone()).await.unwrap().unwrap();
     let pgun = "Portal Gun".to_string();
     assert_eq!(map_name, pgun);
-    let default_cat = Maps::get_deafult_cat(&pool, sp[0].clone()).await.unwrap().unwrap();
+    let default_cat = Maps::get_default_cat(&pool, sp[0].clone()).await.unwrap().unwrap();
     assert_eq!(default_cat, 1);
     let chapter_id = Maps::get_chapter_from_map_id(&pool, sp[0].clone()).await.unwrap().unwrap();
     assert_eq!(chapter_id.id, 7);
@@ -51,7 +51,7 @@ async fn test_db_chapters() {
     let map_ids = Chapters::get_map_ids(&pool, chapter.id).await.unwrap().unwrap();
     assert_eq!(vec!["47458", "47455", "47452", "47106", "47735", "62761", "62758", "62763", "62759"], map_ids);
     let ids = Chapters::get_chapter_by_name(&pool, "The Courtesy Call".to_string()).await.unwrap().unwrap();
-    assert_eq!(7, ids[1].id);
+    assert_eq!(7, ids[0].id);
     let new_chapter = Chapters::get_chapter_by_id(&pool, chapter.id).await.unwrap().unwrap();
     assert_eq!(chapter.id, new_chapter.id);
     assert_eq!(chapter.chapter_name, new_chapter.chapter_name);
@@ -235,7 +235,7 @@ async fn test_db_changelog() {
         admin_note: None,
     };
 
-    let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string()).await.unwrap();
+    let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string(), None).await.unwrap();
     assert!(!banned_scores);
     let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247".to_string(), "47763".to_string()).await.unwrap();
     assert_eq!(11, pb_history.len());
@@ -319,5 +319,5 @@ async fn test_db_pages() {
     assert_eq!(cooppres.len(), 48);
 
     let _spbanned = SpBanned::get_sp_banned(&pool, sp_map_id).await.unwrap();
-    let _coopbanned = CoopBanned::get_coop_banned(&pool, coop_map_id).await.unwrap();
+    let _coopbanned = CoopBanned::get_coop_banned(&pool, coop_map_id, None).await.unwrap();
 }

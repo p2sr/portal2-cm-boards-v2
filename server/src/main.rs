@@ -1,7 +1,6 @@
 //#![deny(missing_docs)]
 #[macro_use]
 extern crate serde_derive;
-
 use actix_cors::Cors;
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use anyhow::{Error, Result};
@@ -39,7 +38,10 @@ async fn main() -> Result<(), Error> {
         "Server starting at http://{}:{}/",
         config.server.host, config.server.port
     );
-    let init_data = crate::tools::cache::CacheState::new();
+    // Get a map of map_ids to default category IDs.
+    let default_cat_ids = crate::tools::helpers::get_default_cat_ids(&pool).await;
+    // Construct the cache.
+    let init_data = crate::tools::cache::CacheState::new(default_cat_ids);
     // Start our web server, mount and set up routes, data, wrapping, middleware and loggers
     HttpServer::new(move || {
         let cors = Cors::default()

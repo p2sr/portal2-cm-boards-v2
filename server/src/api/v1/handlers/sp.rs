@@ -8,7 +8,7 @@ use crate::controllers::models::{
     SpPreviews, SpRanked, Users, UsersPage,
 };
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
-use crate::tools::{calc::score, config::Config};
+use crate::tools::{config::Config, helpers::score};
 
 /// GET endpoint to handle the preview page showing all sp maps.
 /// Returns: Json wrapped values -> {map_id, scores{ steam_id, profile_number, score, youtube_id, category_id, user_name } }
@@ -95,10 +95,10 @@ async fn get_banned_scores_sp(map_id: web::Path<u64>, pool: web::Data<PgPool>) -
 }
 
 /// Gives the profile number and score for all banned times on a given SP map
-#[post("/maps/sp/banned/{map_id}")]
+#[get("/sp/banned/{map_id}")]
 async fn post_banned_scores_sp(
     map_id: web::Path<u64>,
-    params: web::Json<ScoreParams>,
+    params: web::Query<ScoreParams>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     let res = Changelog::check_banned_scores(
@@ -106,6 +106,7 @@ async fn post_banned_scores_sp(
         map_id.to_string(),
         params.score,
         params.profile_number.clone(),
+        params.cat_id,
     )
     .await;
     match res {

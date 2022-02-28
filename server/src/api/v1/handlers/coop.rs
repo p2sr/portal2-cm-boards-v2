@@ -3,12 +3,17 @@ use crate::controllers::models::{
     Opti32, ScoreParams,
 };
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
-use crate::tools::{calc::score, config::Config};
+use crate::tools::{config::Config, helpers::score};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
 use std::collections::HashMap;
 
-/// Endpoint to handle the preview page showing all coop maps.
+// TODO: Should use default cat_id
+/// **GET** Returns top 7 information for each map, used to generate the previews page for Coop.
+///
+/// Example Endpoints:
+/// - **Default**
+///     - `/api/v1/coop`
 #[get("/coop")]
 async fn get_cooperative_preview(
     pool: web::Data<PgPool>,
@@ -38,12 +43,19 @@ async fn get_cooperative_preview(
         }
     }
 }
-
-/// Handles filtering out obsolete times (1 per runner, allowed for more than 1 if a time is with a player without a better time)
-/// Generates a coop map page for a given map_id
-/// OPTIONAL PARAMETER cat_id
-///   Example endpoint  -> /map/coop/47802               Will assume default category ID
-///                     -> /map/coop/47802?cat_id=65     Will use cat_id of 65
+/// **GET** Returns all coop scores for a maps page on a specific category
+///
+/// Filtering of duplicate entries is handled.
+///
+/// **Required Parameters**: map_id
+///
+/// **Optional Parameters**: cat_id
+///
+/// Example Endpoints:
+/// - **Default** - Will return the map page for the default category ID on the map_id specified.
+///     - `/api/v1/map/coop/47802`
+/// - **Specific Category ID** - Will use the cat_id specified.
+///     - `/api/v1/map/coop/47802?cat_id=40`
 #[get("/map/coop/{map_id}")]
 async fn get_cooperative_maps(
     map_id: web::Path<u64>,
@@ -67,31 +79,65 @@ async fn get_cooperative_maps(
         _ => HttpResponse::NotFound().body("Error fetching Coop Map Page"),
     }
 }
-
-/// Returns two profile numbers and the score for all banned times on a coop map.
-#[get("/maps/coop/banned/{map_id}")]
-async fn get_banned_scores_coop(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {
-    let res = CoopBanned::get_coop_banned(pool.get_ref(), map_id.to_string()).await;
+/// **GET** method to return all banned scores on a map for a specific category.
+///
+/// **Required Parameters**: map_id
+///
+/// **Optional Parameters**: cat_id
+///
+/// Example Endpoints:
+/// - **Default** - Will return the banned times for the default category ID using the map_id supplied.
+///     - `/api/v1/coop/map_banned/47802`
+/// - **Specific Category ID** - Will use the cat_id specified.
+///     - `/api/v1/coop/map_banned/47802?cat_id=40`
+#[get("/coop/map_banned/{map_id}")]
+async fn get_banned_scores_coop(
+    map_id: web::Path<u64>,
+    pool: web::Data<PgPool>,
+    params: web::Query<Opti32>,
+) -> impl Responder {
+    let res = CoopBanned::get_coop_banned(
+        pool.get_ref(),
+        map_id.to_string(),
+        params.into_inner().cat_id,
+    )
+    .await;
     match res {
         Ok(banned_entries) => HttpResponse::Ok().json(banned_entries),
         _ => HttpResponse::NotFound().body("Error fetching Coop banned information"),
     }
 }
-
-// TODO: Probably should still improve error handling, but now the call is web::block()ing
-/// Gives the profile number and score for all banned times on a given Coop map. Same as SP for now
-#[post("/maps/coop/banned/{map_id}")]
+/// **GET** method to return a bool if a specific score is banned or not.
+///
+/// - `true`
+///     - The time is banned.
+/// - `false`
+///     - The time is not banned.
+///
+/// Currently this uses the same logic for SP times.
+///
+/// **Required Parameters**: map_id, profile_number, score
+///
+/// **Optional Parameters**: cat_id
+///
+/// Example Endpoints:
+/// - **Default** - Uses the map_id, profile_number & score provided, and assumes default category_id.
+///     - `/api/v1/coop/time_banned/47825?profile_number=76561198823602829&score=1890`
+/// - **Specific Category ID** - Will use the cat_id specified.
+///     - `/api/v1/coop/time_banned/47825?profile_number=76561198823602829&score=1890&cat_id=62`
+// TODO: Handle differently for coop?
+#[get("/coop/time_banned/{map_id}")]
 async fn post_banned_scores_coop(
     map_id: web::Path<u64>,
-    params: web::Json<ScoreParams>,
+    params: web::Query<ScoreParams>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
-    // Potentially check for a valid coop map_id before spawning a thread to query the database.
     let res = Changelog::check_banned_scores(
         pool.get_ref(),
         map_id.to_string(),
         params.score,
         params.profile_number.clone(),
+        params.cat_id,
     )
     .await;
     match res {

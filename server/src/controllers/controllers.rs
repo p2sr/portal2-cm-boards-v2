@@ -6,6 +6,7 @@ use sqlx::postgres::PgRow;
 use sqlx::{Row, PgPool};
 //use log::{debug};
 use crate::controllers::models::*;
+use crate::tools::helpers::cat_id_check;
 
 // TODO: Create macro for different lookup templates
 
@@ -32,8 +33,19 @@ impl Maps {
             .await?;
         Ok(Some(res))
     }
+    /// Returns all default cats
+    pub async fn get_all_default_cats(pool: &PgPool) -> Result<HashMap<String, i32>> {
+        let mut hm: HashMap<String, i32> = HashMap::with_capacity(108);
+        sqlx::query(r#"SELECT steam_id, default_cat_id FROM "p2boards".maps"#)
+            .map(|row: PgRow| {
+                hm.insert(row.get(0), row.get(1))
+            })
+            .fetch_all(pool)
+            .await?;
+        Ok(hm)
+    }
     /// Returns the default category for a given map.
-    pub async fn get_deafult_cat(pool: &PgPool, map_id: String) -> Result<Option<i32>> {
+    pub async fn get_default_cat(pool: &PgPool, map_id: String) -> Result<Option<i32>> {
         let res = sqlx::query(r#"
                 SELECT default_cat_id FROM "p2boards".maps
                 WHERE steam_id = $1;"#)
@@ -420,19 +432,25 @@ impl Changelog {
     }
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
-    pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String) -> Result<bool> {
+    pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String, cat_id: Option<i32>) -> Result<bool> {
         // We don't care about the result, we only care if there is a result.
+        let category_id = match cat_id_check(pool, map_id.clone(), cat_id).await {
+            Ok(cid) => cid,
+            Err(e) => return Err(e)
+        };
         let res = sqlx::query(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
                 WHERE changelog.score = $1
                 AND changelog.map_id = $2
                 AND changelog.profile_number = $3
-                AND changelog.banned = $4"#)
+                AND changelog.banned = $4
+                AND changelog.category_id = $5"#)
             .bind(score)
             .bind(map_id)
             .bind(profile_number)
             .bind(true)
+            .bind(category_id)
             .fetch_optional(pool)
             .await?;
         match res {
@@ -655,16 +673,10 @@ impl ChangelogPage {
 
 impl SpMap {
     pub async fn get_sp_map_page(pool: &PgPool, map_id: String, limit: i32, cat_id: Option<i32>) -> Result<Vec<SpMap>> {
-        let category_id: i32;
-        if let Some(x) = cat_id {
-            category_id = x;
-        } else {
-            let dcid = Maps::get_deafult_cat(pool, map_id.clone()).await;
-            category_id = match dcid {
-                Ok(Some(id)) => id,
-                _ => bail!("Could not find a default cat_id for the map provided"),
-            };
-        }
+        let category_id = match cat_id_check(pool, map_id.clone(), cat_id).await {
+            Ok(cid) => cid,
+            Err(e) => return Err(e)
+        };
         let res = sqlx::query_as::<_, SpMap>(r#" 
                 SELECT t.timestamp,
                     t.CL_profile_number,
@@ -719,7 +731,7 @@ impl CoopMap {
         if let Some(x) = cat_id {
             category_id = x;
         } else {
-            let dcid = Maps::get_deafult_cat(&pool, map_id.clone()).await;
+            let dcid = Maps::get_default_cat(&pool, map_id.clone()).await;
             category_id = match dcid {
                 Ok(Some(id)) => id,
                 _ => bail!("Could not find a default cat_id for the map provided"),
@@ -843,6 +855,7 @@ impl CoopPreview {
     /// Gets the top 7 (unique on player) times on a given Coop Map.
     pub async fn get_coop_preview(pool: &PgPool, map_id: String) -> Result<Vec<CoopPreview>> {
         // TODO: Open to PRs to contain all this functionality in the SQL statement.
+        // TODO: Filter by default cat_id
         let query = sqlx::query_as::<_, CoopPreview>(r#"
                 SELECT
                     c1.profile_number AS profile_number1, c2.profile_number AS profile_number2,
@@ -914,6 +927,7 @@ impl CoopPreview {
 impl CoopPreviews {
     // Collects the top 7 preview data for all Coop maps.
     pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<CoopPreviews>> {
+        
         let map_id_vec = Maps::get_steam_ids(pool, true).await?;
         let mut vec_final = Vec::new();
         for map_id in map_id_vec.iter(){
@@ -952,11 +966,15 @@ impl SpBanned {
 
 impl CoopBanned {
     /// Currently returns two profile_numbers and a score associated with a coop_bundle where one or both times are either banned or unverifed.
-    pub async fn get_coop_banned(pool: &PgPool, map_id: String) -> Result<Vec<CoopBanned>> {
+    pub async fn get_coop_banned(pool: &PgPool, map_id: String, cat_id: Option<i32>) -> Result<Vec<CoopBanned>> {
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
         // TODO: How to handle one player in coop not-being banned/unverified but the other is.
+        let category_id = match cat_id_check(pool, map_id.clone(), cat_id).await {
+            Ok(cid) => cid,
+            Err(e) => return Err(e)
+        };
         let res = sqlx::query_as::<_, CoopBanned>(r#"
-                SELECT c1.score, p1.profile_number AS profile_number1, p2.profile_number AS profile_number2
+                SELECT c1.score, c1.profile_number AS profile_number1, c2.profile_number AS profile_number2
                 FROM (SELECT * FROM 
                     "p2boards".coop_bundled 
                     WHERE id IN 
@@ -964,14 +982,14 @@ impl CoopBanned {
                     FROM "p2boards".changelog
                     WHERE map_id = $1
                     AND coop_id IS NOT NULL)) as cb
-                INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
-                INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
-                INNER JOIN "p2boards".users AS p1 ON (p1.profile_number = cb.p_id1)
-                INNER JOIN "p2boards".users AS p2 ON (p2.profile_number = cb.p_id2)
+                LEFT JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
+                LEFT JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
                     WHERE (c1.banned = True OR c1.verified = False)
                     OR (c2.banned = True OR c2.verified = False)
+                    AND c1.category_id = $2
                 "#)
             .bind(map_id)
+            .bind(category_id)
             .fetch_all(pool)
             .await?;
         Ok(res)

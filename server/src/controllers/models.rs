@@ -295,7 +295,7 @@ pub struct SpBanned {
 #[derive(Serialize, FromRow)]
 pub struct CoopBanned {
     pub profile_number1: String,
-    pub profile_number2: String,
+    pub profile_number2: Option<String>,
     pub score: i32,
 }
 
@@ -324,6 +324,7 @@ pub struct Opti32 {
 pub struct ScoreParams {
     pub profile_number: String,
     pub score: i32,
+    pub cat_id: Option<i32>,
 }
 
 /// All the accepted query parameters for the changelog page.

@@ -263,7 +263,7 @@ pub async fn changelog_with_demo(
     // If the cateogry wasn't set, get the default
     if changelog_insert.category_id == 0 {
         let default_category =
-            Maps::get_deafult_cat(pool.get_ref(), changelog_insert.map_id.clone()).await;
+            Maps::get_default_cat(pool.get_ref(), changelog_insert.map_id.clone()).await;
         changelog_insert.category_id = match default_category {
             Ok(Some(id)) => id,
             _ => {
