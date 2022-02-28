@@ -52,13 +52,16 @@ pub async fn get_singleplayer_maps(
     map_id: web::Path<String>,
     cat_id: web::Query<Opti32>,
     config: web::Data<Config>,
+    cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     let res = SpMap::get_sp_map_page(
         pool.get_ref(),
-        map_id.into_inner(),
+        map_id.clone(),
         config.proof.results,
-        cat_id.into_inner().cat_id,
+        cat_id
+            .cat_id
+            .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
     )
     .await;
     match res {
@@ -97,16 +100,19 @@ async fn get_banned_scores_sp(map_id: web::Path<u64>, pool: web::Data<PgPool>) -
 /// Gives the profile number and score for all banned times on a given SP map
 #[get("/sp/banned/{map_id}")]
 async fn post_banned_scores_sp(
-    map_id: web::Path<u64>,
+    map_id: web::Path<String>,
     params: web::Query<ScoreParams>,
+    cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     let res = Changelog::check_banned_scores(
         pool.get_ref(),
-        map_id.to_string(),
+        map_id.clone(),
         params.score,
         params.profile_number.clone(),
-        params.cat_id,
+        params
+            .cat_id
+            .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
     )
     .await;
     match res {
@@ -205,6 +211,7 @@ pub struct ScoreLookup {
 pub async fn get_newscore_details(
     pool: web::Data<PgPool>,
     data: web::Json<ScoreLookup>,
+    cache: web::Data<CacheState>,
     config: web::Data<Config>,
 ) -> impl Responder {
     let res = check_for_valid_score(
@@ -213,6 +220,7 @@ pub async fn get_newscore_details(
         data.score,
         data.map_id.clone(),
         config.proof.results,
+        cache.into_inner().default_cat_ids[&data.map_id],
     )
     .await;
     match res {
@@ -230,6 +238,7 @@ pub async fn check_for_valid_score(
     score: i32,
     map_id: String,
     limit: i32,
+    cat_id: i32,
 ) -> Result<CalcValues> {
     let mut values = CalcValues::default();
     match Users::check_banned(pool, profile_number.clone()).await {
@@ -259,7 +268,7 @@ pub async fn check_for_valid_score(
     values.score_delta = Some(cl[0].score - score);
     values.previous_id = Some(cl[0].id);
     // Assuming there is a PB History, there must be other scores, this should return a valid list of ranked maps.
-    let cl_ranked = SpMap::get_sp_map_page(pool, map_id, limit, None)
+    let cl_ranked = SpMap::get_sp_map_page(pool, map_id, limit, cat_id)
         .await
         .unwrap();
     for (i, entry) in cl_ranked.iter().enumerate() {

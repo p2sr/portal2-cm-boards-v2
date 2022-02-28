@@ -4,9 +4,7 @@ use anyhow::{Result, bail};
 use std::collections::HashMap;
 use sqlx::postgres::PgRow;
 use sqlx::{Row, PgPool};
-//use log::{debug};
 use crate::controllers::models::*;
-use crate::tools::helpers::cat_id_check;
 
 // TODO: Create macro for different lookup templates
 
@@ -432,12 +430,8 @@ impl Changelog {
     }
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
-    pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String, cat_id: Option<i32>) -> Result<bool> {
+    pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String, cat_id: i32) -> Result<bool> {
         // We don't care about the result, we only care if there is a result.
-        let category_id = match cat_id_check(pool, map_id.clone(), cat_id).await {
-            Ok(cid) => cid,
-            Err(e) => return Err(e)
-        };
         let res = sqlx::query(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
@@ -450,7 +444,7 @@ impl Changelog {
             .bind(map_id)
             .bind(profile_number)
             .bind(true)
-            .bind(category_id)
+            .bind(cat_id)
             .fetch_optional(pool)
             .await?;
         match res {
@@ -672,11 +666,7 @@ impl ChangelogPage {
 }
 
 impl SpMap {
-    pub async fn get_sp_map_page(pool: &PgPool, map_id: String, limit: i32, cat_id: Option<i32>) -> Result<Vec<SpMap>> {
-        let category_id = match cat_id_check(pool, map_id.clone(), cat_id).await {
-            Ok(cid) => cid,
-            Err(e) => return Err(e)
-        };
+    pub async fn get_sp_map_page(pool: &PgPool, map_id: String, limit: i32, cat_id: i32) -> Result<Vec<SpMap>> {
         let res = sqlx::query_as::<_, SpMap>(r#" 
                 SELECT t.timestamp,
                     t.CL_profile_number,
@@ -709,7 +699,7 @@ impl SpMap {
                 ORDER BY score
                 LIMIT $3"#)
             .bind(map_id)
-            .bind(category_id)
+            .bind(cat_id)
             .bind(limit)
             .fetch_all(pool)
             .await;
@@ -726,17 +716,7 @@ impl SpMap {
 
 impl CoopMap {
     // TODO: Check to make sure this is filtered when returned (I think it is).
-    pub async fn get_coop_map_page(pool: &PgPool, map_id: String, limit: i32, cat_id: Option<i32>) -> Result<Vec<CoopMap>> {
-        let category_id: i32;
-        if let Some(x) = cat_id {
-            category_id = x;
-        } else {
-            let dcid = Maps::get_default_cat(&pool, map_id.clone()).await;
-            category_id = match dcid {
-                Ok(Some(id)) => id,
-                _ => bail!("Could not find a default cat_id for the map provided"),
-            };
-        }
+    pub async fn get_coop_map_page(pool: &PgPool, map_id: String, limit: i32, cat_id: i32) -> Result<Vec<CoopMap>> {
         let res = sqlx::query_as::<_, CoopMap>(r#"
                 SELECT  c1.timestamp, 
                     c1.score, cb.p1_is_host, c1.note AS note1, c2.note AS note2,
@@ -778,7 +758,7 @@ impl CoopMap {
                 ORDER BY score ASC
                 "#)
             .bind(map_id)
-            .bind(category_id)
+            .bind(cat_id)
             .fetch_all(pool)
             .await;
         match res {
@@ -966,13 +946,9 @@ impl SpBanned {
 
 impl CoopBanned {
     /// Currently returns two profile_numbers and a score associated with a coop_bundle where one or both times are either banned or unverifed.
-    pub async fn get_coop_banned(pool: &PgPool, map_id: String, cat_id: Option<i32>) -> Result<Vec<CoopBanned>> {
+    pub async fn get_coop_banned(pool: &PgPool, map_id: String, cat_id: i32) -> Result<Vec<CoopBanned>> {
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
         // TODO: How to handle one player in coop not-being banned/unverified but the other is.
-        let category_id = match cat_id_check(pool, map_id.clone(), cat_id).await {
-            Ok(cid) => cid,
-            Err(e) => return Err(e)
-        };
         let res = sqlx::query_as::<_, CoopBanned>(r#"
                 SELECT c1.score, c1.profile_number AS profile_number1, c2.profile_number AS profile_number2
                 FROM (SELECT * FROM 
@@ -989,7 +965,7 @@ impl CoopBanned {
                     AND c1.category_id = $2
                 "#)
             .bind(map_id)
-            .bind(category_id)
+            .bind(cat_id)
             .fetch_all(pool)
             .await?;
         Ok(res)

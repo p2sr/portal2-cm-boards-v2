@@ -1,4 +1,5 @@
 use crate::controllers::models::{Changelog, ChangelogInsert, DemoInsert, Demos, Maps};
+use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
 use actix_multipart::Multipart;
 use actix_web::{post, web, HttpResponse, Responder};
@@ -135,6 +136,7 @@ pub async fn receive_multiparts(
 pub async fn changelog_with_demo(
     mut payload: Multipart,
     config: web::Data<Config>,
+    cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     let mut file_name = String::default();
@@ -229,6 +231,7 @@ pub async fn changelog_with_demo(
                     changelog_insert.score,
                     changelog_insert.map_id.clone(),
                     config.proof.results,
+                    cache.clone().into_inner().default_cat_ids[&changelog_insert.map_id],
                 )
                 .await;
                 match res {

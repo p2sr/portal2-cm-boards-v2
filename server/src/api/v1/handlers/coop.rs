@@ -58,16 +58,19 @@ async fn get_cooperative_preview(
 ///     - `/api/v1/map/coop/47802?cat_id=40`
 #[get("/map/coop/{map_id}")]
 async fn get_cooperative_maps(
-    map_id: web::Path<u64>,
+    map_id: web::Path<String>,
     cat_id: web::Query<Opti32>,
     config: web::Data<Config>,
+    cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     let res = CoopMap::get_coop_map_page(
         pool.get_ref(),
-        map_id.to_string(),
+        map_id.clone(),
         config.proof.results,
-        cat_id.into_inner().cat_id,
+        cat_id
+            .cat_id
+            .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
     )
     .await;
     match res {
@@ -92,14 +95,17 @@ async fn get_cooperative_maps(
 ///     - `/api/v1/coop/map_banned/47802?cat_id=40`
 #[get("/coop/map_banned/{map_id}")]
 async fn get_banned_scores_coop(
-    map_id: web::Path<u64>,
+    map_id: web::Path<String>,
     pool: web::Data<PgPool>,
+    cache: web::Data<CacheState>,
     params: web::Query<Opti32>,
 ) -> impl Responder {
     let res = CoopBanned::get_coop_banned(
         pool.get_ref(),
-        map_id.to_string(),
-        params.into_inner().cat_id,
+        map_id.clone(),
+        params
+            .cat_id
+            .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
     )
     .await;
     match res {
@@ -128,16 +134,19 @@ async fn get_banned_scores_coop(
 // TODO: Handle differently for coop?
 #[get("/coop/time_banned/{map_id}")]
 async fn post_banned_scores_coop(
-    map_id: web::Path<u64>,
+    map_id: web::Path<String>,
     params: web::Query<ScoreParams>,
+    cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     let res = Changelog::check_banned_scores(
         pool.get_ref(),
-        map_id.to_string(),
+        map_id.clone(),
         params.score,
         params.profile_number.clone(),
-        params.cat_id,
+        params
+            .cat_id
+            .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
     )
     .await;
     match res {

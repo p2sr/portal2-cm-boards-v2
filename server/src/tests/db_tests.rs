@@ -235,7 +235,7 @@ async fn test_db_changelog() {
         admin_note: None,
     };
 
-    let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string(), None).await.unwrap();
+    let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string(), 19).await.unwrap();
     assert!(!banned_scores);
     let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247".to_string(), "47763".to_string()).await.unwrap();
     assert_eq!(11, pb_history.len());
@@ -308,9 +308,9 @@ async fn test_db_pages() {
 
     let sp_map_id = "47763".to_string();
     let coop_map_id = "52642".to_string();
-    let smp = SpMap::get_sp_map_page(&pool, sp_map_id.clone(), DEFAULT_PAGE_SIZE as i32, None).await.unwrap();
+    let smp = SpMap::get_sp_map_page(&pool, sp_map_id.clone(), DEFAULT_PAGE_SIZE as i32, 19).await.unwrap();
     assert_ne!(smp.len(), 0);
-    let cmp = CoopMap::get_coop_map_page(&pool, coop_map_id.clone(), DEFAULT_PAGE_SIZE as i32, None).await.unwrap();
+    let cmp = CoopMap::get_coop_map_page(&pool, coop_map_id.clone(), DEFAULT_PAGE_SIZE as i32, 81).await.unwrap();
     assert_ne!(cmp.len(), 0);
 
     let sppres = SpPreviews::get_sp_previews(&pool).await.unwrap();
@@ -319,5 +319,5 @@ async fn test_db_pages() {
     assert_eq!(cooppres.len(), 48);
 
     let _spbanned = SpBanned::get_sp_banned(&pool, sp_map_id).await.unwrap();
-    let _coopbanned = CoopBanned::get_coop_banned(&pool, coop_map_id, None).await.unwrap();
+    let _coopbanned = CoopBanned::get_coop_banned(&pool, coop_map_id, 19).await.unwrap();
 }
