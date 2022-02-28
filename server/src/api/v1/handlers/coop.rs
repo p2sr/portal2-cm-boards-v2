@@ -60,47 +60,8 @@ async fn get_cooperative_maps(
     .await;
     match res {
         Ok(coop_entries) => {
-            //Filters out all obsolete times from the result, then truncates to 200 entries.
-            let mut coop_entries_filtered = Vec::new();
-            let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(500);
-            let mut i = 1;
-            remove_dups.insert("".to_string(), 1);
-            for entry in coop_entries {
-                match remove_dups.insert(entry.profile_number1.clone(), 1) {
-                    // If player 1 has a better time, check to see if player 2 doesn't.
-                    Some(_) => match remove_dups.insert(entry.profile_number2.clone(), 1) {
-                        Some(_) => (),
-                        _ => {
-                            coop_entries_filtered.push(CoopRanked {
-                                map_data: entry.clone(),
-                                rank: i,
-                                points: score(i),
-                            });
-                            i += 1;
-                        }
-                    },
-                    // This case handles if player 1 doesn't have a better time, and it tries to add player 2 in as well, if two has a better time or not, this is included.
-                    _ => match remove_dups.insert(entry.profile_number2.clone(), 1) {
-                        Some(_) => {
-                            coop_entries_filtered.push(CoopRanked {
-                                map_data: entry.clone(),
-                                rank: i,
-                                points: score(i),
-                            });
-                            i += 1;
-                        }
-                        _ => {
-                            coop_entries_filtered.push(CoopRanked {
-                                map_data: entry.clone(),
-                                rank: i,
-                                points: score(i),
-                            });
-                            i += 1;
-                        }
-                    },
-                }
-            }
-            coop_entries_filtered.truncate(200);
+            let coop_entries_filtered =
+                filter_coop_entries(coop_entries, config.proof.results as usize).await;
             HttpResponse::Ok().json(coop_entries_filtered)
         }
         _ => HttpResponse::NotFound().body("Error fetching Coop Map Page"),
@@ -158,4 +119,49 @@ async fn post_score_coop(
     // }
     let id = 1;
     HttpResponse::Ok().json(id)
+}
+
+pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Vec<CoopRanked> {
+    //Filters out all obsolete times from the result, then truncates to x entries.
+    let mut coop_entries_filtered = Vec::new();
+    let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(limit);
+    let mut i = 1;
+    remove_dups.insert("".to_string(), 1);
+    for entry in coop_entries {
+        match remove_dups.insert(entry.profile_number1.clone(), 1) {
+            // If player 1 has a better time, check to see if player 2 doesn't.
+            Some(_) => match remove_dups.insert(entry.profile_number2.clone(), 1) {
+                Some(_) => (),
+                _ => {
+                    coop_entries_filtered.push(CoopRanked {
+                        map_data: entry.clone(),
+                        rank: i,
+                        points: score(i),
+                    });
+                    i += 1;
+                }
+            },
+            // This case handles if player 1 doesn't have a better time, and it tries to add player 2 in as well, if two has a better time or not, this is included.
+            _ => match remove_dups.insert(entry.profile_number2.clone(), 1) {
+                Some(_) => {
+                    coop_entries_filtered.push(CoopRanked {
+                        map_data: entry.clone(),
+                        rank: i,
+                        points: score(i),
+                    });
+                    i += 1;
+                }
+                _ => {
+                    coop_entries_filtered.push(CoopRanked {
+                        map_data: entry.clone(),
+                        rank: i,
+                        points: score(i),
+                    });
+                    i += 1;
+                }
+            },
+        }
+    }
+    coop_entries_filtered.truncate(limit);
+    coop_entries_filtered
 }
