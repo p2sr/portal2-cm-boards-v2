@@ -43,6 +43,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(post_points_chapter)
             .service(get_points_overall)
             .service(post_points_overall)
-            .service(receive_multiparts),
+            .service(receive_multiparts)
+            .service(changelog_with_demo),
     );
 }

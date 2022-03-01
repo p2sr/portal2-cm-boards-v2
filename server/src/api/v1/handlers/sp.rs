@@ -243,7 +243,7 @@ pub async fn check_for_valid_score(
     let mut values = CalcValues::default();
     match Users::check_banned(pool, profile_number.clone()).await {
         Ok(b) => {
-            if !b {
+            if b {
                 values.banned = true;
                 return Ok(values);
             }
@@ -264,7 +264,9 @@ pub async fn check_for_valid_score(
             return Ok(values);
         }
     };
-
+    if cl[0].score <= score {
+        bail!("Current score is the same, or better.")
+    }
     values.score_delta = Some(cl[0].score - score);
     values.previous_id = Some(cl[0].id);
     // Assuming there is a PB History, there must be other scores, this should return a valid list of ranked maps.
