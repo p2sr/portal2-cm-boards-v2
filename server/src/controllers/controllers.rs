@@ -505,6 +505,16 @@ impl Changelog {
             .await?;
         Ok(true)
     }
+    /// Updates demo_id
+    pub async fn update_demo_id_in_changelog(pool: &PgPool, cl_id: i64, demo_id: i64) -> Result<bool> {
+        let _ = sqlx::query(r#"UPDATE "p2boards".changelog 
+                SET demo_id = $1 WHERE id = $2;"#)
+            .bind(demo_id)
+            .bind(cl_id)
+            .fetch_optional(pool)
+            .await?;
+        Ok(true)
+    }
     pub async fn delete_changelog(pool: &PgPool, cl_id: i64) -> Result<bool> {
         let res = sqlx::query_as::<_, Changelog>(r#"DELETE FROM "p2boards".changelog WHERE id = $1 RETURNING *"#)
             .bind(cl_id)
@@ -513,7 +523,7 @@ impl Changelog {
         match res {
             Ok(_) => Ok(true),
             Err(e) => {
-                eprintln!("Error deleting demo -> {}", e);
+                eprintln!("Error deleting changelog -> {}", e);
                 Ok(false)
             },
         }

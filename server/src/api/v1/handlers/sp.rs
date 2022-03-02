@@ -281,6 +281,5 @@ pub async fn check_for_valid_score(
             values.pre_rank = Some(i as i32 + 1);
         }
     }
-    println!("{:#?}", values);
     Ok(values)
 }

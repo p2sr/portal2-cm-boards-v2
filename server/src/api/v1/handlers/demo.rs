@@ -1,9 +1,9 @@
 use super::sp::check_for_valid_score;
-use crate::controllers::models::{Changelog, ChangelogInsert, DemoInsert, Demos, Maps};
+use crate::controllers::models::{Changelog, ChangelogInsert, DemoInsert, Demos};
 use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
 use actix_multipart::Multipart;
-use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder};
 use anyhow::Result;
 use chrono::NaiveDateTime;
 use futures::{StreamExt, TryStreamExt};
@@ -14,114 +14,6 @@ use std::fs::remove_file;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::str;
-
-//  a. Handle renaming/db interactions (update demo table/specific time that is being uploaded)
-//  b. Pass to backblaze
-//  c. Look to see if there is anything special needed for auto-submit
-//  d. Integrate Parsing
-// Code Reference: https://github.com/Ujang360/actix-multipart-demo/blob/main/src/main.rs
-// TODO: Assume that this will be used to upload a demo to an existing changelog entry.
-#[post("/demo")]
-pub async fn receive_multiparts(
-    mut payload: Multipart,
-    config: web::Data<Config>,
-    pool: web::Data<PgPool>,
-) -> impl Responder {
-    let mut file_id: Option<String> = None;
-    let mut values = DemoInsert::default();
-    //println!("{} - {} - {}", config.backblaze.keyid, config.backblaze.key, config.backblaze.bucket);
-    while let Ok(Some(mut field)) = payload.try_next().await {
-        // Note: content_disposition() now returns a &ContentDisposition, rather than an Option<ContentDisposition>
-        let mut content_data = Vec::new();
-        while let Some(Ok(chunk)) = field.next().await {
-            content_data.extend(chunk);
-        }
-        let field_name = field
-            .content_disposition()
-            .get_name()
-            .unwrap_or("NO-KEY-PROVIDED");
-        let file_name = field.content_disposition().get_filename();
-        // Handle the case where we were passed a file
-        if let Some(file_name) = file_name {
-            use std::fs;
-            match fs::create_dir_all("./demos") {
-                Ok(_) => (),
-                Err(e) => {
-                    return HttpResponse::InternalServerError()
-                        .body(format!("Failed to create demo directory locally -> {}", e))
-                }
-            }
-            let file = OpenOptions::new()
-                .create(true)
-                .write(true)
-                .open(format!("./demos/{}", file_name));
-            match file {
-                Ok(mut res) => match res.write_all(&content_data) {
-                    Ok(_) => (),
-                    Err(e) => {
-                        return HttpResponse::InternalServerError()
-                            .body(format!("Failed to write demo locally -> {}", e))
-                    }
-                },
-                Err(e) => {
-                    return HttpResponse::InternalServerError()
-                        .body(format!("Failed to write demo locally -> {}", e))
-                }
-            };
-            // TODO: Parse Demo
-            file_id = match upload_demo(&config, file_name).await {
-                Ok(fid) => fid,
-                Err(e) => {
-                    eprintln!("Error with File upload -> {:?}", e);
-                    None
-                }
-            };
-            // Delete Demo
-            let res = remove_file(format!("./demos/{}", file_name));
-            match res {
-                Ok(_) => (),
-                Err(e) => {
-                    return HttpResponse::InternalServerError()
-                        .body(format!("Failed to delete demo locally -> {}", e))
-                }
-            }
-        } else {
-            // Handle the case where we are passed a text value.
-            let result_string = match str::from_utf8(&content_data) {
-                Ok(our_string) => our_string,
-                Err(e) => {
-                    eprintln!("Invalid UTF-8 sequence: {}", e);
-                    "ERROR"
-                }
-            };
-            match field_name {
-                "partner_name" => values.partner_name = Some(result_string.to_string()),
-                "parsed_successfully" => {
-                    values.parsed_successfully = {
-                        match result_string {
-                            "false" => false,
-                            "true" => true,
-                            _ => false,
-                        }
-                    }
-                }
-                "sar_version" => values.sar_version = Some(result_string.to_string()),
-                "cl_id" => values.cl_id = result_string.parse::<i64>().unwrap_or(0),
-                _ => eprintln!("Got an unexpected field."),
-            }
-        }
-    }
-    if let Some(file_id) = file_id {
-        values.file_id = file_id;
-    }
-    //println!("{:#?}", values);
-    let res = Demos::insert_demo(&pool, values).await;
-    match res {
-        Ok(id) => HttpResponse::Ok().json(id),
-        Err(e) => HttpResponse::InternalServerError()
-            .body(format!("Failed to add demo to database -> {}", e)),
-    }
-}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DemoSubmissionChangelogInsert {
@@ -134,8 +26,12 @@ pub struct DemoSubmissionChangelogInsert {
     pub category_id: Option<i32>,
 }
 
-// TODO: Update how scores are handled.
-// TODO: Fill out with default.
+//  a. Handle renaming/db interactions (update demo table/specific time that is being uploaded)
+//  b. Pass to backblaze
+//  c. Look to see if there is anything special needed for auto-submit
+//  d. Integrate Parsing
+// Code Reference: https://github.com/Ujang360/actix-multipart-demo/blob/main/src/main.rs
+// TODO: Allow for sar version or partner name?
 /// Accepts field values for both a changelog, and a demo file.
 /// ## Expects the following fields:
 ///
@@ -171,6 +67,7 @@ pub async fn changelog_with_demo(
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
+    // This function heavily utilizes helper functions to make error propagation easier, and reduce the # of match arms
     let mut file_name = String::default();
     let query = query.into_inner();
     let mut changelog_insert = ChangelogInsert {
@@ -207,17 +104,69 @@ pub async fn changelog_with_demo(
                 changelog_insert.pre_rank = details.pre_rank;
                 changelog_insert.score_delta = details.score_delta;
             } else {
-                // USER IS BANNED, DO NOT ADD A TIME FOR THEM
+                eprintln!("USER IS BANNED, DO NOT ADD A TIME FOR THEM");
                 return HttpResponse::NotFound().body("User is banned");
             }
         }
         Err(e) => {
             eprintln!("Error finding newscore details -> {:#?}", e);
             return HttpResponse::NotFound().body("User not found, or better time exists.");
-            // Cannot find user.
         }
     }
+    match parse_and_write_multipart(&mut payload, &mut file_name).await {
+        Ok(_) => (),
+        Err(e) => {
+            eprintln!("Error parsing or writing the file. -> {}", e);
+            return HttpResponse::BadRequest().body("Error parsing or write the file.");
+        }
+    }
+    // Add Changelog/Demo entries to database.
+    match add_to_database(pool.get_ref(), changelog_insert, &config, &file_name, true).await {
+        Ok((cl_id, demo_id)) => HttpResponse::Ok().json((cl_id, demo_id)),
+        Err(e) => {
+            eprintln!("Error with adding changelog/demo insert -> {}", e);
+            HttpResponse::InternalServerError()
+                .body("Failed updating demo/changelog entries to database.")
+        }
+    }
+}
+
+/// Adds a demo and changelog insert to the database
+/// The debug value passed will remove the added changelog/demo entries inserted, and skip uploading the file for quicker debugging.
+async fn add_to_database(
+    pool: &PgPool,
+    changelog_insert: ChangelogInsert,
+    config: &Config,
+    file_name: &str,
+    debug: bool,
+) -> Result<(i64, i64)> {
     let mut demo_insert = DemoInsert::default();
+    let cl_id = Changelog::insert_changelog(pool, changelog_insert).await?;
+    demo_insert.cl_id = cl_id;
+    // TODO: How do we want demo files named?
+    let file_id = if !debug {
+        upload_demo(config, &file_name).await?
+    } else {
+        Some(format!("{}.dem", file_name))
+    };
+    // Delete Demo
+    remove_file(format!("./demos/{}", file_name))?;
+    if let Some(file_id) = file_id {
+        demo_insert.file_id = file_id;
+    }
+    // Add demo entry to database.
+    let demo_id = Demos::insert_demo(pool, demo_insert).await?;
+    // Update changelog to have the new demo_id
+    Changelog::update_demo_id_in_changelog(pool, cl_id, demo_id).await?;
+    if debug {
+        Changelog::delete_changelog(pool, cl_id).await?;
+        Demos::delete_demo(pool, demo_id).await?;
+    }
+    Ok((cl_id, demo_id))
+}
+
+/// Helper function that handles parsing the multipart and writing the file out locally
+async fn parse_and_write_multipart(payload: &mut Multipart, file_name: &mut String) -> Result<()> {
     while let Ok(Some(mut field)) = payload.try_next().await {
         let mut content_data = Vec::new();
         while let Some(Ok(chunk)) = field.next().await {
@@ -227,77 +176,21 @@ pub async fn changelog_with_demo(
 
         if let Some(fname) = fname {
             use std::fs;
-            match fs::create_dir_all("./demos") {
-                Ok(_) => (),
-                Err(e) => {
-                    return HttpResponse::InternalServerError()
-                        .body(format!("Failed to create demo directory locally -> {}", e))
-                }
-            }
-            let file = OpenOptions::new()
+            fs::create_dir_all("./demos")?;
+            let mut file = OpenOptions::new()
                 .create(true)
                 .write(true)
-                .open(format!("./demos/{}", fname));
-            match file {
-                Ok(mut res) => match res.write_all(&content_data) {
-                    Ok(_) => (),
-                    Err(e) => {
-                        return HttpResponse::InternalServerError()
-                            .body(format!("Failed to write demo locally -> {}", e))
-                    }
-                },
-                Err(e) => {
-                    return HttpResponse::InternalServerError()
-                        .body(format!("Failed to write demo locally -> {}", e))
-                }
-            };
-            file_name = fname.to_string();
+                .open(format!("./demos/{}", fname))?;
+            file.write_all(&content_data)?;
+            *file_name = fname.to_string();
             // TODO: Parse Demo
         }
     }
-    // println!("{:#?}", changelog_insert);
-    // println!("{:#?}", demo_insert);
-    // return HttpResponse::Ok().body("Checkpoint");
-    // Add Changelog entry to database.
-    let res = Changelog::insert_changelog(pool.get_ref(), changelog_insert).await;
-    demo_insert.cl_id = match res {
-        Ok(id) => id,
-        Err(e) => {
-            eprintln!("Error adding score to database -> {:?}", e);
-            return HttpResponse::InternalServerError().body("Error adding new score to database.");
-        }
-    };
-    // TODO: How do we want demo files named?
-    let file_id = match upload_demo(&config, &file_name).await {
-        Ok(fid) => fid,
-        Err(e) => {
-            eprintln!("Error with File upload -> {:?}", e);
-            None
-        }
-    };
-    // Delete Demo
-    let res = remove_file(format!("./demos/{}", file_name));
-    match res {
-        Ok(_) => (),
-        Err(e) => {
-            return HttpResponse::InternalServerError()
-                .body(format!("Failed to delete demo locally -> {}", e))
-        }
-    }
-    if let Some(file_id) = file_id {
-        demo_insert.file_id = file_id;
-    }
-    // Add demo entry to database.
-    let res = Demos::insert_demo(pool.get_ref(), demo_insert).await;
-    match res {
-        Ok(id) => HttpResponse::Ok().json(id),
-        Err(e) => HttpResponse::InternalServerError()
-            .body(format!("Failed to add demo to database -> {}", e)),
-    }
+    Ok(())
 }
 
 /// Handles uploading the demo file
-async fn upload_demo(config: &web::Data<Config>, file_name: &str) -> Result<Option<String>> {
+async fn upload_demo(config: &Config, file_name: &str) -> Result<Option<String>> {
     let client = reqwest::ClientBuilder::new().build().unwrap();
     // Ref: https://docs.rs/raze/0.4.1/raze/api/fn.b2_authorize_account.html
     let auth = b2_authorize_account(
