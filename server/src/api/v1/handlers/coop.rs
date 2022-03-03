@@ -1,12 +1,11 @@
 use crate::controllers::models::{
-    Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, CoopRanked,
-    Opti32, ScoreParams,
+    Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, Opti32,
+    ScoreParams,
 };
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
-use crate::tools::{config::Config, helpers::score};
+use crate::tools::{config::Config, helpers::filter_coop_entries};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
-use std::collections::HashMap;
 
 // TODO: Should use default cat_id
 /// **GET** Returns top 7 information for each map, used to generate the previews page for Coop.
@@ -163,60 +162,13 @@ async fn post_score_coop(
     cache: web::Data<CacheState>,
 ) -> impl Responder {
     let res = CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await;
-    // match res {
-    //     Ok(id) => {
-    //     let state_data = &mut cache.current_state.lock().await;
-    //     let is_cached = state_data.get_mut("coop_previews").unwrap();
-    //     *is_cached = false;
-    //     HttpResponse::Ok().json(id)
-    // },
-    //     _ => HttpResponse::NotFound().body("Error adding new score to database."),
-    // }
-    let id = 1;
-    HttpResponse::Ok().json(id)
-}
-
-pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Vec<CoopRanked> {
-    //Filters out all obsolete times from the result, then truncates to x entries.
-    let mut coop_entries_filtered = Vec::new();
-    let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(limit);
-    let mut i = 1;
-    remove_dups.insert("".to_string(), 1);
-    for entry in coop_entries {
-        match remove_dups.insert(entry.profile_number1.clone(), 1) {
-            // If player 1 has a better time, check to see if player 2 doesn't.
-            Some(_) => match remove_dups.insert(entry.profile_number2.clone(), 1) {
-                Some(_) => (),
-                _ => {
-                    coop_entries_filtered.push(CoopRanked {
-                        map_data: entry.clone(),
-                        rank: i,
-                        points: score(i),
-                    });
-                    i += 1;
-                }
-            },
-            // This case handles if player 1 doesn't have a better time, and it tries to add player 2 in as well, if two has a better time or not, this is included.
-            _ => match remove_dups.insert(entry.profile_number2.clone(), 1) {
-                Some(_) => {
-                    coop_entries_filtered.push(CoopRanked {
-                        map_data: entry.clone(),
-                        rank: i,
-                        points: score(i),
-                    });
-                    i += 1;
-                }
-                _ => {
-                    coop_entries_filtered.push(CoopRanked {
-                        map_data: entry.clone(),
-                        rank: i,
-                        points: score(i),
-                    });
-                    i += 1;
-                }
-            },
+    match res {
+        Ok(id) => {
+            let state_data = &mut cache.current_state.lock().await;
+            let is_cached = state_data.get_mut("coop_previews").unwrap();
+            *is_cached = false;
+            HttpResponse::Ok().json(id)
         }
+        _ => HttpResponse::NotFound().body("Error adding new score to database."),
     }
-    coop_entries_filtered.truncate(limit);
-    coop_entries_filtered
 }

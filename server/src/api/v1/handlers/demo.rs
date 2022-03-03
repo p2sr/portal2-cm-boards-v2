@@ -1,7 +1,7 @@
-use super::sp::check_for_valid_score;
 use crate::controllers::models::{Changelog, ChangelogInsert, DemoInsert, Demos};
 use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
+use crate::tools::helpers::check_for_valid_score;
 use actix_multipart::Multipart;
 use actix_web::{post, web, HttpResponse, Responder};
 use anyhow::Result;
