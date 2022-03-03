@@ -164,6 +164,7 @@ async fn post_score_coop(
     let res = CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await;
     match res {
         Ok(id) => {
+            // Invalidate cache if this new score impacts the top 7 preview times.
             let state_data = &mut cache.current_state.lock().await;
             let is_cached = state_data.get_mut("coop_previews").unwrap();
             *is_cached = false;

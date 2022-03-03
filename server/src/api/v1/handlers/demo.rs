@@ -1,4 +1,6 @@
-use crate::controllers::models::{Changelog, ChangelogInsert, DemoInsert, Demos};
+use crate::controllers::models::{
+    Changelog, ChangelogInsert, DemoInsert, Demos, SubmissionChangelog,
+};
 use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
 use crate::tools::helpers::check_for_valid_score;
@@ -14,17 +16,6 @@ use std::fs::remove_file;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::str;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DemoSubmissionChangelogInsert {
-    pub timestamp: String,
-    pub profile_number: String,
-    pub score: i32,
-    pub map_id: String,
-    pub youtube_id: Option<String>,
-    pub note: Option<String>,
-    pub category_id: Option<i32>,
-}
 
 //  a. Handle renaming/db interactions (update demo table/specific time that is being uploaded)
 //  b. Pass to backblaze
@@ -63,36 +54,23 @@ pub struct DemoSubmissionChangelogInsert {
 pub async fn changelog_with_demo(
     mut payload: Multipart,
     config: web::Data<Config>,
-    query: web::Query<DemoSubmissionChangelogInsert>,
+    query: web::Query<SubmissionChangelog>,
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     // This function heavily utilizes helper functions to make error propagation easier, and reduce the # of match arms
     let mut file_name = String::default();
     let query = query.into_inner();
-    let mut changelog_insert = ChangelogInsert {
-        timestamp: match NaiveDateTime::parse_from_str(&query.timestamp, "%Y-%m-%d %H:%M:%S") {
-            Ok(val) => Some(val),
-            Err(_) => None,
-        },
-        profile_number: query.profile_number,
-        score: query.score,
-        map_id: query.map_id.clone(),
-        youtube_id: query.youtube_id,
-        note: query.note,
-        category_id: query
-            .category_id
-            .unwrap_or(cache.default_cat_ids[&query.map_id]),
-        submission: true,
-        ..Default::default()
-    };
+    let mut changelog_insert =
+        ChangelogInsert::new_from_submission(query, cache.into_inner().default_cat_ids.clone())
+            .await;
     let res = check_for_valid_score(
         pool.get_ref(),
         changelog_insert.profile_number.clone(),
         changelog_insert.score,
         changelog_insert.map_id.clone(),
         config.proof.results,
-        cache.clone().into_inner().default_cat_ids[&changelog_insert.map_id],
+        changelog_insert.category_id,
     )
     .await;
 

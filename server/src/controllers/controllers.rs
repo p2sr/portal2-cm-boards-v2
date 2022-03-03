@@ -4,6 +4,7 @@ use anyhow::{Result, bail};
 use std::collections::HashMap;
 use sqlx::postgres::PgRow;
 use sqlx::{Row, PgPool};
+use chrono::NaiveDateTime;
 use crate::controllers::models::*;
 
 // TODO: Create macro for different lookup templates
@@ -979,5 +980,26 @@ impl CoopBanned {
             .fetch_all(pool)
             .await?;
         Ok(res)
+    }
+}
+
+impl ChangelogInsert {
+    pub async fn new_from_submission(params: SubmissionChangelog, cache: HashMap<String, i32>) -> ChangelogInsert {
+        ChangelogInsert {
+            timestamp: match NaiveDateTime::parse_from_str(&params.timestamp, "%Y-%m-%d %H:%M:%S") {
+                Ok(val) => Some(val),
+                Err(_) => None,
+            },
+            profile_number: params.profile_number.clone(),
+            score: params.score,
+            map_id: params.map_id.clone(),
+            youtube_id: params.youtube_id,
+            note: params.note,
+            category_id: params
+                .category_id
+                .unwrap_or(cache[&params.map_id]),
+            submission: true,
+            ..Default::default()
+        }
     }
 }

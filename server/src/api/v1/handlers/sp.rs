@@ -170,9 +170,11 @@ async fn post_score_sp(
 ) -> impl Responder {
     // TODO: Handle demo uploads.
     // TODO: Working with sequence re-sync. Need to implement role-back.
+
     let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
     match res {
         Ok(id) => {
+            // Invalide our sp_previews cache with the new score.
             let state_data = &mut cache.current_state.lock().await;
             let is_cached = state_data.get_mut("sp_previews").unwrap();
             *is_cached = false;

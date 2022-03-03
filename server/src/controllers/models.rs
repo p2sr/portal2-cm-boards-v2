@@ -342,3 +342,15 @@ pub struct ChangelogQueryParams {
     pub first: Option<i64>,
     pub last: Option<i64>,
 }
+
+/// Fields for a submission to the changelog
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SubmissionChangelog {
+    pub timestamp: String,
+    pub profile_number: String,
+    pub score: i32,
+    pub map_id: String,
+    pub youtube_id: Option<String>,
+    pub note: Option<String>,
+    pub category_id: Option<i32>,
+}
