@@ -141,16 +141,16 @@ pub fn filter_entries_sp(
     // We grab the list of banned times from our API.
     // Filter out any times that are banned from the list of potential runs.
     // The list of new scores is probably relatively low, it would be easier to just send the score information to an endpoint and have it check.
-    let client = reqwest::blocking::Client::new();
-    let ban_url = format!("http://localhost:8080/api/v1/maps/sp/banned/{id}", id = id);
     for entry in not_cheated.iter() {
-        let res: bool = client
-            .post(&ban_url)
-            .json(entry)
-            .send()
-            .expect("Error querying our local API")
+        let ban_url = format!(
+            "http://localhost:8080/api/v1/sp/banned/{}?profile_number={}&score={}",
+            id, entry.profile_number, entry.score
+        );
+        let res: bool = reqwest::blocking::get(&ban_url)
+            .expect("Error in query to our local API (Make sure the webserver is running")
             .json()
-            .expect("Error converting to json");
+            .expect("Error in converting our API values to JSON");
+
         match res {
             true => {
                 trace!(
@@ -264,18 +264,17 @@ pub fn filter_entries_coop(
     // The issue with doing this step pre-bundled would be if long-standing, banned times are bundled before checking
     // to see that they're old, banned times on the leaderboard, our assumption about all scores being new and together
     // falls apart.
-    let client = reqwest::blocking::Client::new();
-    let ban_url = format!("http://localhost:8080/api/v1/coop/banned/{id}", id = id);
-    // TODO: Fix this to work with GET endpoint.
     let mut not_cheated = Vec::new(); // Becomes the vector of times that are not from banned players, and do not exist in the changelog.
     for entry in not_banned_player.iter() {
-        let res: bool = client
-            .post(&ban_url)
-            .json(entry)
-            .send()
-            .expect("Error querying our local API")
+        let ban_url = format!(
+            "http://localhost:8080/api/v1/coop/banned/{}?profile_number={}&score={}",
+            id, entry.profile_number, entry.score
+        );
+        let res: bool = reqwest::blocking::get(&ban_url)
+            .expect("Error in query to our local API (Make sure the webserver is running")
             .json()
-            .expect("Error converting to json");
+            .expect("Error in converting our API values to JSON");
+
         match res {
             true => debug!("The time was found, so the time is banned. Ignore"),
             false => not_cheated.push(entry.clone()),

@@ -77,7 +77,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
             .into_par_iter()
             .map(|chapter_id| {
                 let url = format!(
-                    "http://localhost:8080/api/maps_from_chapter/{}",
+                    "http://localhost:8080/api/v1/maps_from_chapter/{}",
                     &chapter_id
                 );
                 let map_ids: Vec<String> = reqwest::blocking::get(&url)
@@ -105,7 +105,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         // Post all chapters to the webserver
         for chapter in send_vec.iter() {
             let client = reqwest::blocking::Client::new();
-            let url = "http://localhost:8080/api/points/chapter".to_string();
+            let url = "http://localhost:8080/api/v1/points/chapter".to_string();
             client
                 .post(&url)
                 .json(chapter)
@@ -167,7 +167,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         // TODO: Error Handling
 
         let client = reqwest::blocking::Client::new();
-        let url = "http://localhost:8080/api/points/sp".to_string();
+        let url = "http://localhost:8080/api/v1/points/sp".to_string();
         client
             .post(&url)
             .json(&SendWrapper {
@@ -182,7 +182,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
 
         // TODO: Error Handling
         let client = reqwest::blocking::Client::new();
-        let url = "http://localhost:8080/api/points/coop".to_string();
+        let url = "http://localhost:8080/api/v1/points/coop".to_string();
         client
             .post(&url)
             .json(&SendWrapper {
@@ -235,7 +235,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
 
         let client = reqwest::blocking::Client::new();
-        let url = "http://localhost:8080/api/points/overall".to_string();
+        let url = "http://localhost:8080/api/v1/points/overall".to_string();
         client
             .post(&url)
             .json(&SendWrapper {
@@ -262,7 +262,7 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
         // Grab top X from the web-server for each map.
         if chapter_id > 6 {
             // SP
-            let url = format!("http://localhost:8080/api/maps/sp/{}", &map).to_string();
+            let url = format!("http://localhost:8080/api/v1/map/sp/{}", &map).to_string();
             let res: Vec<SpRanked> = reqwest::blocking::get(&url) // Assumes all top 200
                 .expect("Error in query to our local API (Make sure the webserver is running")
                 .json()
@@ -311,7 +311,7 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
             }
         } else {
             // Coop
-            let url = format!("http://localhost:8080/api/maps/coop/{}", &map);
+            let url = format!("http://localhost:8080/api/v1/map/coop/{}", &map);
             let res: Vec<CoopRanked> = reqwest::blocking::get(&url) // Assumes all top 200
                 .expect("Error in query to our local API (Make sure the webserver is running")
                 .json()
