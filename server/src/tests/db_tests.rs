@@ -137,6 +137,7 @@ async fn test_db_users() {
 #[actix_web::test]
 async fn test_db_demos() {
     use crate::controllers::models::*;
+    use chrono::NaiveDateTime;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
 
     let demo = Demos {
@@ -148,11 +149,11 @@ async fn test_db_demos() {
         cl_id: 127825
     };
     let new_demo = Demos::get_demo(&pool, demo.id).await.unwrap().unwrap();
+
     assert_eq!(demo.id, new_demo.id);
     assert_eq!(demo.file_id, new_demo.file_id);
     assert_eq!(demo.partner_name, new_demo.partner_name);
     assert_eq!(demo.parsed_successfully, new_demo.parsed_successfully);
-    // TODO: All sar_version values are empty strings for some reason...
     assert_eq!(demo.sar_version, new_demo.sar_version);
     assert_eq!(demo.cl_id, new_demo.cl_id);
 
@@ -172,6 +173,25 @@ async fn test_db_demos() {
         cl_id: 1,
     };
     let demo_insert = Demos::insert_demo(&pool, new_demo.clone()).await.unwrap();
+    let clinsert = ChangelogInsert {
+        timestamp: Some(NaiveDateTime::parse_from_str("2020-10-16 12:11:56", "%Y-%m-%d %H:%M:%S").unwrap()),
+        profile_number: "76561198040982247".to_string(),
+        score: 1698,
+        map_id: "47763".to_string(),
+        demo_id: Some(demo_insert),
+        banned: false,
+        youtube_id: None,
+        previous_id: Some(127825),
+        coop_id: None,
+        post_rank: Some(1),
+        pre_rank: Some(3),
+        submission: true,
+        note: None,
+        category_id: 19,
+        score_delta: Some(-65),
+        verified: Some(true),
+        admin_note: None,
+    };
     let mut check_insert = Demos::get_demo(&pool, demo_insert).await.unwrap().unwrap();
     assert_eq!(demo_insert, check_insert.id);
     assert_eq!(new_demo.file_id, check_insert.file_id);
@@ -179,13 +199,23 @@ async fn test_db_demos() {
     assert_eq!(new_demo.parsed_successfully, check_insert.parsed_successfully);
     assert_eq!(new_demo.sar_version, check_insert.sar_version);
     assert_eq!(new_demo.cl_id, check_insert.cl_id);
+    // Testing deleting demos from changelog entries.    
+    let new_cl_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
     let new_fid = "Hello World".to_string();
     check_insert.file_id = new_fid.clone();
+    // Update the demo
     assert!(Demos::update_demo(&pool, check_insert.clone()).await.unwrap());
     let check_updated = Demos::get_demo(&pool, check_insert.id).await.unwrap().unwrap();
     assert_eq!(check_updated.file_id, new_fid);
+    // Delete references to the demo entry.
+    let updated_cl = Changelog::delete_references_to_demo(&pool, clinsert.demo_id.unwrap()).await.unwrap();
+    assert_eq!(updated_cl[0], new_cl_id);
+    // Delete the demo entry
     assert!(Demos::delete_demo(&pool, check_insert.id).await.unwrap());
     let _res = Demos::get_demo(&pool, check_insert.id).await;
+    // Delete the changelog entry
+    let deleted = Changelog::delete_changelog(&pool, new_cl_id).await.unwrap();
+    assert!(deleted);
 }
 
 #[actix_web::test]
@@ -238,7 +268,7 @@ async fn test_db_changelog() {
     let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string(), 19).await.unwrap();
     assert!(!banned_scores);
     let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247".to_string(), "47763".to_string()).await.unwrap();
-    assert_eq!(11, pb_history.len());
+    assert_ne!(0, pb_history.len());
     let new_cl_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
     let mut new_cl = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
     new_cl.note = Some("fat time".to_string());

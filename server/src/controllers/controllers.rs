@@ -485,7 +485,7 @@ impl Changelog {
             .map(|row: PgRow| {row.get(0)})
             .fetch_all(pool)
             .await?;
-        eprintln!("{:#?}", res);
+        // eprintln!("{:#?}", res);
         Ok(res)
     }
     /// Insert a new changelog entry.
