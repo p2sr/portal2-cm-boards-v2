@@ -429,6 +429,14 @@ impl Changelog {
             .await?;
         Ok(Some(res))
     }
+    pub async fn get_demo_id_from_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<i64>> {
+        let res = sqlx::query(r#"SELECT demo_id FROM "p2boards".changelog WHERE id = $1"#)
+            .bind(cl_id)
+            .map(|row: PgRow| {row.get(0)})
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(res))
+    }
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
     pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String, cat_id: i32) -> Result<bool> {
@@ -453,7 +461,7 @@ impl Changelog {
             None => Ok(false),
         }
     }
-    // Returns a vec of changelog for a user's PB history on a given SP map.
+    /// Returns a vec of changelog for a user's PB history on a given SP map.
     pub async fn get_sp_pb_history(pool: &PgPool, profile_number: String, map_id: String) -> Result<Vec<Changelog>> {
         let res = sqlx::query_as::<_, Changelog>(r#" 
                 SELECT * 
@@ -469,6 +477,16 @@ impl Changelog {
             Ok(pb_history) => Ok(pb_history),
             Err(e) => Err(anyhow::Error::new(e).context("Could not find SP PB History")),
         }
+    }
+    /// Deletes all references to a demo_id in `changelog`
+    pub async fn delete_references_to_demo(pool: &PgPool, demo_id: i64) -> Result<Vec<i64>> {
+        let res: Vec<i64> = sqlx::query(r#"UPDATE "p2boards".changelog SET demo_id = NULL WHERE demo_id = $1 RETURNING id;"#)
+            .bind(demo_id)
+            .map(|row: PgRow| {row.get(0)})
+            .fetch_all(pool)
+            .await?;
+        eprintln!("{:#?}", res);
+        Ok(res)
     }
     /// Insert a new changelog entry.
     pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64> {

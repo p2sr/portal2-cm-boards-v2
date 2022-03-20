@@ -1,15 +1,16 @@
 use crate::controllers::models::{
-    Changelog, ChangelogInsert, DemoInsert, Demos, SubmissionChangelog,
+    Changelog, ChangelogInsert, DemoInsert, Demos, Maps, SubmissionChangelog,
 };
 use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
 use crate::tools::helpers::check_for_valid_score;
 use actix_multipart::Multipart;
-use actix_web::{post, web, HttpResponse, Responder};
-use anyhow::Result;
+use actix_web::{delete, post, web, HttpResponse, Responder};
+use anyhow::{bail, Result};
 use futures::{StreamExt, TryStreamExt};
 use raze::api::*;
 use raze::utils::*;
+use serde::Deserialize;
 use sqlx::PgPool;
 use std::fs::remove_file;
 use std::fs::OpenOptions;
@@ -165,17 +166,23 @@ async fn parse_and_write_multipart(payload: &mut Multipart, file_name: &mut Stri
     }
     Ok(())
 }
-
-/// Handles uploading the demo file
-async fn upload_demo(config: &Config, file_name: &str) -> Result<Option<String>> {
-    let client = reqwest::ClientBuilder::new().build().unwrap();
-    // Ref: https://docs.rs/raze/0.4.1/raze/api/fn.b2_authorize_account.html
+/// Returns a client, and an authenticated session for use with backblaze.
+async fn b2_client_and_auth(config: &Config) -> Result<(reqwest::Client, B2Auth)> {
+    let client = reqwest::ClientBuilder::new().build()?;
     let auth = b2_authorize_account(
         &client,
         format!("{}:{}", config.backblaze.keyid, config.backblaze.key),
     )
     .await
     .unwrap();
+    Ok((client, auth))
+}
+
+/// Handles uploading the demo file
+async fn upload_demo(config: &Config, file_name: &str) -> Result<Option<String>> {
+    // Ref: https://docs.rs/raze/0.4.1/raze/api/fn.b2_authorize_account.html
+    let (client, auth) = b2_client_and_auth(&config).await.unwrap();
+
     let upload_auth = b2_get_upload_url(&client, &auth, config.backblaze.bucket.clone())
         .await
         .unwrap();
@@ -209,4 +216,128 @@ async fn upload_demo(config: &Config, file_name: &str) -> Result<Option<String>>
         .await
         .unwrap();
     Ok(resp1.file_id)
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeleteDemo {
+    pub demo_id: Option<i64>,
+    pub cl_id: Option<i64>,
+}
+
+// Different demo entries can have the same changelog ID, but a changelog entry should only have the most recent, valid demo_id.
+/// DELETE endpoint to remove a demo from both backbalze and the database.
+/// ## Expects **one** of the two parametes
+///
+/// ***Note***: If both, or neither parameter is provided you will encounter errors.
+/// If you want to delete the demo associated with a changelog entry, use the changelog entry.
+///
+/// Parameters: demo_id, cl_id
+///
+/// ## Parameters:
+///
+/// - **demo_id**    
+///     - `i64`: ID for a demo entry in the db, use this if you want to delete a specifc demo.
+/// - **cl_id**
+///     - `i64`: ID for a changelog entry, use this if you want to delete the demo associated with a changelog entry.
+///
+/// ## Example endpoints:       
+/// - `/api/v1/demos?cl_id=15625`
+/// - `/api/v1/demos?demo_id=12651`
+#[delete("/demos")]
+pub async fn delete_demo(
+    query: web::Query<DeleteDemo>,
+    config: web::Data<Config>,
+    pool: web::Data<PgPool>,
+) -> impl Responder {
+    let query = query.into_inner();
+    let (cl, demo_id) = match get_changelog_and_demo_id(query, pool.get_ref()).await {
+        Ok((cl, demo_id)) => (cl, demo_id),
+        Err(e) => {
+            eprintln!("{}", e);
+            return HttpResponse::NotFound()
+                .body("Cannot find changelog and demo associated with provided information");
+        }
+    };
+    match delete_demo_file(pool.get_ref(), &config.into_inner(), cl, demo_id).await {
+        Ok(_) => match delete_demo_db(pool.get_ref(), demo_id).await {
+            Ok(_) => HttpResponse::Ok().body("Demo file and entry succesfully removed."),
+            Err(e) => {
+                eprintln!("{}", e);
+                return HttpResponse::InternalServerError()
+                    .body("Error deleting demo entry from database");
+            }
+        },
+        Err(e) => {
+            eprintln!("{}", e);
+            return HttpResponse::InternalServerError().body("Error deleting file from backblaze.");
+        }
+    }
+}
+
+/// Takes in either a demo_id or a changelog_id, and returns a changelog entry and a demno_id
+/// We return a demo_id because there is a chance that there are multiple demos uploaded for the same changelog entry,
+/// and we might want to delete an older demo.
+async fn get_changelog_and_demo_id(query: DeleteDemo, pool: &PgPool) -> Result<(Changelog, i64)> {
+    if let Some(cl_id) = query.cl_id {
+        // Find the demo_id currently associated with the changelog entry.
+        let changelog = Changelog::get_changelog(pool, cl_id).await?;
+        if let Some(cl) = changelog {
+            match cl.demo_id {
+                Some(demo_id) => return Ok((cl, demo_id)),
+                None => bail!("Changelog does not have a demo_id"),
+            }
+        } else {
+            bail!("No changelog entry found to match changelog_id")
+        }
+    } else if let Some(d_id) = query.demo_id {
+        let demo = Demos::get_demo(pool, d_id).await?;
+        if let Some(demo) = demo {
+            let changelog = Changelog::get_changelog(pool, demo.cl_id).await?;
+            if let Some(cl) = changelog {
+                return Ok((cl, d_id));
+            } else {
+                bail!("Changelog entry referenced by demo does not exist")
+            }
+        } else {
+            bail!("No demo found")
+        }
+    } else {
+        bail!("Neither a demo or changelog ID was supplied")
+    }
+}
+
+/// Deletes the demo from backblaze.
+async fn delete_demo_file(
+    pool: &PgPool,
+    config: &Config,
+    cl: Changelog,
+    demo_id: i64,
+) -> Result<()> {
+    let (client, auth) = b2_client_and_auth(&config).await.unwrap();
+    let demo = Demos::get_demo(pool, demo_id).await.unwrap().unwrap();
+    let file_name = generate_file_name(pool, cl).await?;
+    match b2_delete_file_version(&client, &auth, file_name, demo.file_id).await {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            eprintln!("Failed to delete file -> {:#?}", e);
+            bail!("Failed to delete file from BackBlaze");
+        }
+    }
+}
+
+// TODO: Delete the demo_id from changelog entries
+/// Once the file has been removed, delete the demo entry.
+async fn delete_demo_db(pool: &PgPool, demo_id: i64) -> Result<bool> {
+    // Delete references to the demo_id in the changelog table.
+    Changelog::delete_references_to_demo(pool, demo_id).await?;
+    // Delete the demo entry.
+    Ok(Demos::delete_demo(pool, demo_id).await?)
+}
+
+/// Create file_name
+async fn generate_file_name(pool: &PgPool, cl: Changelog) -> Result<String> {
+    //mapname(Remove Spaces)_score_profilenumber
+    let mut map_name = Maps::get_map_name(pool, cl.map_id).await?.unwrap();
+    map_name.retain(|c| !c.is_whitespace());
+    Ok(format!("{}_{}_{}", map_name, cl.score, cl.profile_number))
 }
