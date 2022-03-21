@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-
 use anyhow::{Result, bail};
 use std::collections::HashMap;
 use sqlx::postgres::PgRow;
@@ -486,6 +485,15 @@ impl Changelog {
             .fetch_all(pool)
             .await?;
         // eprintln!("{:#?}", res);
+        Ok(res)
+    }
+    /// Deletes all references to a coop_id in `changelog`
+    pub async fn delete_references_to_coop_id(pool: &PgPool, coop_id: i64) -> Result<Vec<i64>> {
+        let res: Vec<i64> = sqlx::query(r#"UPDATE "p2boards".changelog SET coop_id NULL WHERE coop_id = $1 RETURNING id;"#)
+            .bind(coop_id)
+            .map(|row: PgRow| {row.get(0)})
+            .fetch_all(pool)
+            .await?;
         Ok(res)
     }
     /// Insert a new changelog entry.
