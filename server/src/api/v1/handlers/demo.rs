@@ -1,4 +1,4 @@
-use crate::controllers::models::{
+use crate::models::models::{
     Changelog, ChangelogInsert, DemoInsert, Demos, Maps, SubmissionChangelog,
 };
 use crate::tools::cache::CacheState;

@@ -1,4 +1,4 @@
-use crate::controllers::models::{CalcValues, Changelog, CoopMap, CoopRanked, Maps, SpMap, Users};
+use crate::models::models::{CalcValues, Changelog, CoopMap, CoopRanked, Maps, SpMap, Users};
 use anyhow::{bail, Result};
 use num::pow;
 use sqlx::PgPool;

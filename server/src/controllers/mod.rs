@@ -1,5 +1,14 @@
-/// Controllers for our database interactions
-#[allow(clippy::module_inception)]
-pub mod controllers;
-/// Datamodels for any data formats that we're using.
-pub mod models;
+/// Controllers for changelog
+pub mod changelog;
+/// Controllers for chapters
+pub mod chapters;
+/// Controllers for coop
+pub mod coop;
+/// Controllers for demos
+pub mod demos;
+/// Controllers for maps
+pub mod maps;
+/// Controllers for sp
+pub mod sp;
+/// Controllers for users
+pub mod users;

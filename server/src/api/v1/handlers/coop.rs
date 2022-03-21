@@ -1,4 +1,4 @@
-use crate::controllers::models::{
+use crate::models::models::{
     Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, Opti32,
     ScoreParams,
 };

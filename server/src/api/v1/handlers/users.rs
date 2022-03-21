@@ -1,4 +1,4 @@
-use crate::controllers::models::Users;
+use crate::models::models::Users;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
 

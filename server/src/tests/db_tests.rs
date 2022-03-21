@@ -18,7 +18,7 @@ async fn get_config() -> Result<(Config, PgPool)> {
 
 #[actix_web::test]
 async fn test_db_maps() {
-    use crate::controllers::models::*;
+    use crate::models::models::*;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
     let sp = Maps::get_steam_ids(&pool, false).await.unwrap();
     let coop = Maps::get_steam_ids(&pool, true).await.unwrap();
@@ -40,7 +40,7 @@ async fn test_db_maps() {
 
 #[actix_web::test]
 async fn test_db_chapters() {
-    use crate::controllers::models::*;
+    use crate::models::models::*;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
     let chapter = Chapters {
         id: 7,
@@ -68,7 +68,7 @@ async fn test_db_chapters() {
 //       are hard-coded to only work on this current version of the db.
 #[actix_web::test]
 async fn test_db_users() {
-    use crate::controllers::models::*;
+    use crate::models::models::*;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
     
     let user: Users = Users{ 
@@ -136,7 +136,7 @@ async fn test_db_users() {
 
 #[actix_web::test]
 async fn test_db_demos() {
-    use crate::controllers::models::*;
+    use crate::models::models::*;
     use chrono::NaiveDateTime;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
 
@@ -220,7 +220,7 @@ async fn test_db_demos() {
 
 #[actix_web::test]
 async fn test_db_changelog() {
-    use crate::controllers::models::*;
+    use crate::models::models::*;
     use chrono::NaiveDateTime;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
     #[allow(unused_variables)]
@@ -333,7 +333,7 @@ async fn test_db_changelog() {
 
 #[actix_web::test]
 async fn test_db_pages() {
-    use crate::controllers::models::*;
+    use crate::models::models::*;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
 
     let sp_map_id = "47763".to_string();

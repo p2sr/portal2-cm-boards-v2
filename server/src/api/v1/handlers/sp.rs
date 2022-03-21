@@ -1,4 +1,4 @@
-use crate::controllers::models::{
+use crate::models::models::{
     Changelog, ChangelogInsert, Opti32, ScoreParams, SpBanned, SpMap, SpPbHistory, SpPreviews,
     SpRanked, Users, UsersPage,
 };

@@ -12,6 +12,8 @@ use sqlx::PgPool;
 mod api;
 /// Module for database interactions and models.
 mod controllers;
+/// Module for models
+mod models;
 /// Module for testing
 mod tests;
 /// Helpter functions used for the boards

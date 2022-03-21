@@ -1,7 +1,7 @@
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
-use crate::controllers::models::Maps;
+use crate::models::models::Maps;
 
 #[get("/category/default_category/{map}")]
 async fn get_default_cat(params: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {
