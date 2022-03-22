@@ -1,13 +1,12 @@
 use super::exporting::*;
-use chrono::prelude::*;
-use log::{debug, error, trace};
-use serde_xml_rs::from_reader;
-use std::collections::HashMap;
-
 use crate::models::datamodels::{
     ChangelogInsert, CoopBundled, CoopBundledInsert, CoopDataUtil, CoopMap, CoopRanked, Entry,
     Leaderboards, SpBanned, SpMap, SpPbHistory, SpRanked, XmlTag,
 };
+use chrono::prelude::*;
+use log::{debug, error, trace};
+use serde_xml_rs::from_reader;
+use std::collections::HashMap;
 
 /// Upload sp PB to the database
 pub fn post_sp_pb(

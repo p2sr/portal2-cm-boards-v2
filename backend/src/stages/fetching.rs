@@ -1,14 +1,18 @@
 use super::exporting::*;
 use super::uploading::*;
-use chrono::prelude::*;
-use log::{debug, error, trace};
-use serde_xml_rs::from_reader;
-use std::collections::HashMap;
-
 use crate::models::datamodels::{
     ChangelogInsert, CoopBundled, CoopBundledInsert, CoopDataUtil, CoopMap, CoopRanked, Entry,
-    Leaderboards, SpBanned, SpMap, SpPbHistory, SpRanked, XmlTag,
+    Leaderboards, SpBanned, SpMap, SpPbHistory, SpRanked, Users, XmlTag,
 };
+use crate::LIMIT_MULT_COOP;
+use crate::LIMIT_MULT_SP;
+use chrono::prelude::*;
+use log::{debug, error, trace};
+use serde_derive::Deserialize;
+use serde_derive::Serialize;
+use serde_xml_rs::from_reader;
+use std::collections::HashMap;
+use std::io::Error;
 
 // TODO: If user doesn't exist, add a new user in db.
 
@@ -81,11 +85,12 @@ pub fn filter_entries_sp(
         .json()
         .expect("Error in converting our API values to JSON");
 
-    let mut existing_hash: HashMap<String, (i32, i32)> = HashMap::with_capacity(200);
+    let mut existing_hash: HashMap<String, (i32, i32)> =
+        HashMap::with_capacity((end / LIMIT_MULT_SP) as usize);
     let mut current_rank: HashMap<String, i32> = HashMap::new();
     let mut not_cheated: Vec<SpBanned> = Vec::new();
 
-    let worst_score = map_json[199].map_data.score;
+    let worst_score = map_json[(end / LIMIT_MULT_SP) as usize - 1].map_data.score;
     let wr = map_json[0].map_data.score;
 
     for rank in map_json.iter() {
@@ -101,7 +106,7 @@ pub fn filter_entries_sp(
     for entry in data.value.iter() {
         match existing_hash.get(&entry.steam_id.value) {
             Some((score, rank)) => {
-                // The user has a time in top 200 currently
+                // The user has a time in top X scores currently
                 if score > &entry.score.value {
                     trace!(
                         "New better time for user {} on map_id {}",
@@ -119,10 +124,10 @@ pub fn filter_entries_sp(
                 }
             }
             _ => {
-                // The user is not currently in top 200.
+                // The user is not currently in top X scores.
                 if entry.score.value > worst_score {
                     trace!(
-                        "User {} is new to top 200 on {}, we need to add their time!",
+                        "User {} is new to top X scores on {}, we need to add their time!",
                         entry.steam_id.value,
                         id
                     );
@@ -165,7 +170,7 @@ pub fn filter_entries_sp(
                     entry.score,
                     entry.profile_number
                 );
-                // We have now checked that the user is not banned, that the time is top 200 worthy, that the score doesn't exist in the db, but is banned.
+                // We have now checked that the user is not banned, that the time is top X score worthy, that the score doesn't exist in the db, but is banned.
                 match post_sp_pb(
                     entry.profile_number.clone(),
                     entry.score,
@@ -201,12 +206,15 @@ pub fn filter_entries_coop(
         .json()
         .expect("Error in converting our API values to JSON");
 
-    let mut existing_hash: HashMap<String, (i32, i32)> = HashMap::with_capacity(400);
-    let worst_score = map_json[199].map_data.score;
+    let mut existing_hash: HashMap<String, (i32, i32)> =
+        HashMap::with_capacity(((end / LIMIT_MULT_COOP) * 2) as usize);
+    let worst_score = map_json[(end / LIMIT_MULT_COOP) as usize - 1]
+        .map_data
+        .score;
     let wr = map_json[0].map_data.score;
     let mut current_rank: HashMap<String, i32> = HashMap::new();
     let mut not_banned_player = Vec::new();
-    // We attempt to insert both players into the hashmap. This way we get all players with a top 200 in coop.
+    // We attempt to insert both players into the hashmap. This way we get all players with a top X score in coop.
     for rank in map_json.iter() {
         existing_hash.insert(
             rank.map_data.profile_number1.clone(),
@@ -221,7 +229,7 @@ pub fn filter_entries_coop(
     for entry in data.value.iter() {
         match existing_hash.get(&entry.steam_id.value) {
             Some((score, rank)) => {
-                // The user has a time in top 200 currently
+                // The user has a time in top X score currently
                 if score > &entry.score.value {
                     trace!(
                         "New better time for user {} on map_id {}",
@@ -240,10 +248,10 @@ pub fn filter_entries_coop(
                 }
             }
             _ => {
-                // The user is not currently in top 200.
+                // The user is not currently in top X score.
                 if entry.score.value > worst_score {
                     trace!(
-                        "User {} is new to top 200 on {}, we need to add their time!",
+                        "User {} is new to top X score on {}, we need to add their time!",
                         entry.steam_id.value,
                         id
                     );
@@ -351,4 +359,96 @@ pub fn check_cheated(id: &String, banned_users: &Vec<String>) -> bool {
         }
     }
     false
+}
+
+pub fn check_user(profile_number: &str) -> bool {
+    let url = format!("http://localhost:8080/api/v1/users/{}", profile_number);
+    let user = reqwest::blocking::get(&url)
+        .expect("Error in query to our local API (Make sure the webserver is running")
+        .json::<Users>();
+    match user {
+        Ok(user) => true,
+        Err(e) => {
+            debug!("{}", e);
+            false
+        }
+    }
+}
+
+pub fn update_image(profile_number: String) -> String {
+    let api_key = dotenv::var("STEAM_API_KEY").expect("Cannot find STEAM_API_KEY in ./.env");
+
+    let steam_api_url = format!(
+        "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/key={}steamid={}",
+        api_key, profile_number
+    );
+    let user = reqwest::blocking::get(&steam_api_url)
+        .expect("Cannot connect to Steam API")
+        .json::<GetPlayerSummariesWrapper>()
+        .unwrap();
+    user.response.players[0].avatarfull.clone()
+}
+
+pub fn add_user(profile_number: String) -> Users {
+    // http://steamcommunity.com/profiles/{}/?xml=1
+    // GET https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/
+    let api_key = dotenv::var("STEAM_API_KEY").expect("Cannot find STEAM_API_KEY in ./.env");
+
+    let steam_api_url = format!(
+        "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/key={}steamid={}",
+        api_key, profile_number
+    );
+    // let delimiter = "\"avatarfull\":";
+    let user = reqwest::blocking::get(&steam_api_url)
+        .expect("Cannot connect to Steam API")
+        .json::<GetPlayerSummariesWrapper>()
+        .unwrap();
+
+    // let slice: Vec<&str> = user.split(delimiter).collect();
+    // let slice: Vec<&str> = slice[1].split(",").collect();
+    // let avatar = String::from(slice[0]);
+    // let steamname = String::new();
+
+    let new_user = Users {
+        profile_number,
+        board_name: None,
+        steam_name: Some(user.response.players[0].personaname.clone()),
+        banned: false,
+        registered: 0,
+        avatar: Some(user.response.players[0].avatarfull.clone()),
+        ..Default::default()
+    };
+    let url = String::from("http://localhost:8080/api/v1/users/new_user");
+    let client = reqwest::blocking::Client::new();
+    client
+        .post(&url)
+        .json(&new_user)
+        .send()
+        .expect("Could not post user to our internal API")
+        .json::<Users>()
+        .expect("Incorrect return data from our API")
+}
+
+/// Wrapper for our API call
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetPlayerSummariesWrapper {
+    pub response: Players,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+
+pub struct Players {
+    pub players: Vec<GetPlayerSummaries>,
+}
+#[derive(Serialize, Deserialize, Debug, Clone)]
+
+pub struct GetPlayerSummaries {
+    pub steamid: String,
+    pub communityvisibilitystate: i32,
+    pub profilestate: i32,
+    pub personaname: String,
+    pub lastlogoff: String,
+    pub profile_url: String,
+    pub avatar: String,
+    pub avatarmedium: String,
+    pub avatarfull: String,
 }

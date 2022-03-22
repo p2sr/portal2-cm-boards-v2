@@ -41,24 +41,6 @@ pub struct Changelog {
     pub verified: Option<bool>,
     pub admin_note: Option<String>,
 }
-// pub struct Changelog {
-//     pub time_gained: Option<NaiveDateTime>,
-//     pub profile_number: String,
-//     pub score: i32,
-//     pub map_id: String,
-//     pub wr_gain: i32,
-//     pub has_demo: Option<i32>,
-//     pub banned: i32,
-//     pub youtube_id: Option<String>,
-//     pub previous_id: Option<i32>,
-//     pub id: i32,
-//     pub coopid: Option<i32>,
-//     pub post_rank: Option<i32>,
-//     pub pre_rank: Option<i32>,
-//     pub submission: i32,
-//     pub note: Option<String>,
-//     pub category: Option<String>,
-// }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChangelogInsert {
@@ -167,24 +149,26 @@ pub struct CoopBundledInsert {
     pub cl_id2: Option<i64>,
 }
 
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// pub struct UserMap {
-//     pub boardname: Option<String>,
-//     pub steamname: Option<String>,
-//     pub avatar: Option<String>,
-// }
-
-// /// Wrapper for a player's SP PB history.
-// #[derive(Serialize, Deserialize, Clone)]
-// pub struct SpPbHistory {
-//     pub user_info: UserMap,
-//     pub pb_history: Option<Vec<Changelog>>,
-// }
-
 /// Wrapper for a player's SP PB history.
 #[derive(Serialize, Deserialize)]
 pub struct SpPbHistory {
     pub user_name: Option<String>,
     pub avatar: Option<String>,
     pub pb_history: Option<Vec<Changelog>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Users {
+    pub profile_number: String,
+    pub board_name: Option<String>,
+    pub steam_name: Option<String>,
+    pub banned: bool,
+    pub registered: i32,
+    pub avatar: Option<String>,
+    pub twitch: Option<String>,
+    pub youtube: Option<String>,
+    pub title: Option<String>,
+    pub admin: i32,
+    pub donation_amount: Option<String>,
+    pub discord_id: Option<String>,
 }

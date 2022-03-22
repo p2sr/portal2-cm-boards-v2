@@ -26,6 +26,9 @@ mod points;
 use points::*;
 mod models;
 
+const LIMIT_MULT_SP: i32 = 2;
+const LIMIT_MULT_COOP: i32 = 3;
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -33,12 +36,12 @@ struct Args {
     arg: String,
     #[clap(short, long)]
     map: Option<String>,
+    #[clap(short, long)]
+    limit: Option<i32>,
 }
 
 fn main() {
-    // Look into clap? https://docs.rs/clap/2.33.3/clap/
     let new_args = Args::parse();
-    //let args: Vec<String> = env::args().collect();
     // Arg mapping
     // len == 1 (path)
     // Default that will check all SP/Coop Maps and update new scores and then re-compute points.
@@ -53,40 +56,23 @@ fn main() {
     println!("{:#?}", new_args.arg);
     match new_args.arg.as_ref() {
         "rcp" => calc_points(None),
-        "ssp" => fetch_sp(new_args.map.expect("No map_id")),
-        "scp" => fetch_cp(new_args.map.expect("No map_id")),
+        "ssp" => fetch_sp(
+            new_args.map.expect("No map_id"),
+            new_args.limit.unwrap_or(500),
+        ),
+        "scp" => fetch_cp(
+            new_args.map.expect("No map_id"),
+            new_args.limit.unwrap_or(500),
+        ),
+        "all" => fetch_all(new_args.limit.unwrap_or(500)),
         _ => panic!("Incorrect value"),
     }
 
-    // if args.len() == 1 {
-    //     unimplemented!();
-    //     //fetch_all()
-    // } else if args.len() == 2 {
-    //     match args.get(1) {
-    //         Some(a) => match a.as_str() {
-    //             "rcp" => calc_points(None),
-    //             _ => panic!("Incorrect value"),
-    //         },
-    //         None => panic!("Incorrect Value"),
-    //     }
-    // } else if args.len() == 3 {
-    //     match args.get(1) {
-    //         Some(a) => match a.as_str() {
-    //             "ssp" => fetch_sp(args.get(2).expect("Invalid map_id for arg #2").to_string()),
-    //             "scp" => fetch_cp(args.get(2).expect("Invalid map_id for arg #2").to_string()),
-    //             "rcp" => calc_points(None),
-    //             _ => panic!("Incorrect value"),
-    //         },
-    //         None => panic!("Incorrect value"),
-    //     }
-    // } else {
-    //     panic!("Incorrect arg #");
-    // }
     let end = PreciseTime::now();
     println!("{}", start.to(end));
 }
 
-fn fetch_all() {
+fn fetch_all(limit: i32) {
     let official_sp = [
         47458, 47455, 47452, 47106, 47735, 47736, 47738, 47742, 47744, 47465, 47746, 47748, 47751,
         47752, 47755, 47756, 47759, 47760, 47763, 47764, 47766, 47768, 47770, 47773, 47774, 47776,
@@ -106,35 +92,35 @@ fn fetch_all() {
         .into_par_iter()
         .map(|map_id| {
             // TODO: Pass values like # of results as args to the binary
-            fetch_entries(map_id, 0, 450, utc, false)
+            fetch_entries(map_id, 0, limit * LIMIT_MULT_SP, utc, false)
         })
         .collect();
     let res_cp: Vec<_> = official_coop
         .into_par_iter()
-        .map(|map_id| fetch_entries(map_id, 0, 800, utc, true))
+        .map(|map_id| fetch_entries(map_id, 0, limit * LIMIT_MULT_COOP, utc, true))
         .collect();
 
     // What do we do with the leaderboards...
 }
 
-fn fetch_sp(map_id: String) {
+fn fetch_sp(map_id: String, limit: i32) {
     let utc = Utc::now().naive_utc();
     let res_sp = fetch_entries(
         map_id.parse().expect("Error parsing map_id"),
         0,
-        450,
+        limit * LIMIT_MULT_SP,
         utc,
         false,
     );
     // Recalculate the points on the given map. Force reset cache on webserver.
     // Setup an endpoint on the webserver to invalidate cache for a specific map.
 }
-fn fetch_cp(map_id: String) {
+fn fetch_cp(map_id: String, limit: i32) {
     let utc = Utc::now().naive_utc();
     let res_coop = fetch_entries(
         map_id.parse().expect("Error parsing map_id"),
         0,
-        800,
+        limit * LIMIT_MULT_COOP,
         utc,
         true,
     );
