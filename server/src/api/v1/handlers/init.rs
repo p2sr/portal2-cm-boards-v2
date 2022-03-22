@@ -30,6 +30,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(post_score_coop)
             // .service(post_changelog_filtered)
             .service(check_ban_status) // Users
+            .service(get_user)
             .service(get_banned_users)
             .service(post_new_user)
             .service(get_map_ids_by_chapter) // Chapters

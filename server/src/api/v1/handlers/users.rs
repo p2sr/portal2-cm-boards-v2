@@ -2,6 +2,17 @@ use crate::models::models::Users;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
+/// GET the user information for a given profile_number.
+#[get("/users/{profile_number}")]
+async fn get_user(pool: web::Data<PgPool>, profile_number: web::Path<String>) -> impl Responder {
+    let res = Users::get_user(pool.get_ref(), profile_number.into_inner()).await;
+    match res {
+        Ok(Some(user)) => HttpResponse::Ok().json(user),
+        Ok(None) => HttpResponse::NotFound().body("User does not exist."),
+        _ => HttpResponse::NotFound().body("Error fetching previews"),
+    }
+}
+
 /// GET method for the steamIDs of all banned users on the board.
 #[get("/banned_users")]
 async fn get_banned_users(pool: web::Data<PgPool>) -> impl Responder {
