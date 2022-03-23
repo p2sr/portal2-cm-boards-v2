@@ -1,4 +1,4 @@
-use crate::models::datamodels::{CoopMap, CoopRanked, SpMap, SpRanked};
+use crate::models::datamodels::{CoopRanked, SpRanked};
 use rayon::prelude::*;
 use std::collections::HashMap;
 
@@ -53,8 +53,8 @@ impl Points {
     }
 }
 
+#[allow(dead_code)]
 pub fn score_calc(score: i32) -> (i32, i32, i32) {
-    //lol
     let ms = (score % 100) * 10;
     let seconds = (score / 100) % 60;
     let minutes = score / 100 / 60;
@@ -71,9 +71,8 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
     if maps_altered == None {
         // Contains a vector of tuples, each hashmap stores the total points for each player, per chapter. Chapters are denoted by the i32 in the tuple.
         // NOTE: The par_iter means we could have the chapters finish calculating in any order, and thus the ordering can not be assumed.
-        let mut hm_vec = Vec::with_capacity(15);
         // par_iter hit endpoint for each chapter (1-6 coop, 7-15 sp)
-        hm_vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        let hm_vec: Vec<PointsWrapper> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
             .into_par_iter()
             .map(|chapter_id| {
                 let url = format!(

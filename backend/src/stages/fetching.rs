@@ -1,8 +1,7 @@
 use super::exporting::*;
 use super::uploading::*;
 use crate::models::datamodels::{
-    ChangelogInsert, CoopBundled, CoopBundledInsert, CoopDataUtil, CoopMap, CoopRanked, Entry,
-    Leaderboards, SpBanned, SpMap, SpPbHistory, SpRanked, Users, XmlTag,
+    CoopDataUtil, CoopRanked, Entry, Leaderboards, SpBanned, SpRanked, Users, XmlTag,
 };
 use crate::LIMIT_MULT_COOP;
 use crate::LIMIT_MULT_SP;
@@ -12,7 +11,6 @@ use serde_derive::Deserialize;
 use serde_derive::Serialize;
 use serde_xml_rs::from_reader;
 use std::collections::HashMap;
-use std::io::Error;
 
 // TODO: If user doesn't exist, add a new user in db.
 
@@ -73,7 +71,7 @@ pub fn fetch_entries(
 /// Handles comparison with the current leaderboards to see if any user has a new best time
 pub fn filter_entries_sp(
     id: i32,
-    start: i32,
+    _start: i32,
     end: i32,
     timestamp: NaiveDateTime,
     banned_users: Vec<String>,
@@ -194,7 +192,7 @@ pub fn filter_entries_sp(
 /// Version of `filter_entries` for coop, using different logic.
 pub fn filter_entries_coop(
     id: i32,
-    start: i32,
+    _start: i32,
     end: i32,
     timestamp: NaiveDateTime,
     banned_users: Vec<String>,
@@ -361,13 +359,14 @@ pub fn check_cheated(id: &String, banned_users: &Vec<String>) -> bool {
     false
 }
 
+#[allow(dead_code)]
 pub fn check_user(profile_number: &str) -> bool {
     let url = format!("http://localhost:8080/api/v1/users/{}", profile_number);
     let user = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json::<Users>();
     match user {
-        Ok(user) => true,
+        Ok(_user) => true,
         Err(e) => {
             debug!("{}", e);
             false
@@ -375,6 +374,7 @@ pub fn check_user(profile_number: &str) -> bool {
     }
 }
 
+#[allow(dead_code)]
 pub fn update_image(profile_number: String) -> String {
     let api_key = dotenv::var("STEAM_API_KEY").expect("Cannot find STEAM_API_KEY in ./.env");
 
@@ -389,6 +389,7 @@ pub fn update_image(profile_number: String) -> String {
     user.response.players[0].avatarfull.clone()
 }
 
+#[allow(dead_code)]
 pub fn add_user(profile_number: String) -> Users {
     // http://steamcommunity.com/profiles/{}/?xml=1
     // GET https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/
@@ -434,11 +435,13 @@ pub fn add_user(profile_number: String) -> Users {
 pub struct GetPlayerSummariesWrapper {
     pub response: Players,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 
 pub struct Players {
     pub players: Vec<GetPlayerSummaries>,
 }
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 
 pub struct GetPlayerSummaries {

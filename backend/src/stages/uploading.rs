@@ -1,27 +1,20 @@
-use super::exporting::*;
 use crate::models::datamodels::{
-    ChangelogInsert, CoopBundled, CoopBundledInsert, CoopDataUtil, CoopMap, CoopRanked, Entry,
-    Leaderboards, SpBanned, SpMap, SpPbHistory, SpRanked, XmlTag,
+    ChangelogInsert, CoopBundledInsert, CoopRanked, SpPbHistory, SpRanked,
 };
 use chrono::prelude::*;
 use log::{debug, error, trace};
-use serde_xml_rs::from_reader;
 use std::collections::HashMap;
 
 /// Upload sp PB to the database
 pub fn post_sp_pb(
     profile_number: String,
     score: i32,
-    wr: i32,
+    _wr: i32,
     id: i32,
     timestamp: NaiveDateTime,
     current_rank: &HashMap<String, i32>,
     map_json: &Vec<SpRanked>,
 ) -> bool {
-    let mut wr_gain = 0;
-    if score >= wr {
-        wr_gain = 1;
-    }
     // Grab the PB history.
     let url = format!(
         "http://localhost:8080/api/v1/map/sp/{}/{}",
@@ -87,12 +80,12 @@ pub fn post_sp_pb(
     let res = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json::<i32>();
-    let pb_history = match res {
+    match res {
         Ok(s) => cat_id = s,
         Err(e) => {
             trace!("{}", e);
         }
-    };
+    }
     let new_score = ChangelogInsert {
         timestamp: Some(timestamp),
         profile_number: profile_number,
@@ -137,16 +130,12 @@ pub fn post_coop_pb(
     profile_number1: String,
     profile_number2: Option<String>,
     score: i32,
-    wr: i32,
+    _wr: i32,
     id: i32,
     timestamp: NaiveDateTime,
     current_rank: &HashMap<String, i32>,
     map_json: &Vec<CoopRanked>,
 ) -> bool {
-    let mut wr_gain = 0;
-    if score >= wr {
-        wr_gain = 1;
-    }
     // Handle there being a partner
     if let Some(profile_number2) = profile_number2 {
         // Grab the PB history. For now, we're just going to use 2 calls to our API rather than a combined call. (We'll use SP here).
@@ -170,34 +159,34 @@ pub fn post_coop_pb(
         // TODO: Fix to handle new pb_history
         // TODO: Make specific to coop
         let pb_vec = pb_history1.pb_history;
-        let mut past_score: Option<i32> = None;
+        let mut past_score1: Option<i32> = None;
         match pb_vec {
             Some(pb_vec) => {
                 let current_pb = pb_vec.into_iter().nth(0);
                 if let Some(s) = current_pb {
                     let current_pb = s;
                     previous_id1 = Some(current_pb.id as i32);
-                    past_score = Some(current_pb.score);
+                    past_score1 = Some(current_pb.score);
                 } else {
                     previous_id1 = None;
-                    past_score = None;
+                    past_score1 = None;
                 }
             }
             None => (),
         }
         let mut previous_id2 = None;
         let pb_vec = pb_history2.pb_history;
-        let mut past_score: Option<i32> = None;
+        let mut past_score2: Option<i32> = None;
         match pb_vec {
             Some(pb_vec) => {
                 let current_pb = pb_vec.into_iter().nth(0);
                 if let Some(s) = current_pb {
                     let current_pb = s;
                     previous_id2 = Some(current_pb.id as i32);
-                    past_score = Some(current_pb.score);
+                    past_score2 = Some(current_pb.score);
                 } else {
                     previous_id2 = None;
-                    past_score = None;
+                    past_score2 = None;
                 }
             }
             None => (),
@@ -223,11 +212,11 @@ pub fn post_coop_pb(
             None => None,
         };
         let mut score_delta1: Option<i32> = None;
-        if let Some(i) = past_score {
+        if let Some(i) = past_score1 {
             score_delta1 = Some(score - i);
         }
         let mut score_delta2: Option<i32> = None;
-        if let Some(i) = past_score {
+        if let Some(i) = past_score2 {
             score_delta2 = Some(score - i);
         }
         let mut cat_id = 0;
@@ -238,12 +227,12 @@ pub fn post_coop_pb(
         let res = reqwest::blocking::get(&url)
             .expect("Error in query to our local API (Make sure the webserver is running")
             .json::<i32>();
-        let pb_history = match res {
+        match res {
             Ok(s) => cat_id = s,
             Err(e) => {
                 trace!("{}", e);
             }
-        };
+        }
         //println!("{}", cat_id);
 
         // TODO: We first need to upload individually as changelog entries, get the result from that insert (the changelogID it creates, then use that for the bundling process).

@@ -1,30 +1,26 @@
-#![allow(clippy::all)]
-#![allow(dead_code)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
-#![allow(unused_assignments)]
+// #![allow(clippy::all)]
+// #![allow(dead_code)]
+// #![allow(unused_imports)]
+// #![allow(unused_variables)]
+// #![allow(unused_assignments)]
 #![allow(mutable_borrow_reservation_conflict)]
 
 #[macro_use]
-extern crate dotenv;
-#[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate serde_json;
 
 use chrono::prelude::*;
 use clap::Parser;
-use dotenv::dotenv;
-use log::{info, trace, warn};
 use rayon::prelude::*;
-use std::env;
 use time::PreciseTime;
 mod stages;
-use stages::exporting::*;
 use stages::fetching::*;
 mod points;
 use points::*;
 mod models;
+// use dotenv::dotenv;
+// use log::{info, trace, warn};
+// use std::env;
+// use stages::exporting::*;
 
 const LIMIT_MULT_SP: i32 = 2;
 const LIMIT_MULT_COOP: i32 = 3;
@@ -88,14 +84,14 @@ fn fetch_all(limit: i32) {
     ];
 
     let utc = Utc::now().naive_utc();
-    let res_sp: Vec<_> = official_sp
+    let _res_sp: Vec<_> = official_sp
         .into_par_iter()
         .map(|map_id| {
             // TODO: Pass values like # of results as args to the binary
             fetch_entries(map_id, 0, limit * LIMIT_MULT_SP, utc, false)
         })
         .collect();
-    let res_cp: Vec<_> = official_coop
+    let _res_cp: Vec<_> = official_coop
         .into_par_iter()
         .map(|map_id| fetch_entries(map_id, 0, limit * LIMIT_MULT_COOP, utc, true))
         .collect();
@@ -105,7 +101,7 @@ fn fetch_all(limit: i32) {
 
 fn fetch_sp(map_id: String, limit: i32) {
     let utc = Utc::now().naive_utc();
-    let res_sp = fetch_entries(
+    let _res_sp = fetch_entries(
         map_id.parse().expect("Error parsing map_id"),
         0,
         limit * LIMIT_MULT_SP,
@@ -117,7 +113,7 @@ fn fetch_sp(map_id: String, limit: i32) {
 }
 fn fetch_cp(map_id: String, limit: i32) {
     let utc = Utc::now().naive_utc();
-    let res_coop = fetch_entries(
+    let _res_coop = fetch_entries(
         map_id.parse().expect("Error parsing map_id"),
         0,
         limit * LIMIT_MULT_COOP,
