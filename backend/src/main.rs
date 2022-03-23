@@ -17,6 +17,7 @@ use stages::fetching::*;
 mod points;
 use points::*;
 mod models;
+mod tests;
 // use dotenv::dotenv;
 // use log::{info, trace, warn};
 // use std::env;

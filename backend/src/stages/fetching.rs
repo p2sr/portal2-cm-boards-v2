@@ -379,36 +379,37 @@ pub fn update_image(profile_number: String) -> String {
     let api_key = dotenv::var("STEAM_API_KEY").expect("Cannot find STEAM_API_KEY in ./.env");
 
     let steam_api_url = format!(
-        "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/key={}steamid={}",
+        "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={}&steamids={}",
         api_key, profile_number
     );
     let user = reqwest::blocking::get(&steam_api_url)
         .expect("Cannot connect to Steam API")
-        .json::<GetPlayerSummariesWrapper>()
-        .unwrap();
-    user.response.players[0].avatarfull.clone()
+        .json::<GetPlayerSummariesWrapper>();
+    match user {
+        Ok(user) => user.response.players[0].avatarfull.clone(),
+        Err(e) => {
+            eprintln!("Error getting response from steam API -> {}", e);
+            // Default image
+            "http://media.steampowered.com/steamcommunity/public/images/avatars/f9/f91787b7fb6d4a2cb8dee079ab457839b33a8845_full.jpg".to_string()
+        }
+    }
+    //user.response.players[0].avatarfull.clone()
 }
 
 #[allow(dead_code)]
-pub fn add_user(profile_number: String) -> Users {
+pub fn add_user(profile_number: String) -> Result<Users, reqwest::Error> {
     // http://steamcommunity.com/profiles/{}/?xml=1
     // GET https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/
     let api_key = dotenv::var("STEAM_API_KEY").expect("Cannot find STEAM_API_KEY in ./.env");
 
     let steam_api_url = format!(
-        "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/key={}steamid={}",
+        "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={}&steamids={}",
         api_key, profile_number
     );
-    // let delimiter = "\"avatarfull\":";
     let user = reqwest::blocking::get(&steam_api_url)
         .expect("Cannot connect to Steam API")
         .json::<GetPlayerSummariesWrapper>()
         .unwrap();
-
-    // let slice: Vec<&str> = user.split(delimiter).collect();
-    // let slice: Vec<&str> = slice[1].split(",").collect();
-    // let avatar = String::from(slice[0]);
-    // let steamname = String::new();
 
     let new_user = Users {
         profile_number,
@@ -419,15 +420,22 @@ pub fn add_user(profile_number: String) -> Users {
         avatar: Some(user.response.players[0].avatarfull.clone()),
         ..Default::default()
     };
-    let url = String::from("http://localhost:8080/api/v1/users/new_user");
+
+    let url = String::from("http://localhost:8080/api/v1/users");
     let client = reqwest::blocking::Client::new();
-    client
+    match client
         .post(&url)
         .json(&new_user)
         .send()
         .expect("Could not post user to our internal API")
         .json::<Users>()
-        .expect("Incorrect return data from our API")
+    {
+        Ok(c) => Ok(c),
+        Err(e) => {
+            eprintln!("-> {}", e);
+            Err(e)
+        }
+    }
 }
 
 /// Wrapper for our API call
@@ -449,8 +457,8 @@ pub struct GetPlayerSummaries {
     pub communityvisibilitystate: i32,
     pub profilestate: i32,
     pub personaname: String,
-    pub lastlogoff: String,
-    pub profile_url: String,
+    pub lastlogoff: i32,
+    pub profileurl: String,
     pub avatar: String,
     pub avatarmedium: String,
     pub avatarfull: String,

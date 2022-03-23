@@ -37,7 +37,7 @@ async fn check_ban_status(
 }
 
 /// POST method for adding a new user to the db.
-#[post("/new_user")]
+#[post("/users")]
 async fn post_new_user(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> impl Responder {
     let res = Users::insert_new_users(pool.get_ref(), new_user.0.clone()).await;
     match res {
@@ -45,7 +45,7 @@ async fn post_new_user(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> i
         Ok(false) => HttpResponse::InternalServerError().body("Could not add user to database"),
         Err(e) => {
             eprintln!(
-                "Adding user {:?} to DB failed with error -> {}",
+                "Adding user {:#?} to DB failed with error -> {}",
                 new_user.0, e
             );
             HttpResponse::InternalServerError().body("Could not add user to database.")

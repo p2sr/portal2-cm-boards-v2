@@ -154,15 +154,15 @@ impl Users {
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
     /// Inserts a new user into the databse
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<bool> {
-        let mut res = String::new();
+        // let mut res = String::new();
         // We do not care about the returning profile_number. As it is not generated and we already have it
-        let _ = sqlx::query(
+        let res = sqlx::query_as::<_, Users>(
             r#"
                 INSERT INTO "p2boards".Users
                 (profile_number, board_name, steam_name, banned, registered, 
                 avatar, twitch, youtube, title, admin, donation_amount, discord_id)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-                RETURNING profile_number"#,
+                RETURNING *"#,
         )
         .bind(new_user.profile_number.clone())
         .bind(new_user.board_name)
@@ -176,12 +176,10 @@ impl Users {
         .bind(new_user.admin)
         .bind(new_user.donation_amount)
         .bind(new_user.discord_id)
-        .map(|row: PgRow| {
-            res = row.get(0);
-        })
         .fetch_one(pool)
         .await?;
-        if res == new_user.profile_number {
+
+        if res.profile_number == new_user.profile_number {
             Ok(true)
         } else {
             Ok(false)

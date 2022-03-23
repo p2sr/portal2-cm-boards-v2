@@ -8,7 +8,7 @@ use std::path::Path;
 pub fn cache_leaderboard(id: i32, text: String) -> bool {
     let path_str = format!("./cache/{}.cache", id.to_string());
     let path = Path::new(&path_str);
-    if let Err(e) = File::open(path) {
+    if let Err(_e) = File::open(path) {
         // Cache does not exist, create it.
         let mut ofp = File::create(path).expect("File opening error for editing the cache file");
         ofp.write_all(text.as_bytes())
