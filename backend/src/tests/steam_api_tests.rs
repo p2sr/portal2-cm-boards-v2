@@ -27,7 +27,7 @@ fn add_user_steam_api() -> () {
 
 #[test]
 /// Ensure we get the correct response when checking to make sure a user exists.
-/// REQUIRES THAT THE LOCAL WBE SERVER AND DB ARE UP.
+/// REQUIRES THAT THE LOCAL WBE SERVER AND DB ARE UP. `
 fn check_user() -> () {
     use crate::stages::fetching::*;
     assert!(check_user("76561198040982247"));

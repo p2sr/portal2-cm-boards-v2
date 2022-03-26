@@ -1,14 +1,13 @@
 use super::exporting::*;
 use super::uploading::*;
 use crate::models::datamodels::{
-    CoopDataUtil, CoopRanked, Entry, Leaderboards, SpBanned, SpRanked, Users, XmlTag,
+    CoopDataUtil, CoopRanked, Entry, GetPlayerSummariesWrapper, Leaderboards, SpBanned, SpRanked,
+    Users, XmlTag,
 };
 use crate::LIMIT_MULT_COOP;
 use crate::LIMIT_MULT_SP;
 use chrono::prelude::*;
 use log::{debug, error, trace};
-use serde_derive::Deserialize;
-use serde_derive::Serialize;
 use serde_xml_rs::from_reader;
 use std::collections::HashMap;
 
@@ -67,40 +66,17 @@ pub fn fetch_entries(
     leaderboard
 }
 
-// A much lower-code implementation would be to send potential values through POST to see if they exist in the DB, but the # of db interactions would probably cause much worse performance.
-/// Handles comparison with the current leaderboards to see if any user has a new best time
-pub fn filter_entries_sp(
-    id: i32,
-    _start: i32,
-    end: i32,
-    timestamp: NaiveDateTime,
-    banned_users: Vec<String>,
+/// Breaking apart the modules that filted out the list to times that aren't banned/cheated.
+pub fn validate_entries(
     data: &XmlTag<Vec<Entry>>,
-) {
-    let url = format!("http://localhost:8080/api/v1/map/sp/{id}", id = id);
-    let map_json: Vec<SpRanked> = reqwest::blocking::get(&url)
-        .expect("Error in query to our local API (Make sure the webserver is running")
-        .json()
-        .expect("Error in converting our API values to JSON");
-
-    let mut existing_hash: HashMap<String, (i32, i32)> =
-        HashMap::with_capacity((end / LIMIT_MULT_SP) as usize);
+    existing_hash: HashMap<String, (i32, i32)>,
+    banned_users: Vec<String>,
+    id: i32,
+    worst_score: i32,
+) -> (HashMap<String, i32>, Vec<SpBanned>) {
     let mut current_rank: HashMap<String, i32> = HashMap::new();
     let mut not_cheated: Vec<SpBanned> = Vec::new();
-
-    let worst_score = map_json[(end / LIMIT_MULT_SP) as usize - 1].map_data.score;
-    let wr = map_json[0].map_data.score;
-
-    for rank in map_json.iter() {
-        existing_hash.insert(
-            rank.map_data.profile_number.clone(),
-            (rank.map_data.score, rank.rank),
-        );
-    }
-    // TODO: Query to see if the user exists.
-
-    // TODO: Implement a per-map threshold???
-    // Potentially turn this into a macro? This basic shape is reused.
+    // TODO: Potentially turn this into a macro? This basic shape is reused.
     for entry in data.value.iter() {
         match existing_hash.get(&entry.steam_id.value) {
             Some((score, rank)) => {
@@ -140,7 +116,42 @@ pub fn filter_entries_sp(
             }
         }
     }
+    (current_rank, not_cheated)
+}
 
+// A much lower-code implementation would be to send potential values through POST to see if they exist in the DB, but the # of db interactions would probably cause much worse performance.
+/// Handles comparison with the current leaderboards to see if any user has a new best time
+pub fn filter_entries_sp(
+    id: i32,
+    _start: i32,
+    end: i32,
+    timestamp: NaiveDateTime,
+    banned_users: Vec<String>,
+    data: &XmlTag<Vec<Entry>>,
+) {
+    let url = format!("http://localhost:8080/api/v1/map/sp/{id}", id = id);
+    let map_json: Vec<SpRanked> = reqwest::blocking::get(&url)
+        .expect("Error in query to our local API (Make sure the webserver is running")
+        .json()
+        .expect("Error in converting our API values to JSON");
+
+    let mut existing_hash: HashMap<String, (i32, i32)> =
+        HashMap::with_capacity((end / LIMIT_MULT_SP) as usize);
+
+    let worst_score = map_json[map_json.len() - 1].map_data.score;
+    let wr = map_json[0].map_data.score;
+
+    for rank in map_json.iter() {
+        existing_hash.insert(
+            rank.map_data.profile_number.clone(),
+            (rank.map_data.score, rank.rank),
+        );
+    }
+    // TODO: Query to see if the user exists.
+
+    // TODO: Implement a per-map threshold???
+    let (current_rank, not_cheated) =
+        validate_entries(data, existing_hash, banned_users, id, worst_score);
     // We grab the list of banned times from our API.
     // Filter out any times that are banned from the list of potential runs.
     // The list of new scores is probably relatively low, it would be easier to just send the score information to an endpoint and have it check.
@@ -206,12 +217,8 @@ pub fn filter_entries_coop(
 
     let mut existing_hash: HashMap<String, (i32, i32)> =
         HashMap::with_capacity(((end / LIMIT_MULT_COOP) * 2) as usize);
-    let worst_score = map_json[(end / LIMIT_MULT_COOP) as usize - 1]
-        .map_data
-        .score;
+    let worst_score = map_json[map_json.len() - 1].map_data.score;
     let wr = map_json[0].map_data.score;
-    let mut current_rank: HashMap<String, i32> = HashMap::new();
-    let mut not_banned_player = Vec::new();
     // We attempt to insert both players into the hashmap. This way we get all players with a top X score in coop.
     for rank in map_json.iter() {
         existing_hash.insert(
@@ -223,47 +230,9 @@ pub fn filter_entries_coop(
             (rank.map_data.score, rank.rank),
         );
     }
-    // Filter out all scores that exist. We filter this out in the same way that we filter SP times, the coop-specific logic is handled later
-    for entry in data.value.iter() {
-        match existing_hash.get(&entry.steam_id.value) {
-            Some((score, rank)) => {
-                // The user has a time in top X score currently
-                if score > &entry.score.value {
-                    trace!(
-                        "New better time for user {} on map_id {}",
-                        entry.steam_id.value,
-                        id
-                    ); // Add to leaderboards.
-                    current_rank.insert(entry.steam_id.value.clone(), rank.clone());
-                    match check_cheated(&entry.steam_id.value, &banned_users) {
-                        // We use SpBanned here because scores taken from the SteamAPI are all handled as SP times.
-                        false => not_banned_player.push(SpBanned {
-                            profile_number: entry.steam_id.value.clone(),
-                            score: entry.score.value,
-                        }),
-                        _ => (),
-                    }
-                }
-            }
-            _ => {
-                // The user is not currently in top X score.
-                if entry.score.value > worst_score {
-                    trace!(
-                        "User {} is new to top X score on {}, we need to add their time!",
-                        entry.steam_id.value,
-                        id
-                    );
-                    match check_cheated(&entry.steam_id.value, &banned_users) {
-                        false => not_banned_player.push(SpBanned {
-                            profile_number: entry.steam_id.value.clone(),
-                            score: entry.score.value,
-                        }),
-                        _ => (),
-                    }
-                }
-            }
-        }
-    }
+
+    let (current_rank, not_banned_players) =
+        validate_entries(data, existing_hash, banned_users, id, worst_score);
 
     // Check to see if any of the times are banned on our leaderboards
     // Do an SP style check here first, as we want to ensure none of the times are old and banned.
@@ -271,7 +240,7 @@ pub fn filter_entries_coop(
     // to see that they're old, banned times on the leaderboard, our assumption about all scores being new and together
     // falls apart.
     let mut not_cheated = Vec::new(); // Becomes the vector of times that are not from banned players, and do not exist in the changelog.
-    for entry in not_banned_player.iter() {
+    for entry in not_banned_players.iter() {
         let ban_url = format!(
             "http://localhost:8080/api/v1/coop/banned/{}?profile_number={}&score={}",
             id, entry.profile_number, entry.score
@@ -393,7 +362,6 @@ pub fn update_image(profile_number: String) -> String {
             "http://media.steampowered.com/steamcommunity/public/images/avatars/f9/f91787b7fb6d4a2cb8dee079ab457839b33a8845_full.jpg".to_string()
         }
     }
-    //user.response.players[0].avatarfull.clone()
 }
 
 #[allow(dead_code)]
@@ -436,30 +404,4 @@ pub fn add_user(profile_number: String) -> Result<Users, reqwest::Error> {
             Err(e)
         }
     }
-}
-
-/// Wrapper for our API call
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GetPlayerSummariesWrapper {
-    pub response: Players,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-
-pub struct Players {
-    pub players: Vec<GetPlayerSummaries>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-
-pub struct GetPlayerSummaries {
-    pub steamid: String,
-    pub communityvisibilitystate: i32,
-    pub profilestate: i32,
-    pub personaname: String,
-    pub lastlogoff: i32,
-    pub profileurl: String,
-    pub avatar: String,
-    pub avatarmedium: String,
-    pub avatarfull: String,
 }
