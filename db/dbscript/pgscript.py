@@ -110,7 +110,7 @@ class PgSQLCategories:
 class MySQLUsersnew:
     def __init__(self, profile_number, boardname, 
     steamname, banned, registered, avatar, twitch, 
-    youtube, title, admin, donation_amount):
+    youtube, title, admin, donation_amount, auth_hash):
         self.profile_number = profile_number
         self.boardname = boardname
         self.steamname = steamname
@@ -122,6 +122,7 @@ class MySQLUsersnew:
         self.title = title
         self.admin = admin
         self.donation_amount = donation_amount
+        self.auth_hash = auth_hash #VAR CHAR 32
     
     def __str__(self):
         return f"{self.profile_number} - {self.steamname} - {self.banned}"
@@ -129,7 +130,7 @@ class MySQLUsersnew:
 class PgSQLUsers:
     def __init__(self, profile_number, board_name, 
     steam_name, banned, registered, avatar, twitch, 
-    youtube, title, admin, donation_amount, discord_id):
+    youtube, title, admin, donation_amount, discord_id, auth_hash):
         self.profile_number = profile_number
         self.board_name = board_name
         self.steam_name = steam_name
@@ -142,6 +143,7 @@ class PgSQLUsers:
         self.admin = admin
         self.donation_amount = donation_amount
         self.discord_id = discord_id
+        self.auth_hash = auth_hash
     
     def __str__(self):
         return f"{self.profile_number} - {self.steamname} - {self.banned}"
@@ -193,6 +195,7 @@ class PgSQLChangelog:
         self.category_id = self.get_category_id(map_id)
         self.score_delta = self.get_score_delta(previous_id, score)
         self.admin_note = None
+        self.last_modified = None # TODO: Handle
 
     def __str__(self):
         return f"{self.id} - {self.time_gained} - {self.profile_number} - {self.score} - {self.note}"
@@ -201,11 +204,11 @@ class PgSQLChangelog:
         if has_demo == 0:
             return None
         elif has_demo == 1:
-            # The drive_url is a combination of map name, score, profile_number and the demo_id
+            # The file_name is a combination of map name, score, profile_number and the demo_id
             # demo_id is serial, but we want to work around a weird issue with psycopg2 not resetting the serial.
             map_name_temp = map_name.get(map_id).replace(" ", "")
-            drive_url = f"{map_name_temp}_{self.score}_{self.profile_number}_{len(all_demo_objects)+1}.dem"
-            temp = PgSQLDemos(len(all_demo_objects)+1, drive_url, None, self.verified, "", self.id)
+            file_name = f"{map_name_temp}_{self.score}_{self.profile_number}_{len(all_demo_objects)+1}.dem"
+            temp = PgSQLDemos(len(all_demo_objects)+1, None, file_name, None, self.verified, None, self.id)
             all_demo_objects.append(temp)
             #print(temp)
             return len(all_demo_objects)
@@ -241,16 +244,17 @@ class PgSQLCoopBundled:
 
 # Demos
 class PgSQLDemos:
-    def __init__(self, id_, drive_url, partner_name, parsed_successfully, sar_version, cl_id):
+    def __init__(self, id_, file_id, file_name, partner_name, parsed_successfully, sar_version, cl_id):
         self.id = id_ 
-        self.drive_url = drive_url
+        self.file_id = file_id
+        self.file_name = file_name
         self.partner_name = partner_name
         self.parsed_successfully = parsed_successfully
         self.sar_version = sar_version
         self.cl_id = cl_id
     
     def __str__(self):
-        return f"{self.id} - {self.drive_url} - {self.partner_name} - {self.parsed_successfully} - {self.sar_version} - {self.cl_id}"
+        return f"{self.id} - {self.file_name} - {self.partner_name} - {self.parsed_successfully} - {self.sar_version} - {self.cl_id}"
 
 def main():
     mysql_conn = mysql.connector.connect(

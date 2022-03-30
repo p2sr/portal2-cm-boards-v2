@@ -5,6 +5,17 @@ use sqlx::FromRow;
 // Database
 //
 
+/// WIP
+pub struct Admin {}
+
+#[derive(Debug, FromRow, Deserialize, Serialize, Clone)]
+pub struct BannedTimeDetails {
+    pub user_name: String,
+    pub avatar: String,
+    pub num_times: i32,
+    pub times_banned: i32,
+}
+
 /// One-to-one struct for changelog data.
 #[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
 pub struct Changelog {
@@ -169,7 +180,8 @@ pub struct Users {
     pub discord_id: Option<String>,
 }
 
-#[derive(Serialize, FromRow, Clone, Debug)]
+#[derive(Debug, FromRow, Deserialize, Serialize, Clone)]
+
 pub struct UsersPage {
     pub user_name: String,
     pub avatar: String,
@@ -353,4 +365,13 @@ pub struct SubmissionChangelog {
     pub youtube_id: Option<String>,
     pub note: Option<String>,
     pub category_id: Option<i32>,
+}
+
+/// Allows us to accept an optional demo_id or cl_id as a set of query parameters for demo endpoints.
+///
+/// Intended to be used exclusively (you should either use one or the other, never both or neither).
+#[derive(Debug, Clone, Deserialize)]
+pub struct DemoOptions {
+    pub demo_id: Option<i64>,
+    pub cl_id: Option<i64>,
 }

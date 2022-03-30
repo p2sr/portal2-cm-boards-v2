@@ -1,3 +1,5 @@
+/// Controllers for admin-specific functions
+pub mod admin;
 /// Controllers for changelog
 pub mod changelog;
 /// Controllers for chapters

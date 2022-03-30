@@ -33,9 +33,9 @@ pub fn fetch_entries(
         .text()
         .expect("Error in writing the result from Valve's API to text");
     // Print to cache
-    let is_updated = cache_leaderboard(id, text.clone());
-    if is_updated {
-        debug!("The cache is updated for map {}", id);
+    match cache_leaderboard(id, text.clone()) {
+        true => debug!("The cache is updated for map {}", id),
+        false => trace!("The cache is unchanged for map {}", id),
     }
     let leaderboard: Leaderboards = from_reader(text.as_bytes()).expect("XML Error in parsing");
     // Get banned players list.
@@ -119,7 +119,6 @@ pub fn validate_entries(
     (current_rank, not_cheated)
 }
 
-// A much lower-code implementation would be to send potential values through POST to see if they exist in the DB, but the # of db interactions would probably cause much worse performance.
 /// Handles comparison with the current leaderboards to see if any user has a new best time
 pub fn filter_entries_sp(
     id: i32,

@@ -1,3 +1,5 @@
+/// Admin-specific endpoints.
+pub mod admin;
 /// Changelog-specific endpoints.
 pub mod changelog;
 /// Chapter-related endpoints.

@@ -156,107 +156,11 @@ impl ChangelogPage {
         params: ChangelogQueryParams,
     ) -> Result<Option<Vec<ChangelogPage>>> {
         // TODO: Add additonal filters
-        let mut filters: Vec<String> = Vec::new();
-        let mut query_string: String = String::from(
-            r#" 
-            SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
-            cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
-            cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name AS map_name,  
-            CASE
-                WHEN u.board_name IS NULL
-                    THEN u.steam_name
-                WHEN u.board_name IS NOT NULL
-                    THEN u.board_name
-            END user_name, u.avatar
-            FROM "p2boards".changelog AS cl
-            INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
-            INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
-            INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)
-        "#,
-        );
-        if let Some(coop) = params.coop {
-            if !coop {
-                filters.push("chapter.is_multiplayer = False\n".to_string());
-            } else if let Some(sp) = params.sp {
-                if !sp {
-                    filters.push("chapter.is_multiplayer = True\n".to_string());
-                }
-            }
-        }
-        if let Some(has_demo) = params.has_demo {
-            if has_demo {
-                filters.push("cl.demo_id IS NOT NULL\n".to_string());
-            } else {
-                filters.push("cl.demo_id IS NULL\n".to_string());
-            }
-        }
-        if let Some(yt) = params.yt {
-            if yt {
-                filters.push("cl.youtube_id IS NOT NULL\n".to_string());
-            } else {
-                filters.push("cl.youtube_id IS NULL\n".to_string());
-            }
-        }
-        if let Some(wr_gain) = params.wr_gain {
-            if wr_gain {
-                filters.push("cl.post_rank = 1\n".to_string());
-            }
-        }
-        if let Some(chamber) = params.chamber {
-            filters.push(format!("cl.map_id = '{}'\n", &chamber));
-        }
-        if let Some(profile_number) = params.profile_number {
-            filters.push(format!("cl.profile_number = {}\n", &profile_number));
-        } else if let Some(nick_name) = params.nick_name {
-            // TODO: Should we allow for both profile_number and nick_name
-            //eprintln!("{}", nick_name);
-            if let Some(profile_numbers) = Users::check_board_name(pool, nick_name.clone())
-                .await?
-                .as_mut()
-            {
-                if profile_numbers.len() == 1 {
-                    filters.push(format!(
-                        "cl.profile_number = '{}'\n",
-                        &profile_numbers[0].to_string()
-                    ));
-                } else {
-                    let mut profile_str = format!(
-                        "(cl.profile_number = '{}'\n",
-                        &profile_numbers[0].to_string()
-                    );
-                    profile_numbers.remove(0);
-                    for num in profile_numbers.iter() {
-                        profile_str.push_str(&format!(" OR cl.profile_number = '{}'\n", num));
-                    }
-                    profile_str.push(')');
-                    filters.push(profile_str);
-                }
-            } else {
-                bail!("No users found with specified username pattern.");
-            }
-        }
-        if let Some(first) = params.first {
-            filters.push(format!("cl.id > {}\n", &first));
-        } else if let Some(last) = params.last {
-            filters.push(format!("cl.id < {}\n", &last));
-        }
-        // Build the statement based off the elements we added to our vector (used to make sure only first statement is WHERE, and additional are OR)
-        for (i, entry) in filters.iter().enumerate() {
-            if i == 0 {
-                query_string = format!("{} WHERE {}", &query_string, entry);
-            } else {
-                query_string = format!("{} AND {}", &query_string, entry);
-            }
-        }
-        //TODO: Maybe allow for custom order params????
-        query_string = format!("{} ORDER BY cl.timestamp DESC NULLS LAST\n", &query_string);
-        if let Some(limit) = params.limit {
-            query_string = format!("{} LIMIT {}\n", &query_string, limit);
-        } else {
-            // Default limit
-            query_string = format!("{} LIMIT 200\n", &query_string)
-        }
-
+        
+        let query_string = match build_filtered_changelog(pool, params, None).await {
+            Ok(s) => s,
+            Err(e) => bail!(e),
+        };
         let res = sqlx::query_as::<_, ChangelogPage>(&query_string)
             .fetch_all(pool)
             .await;
@@ -268,8 +172,112 @@ impl ChangelogPage {
                 Err(anyhow::Error::new(e).context("Error with SP Maps"))
             }
         }
-        // Ok(Some(res))
     }
+}
+
+pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParams, additional_filters: Option<&mut Vec<String>>) -> Result<String> {
+    let mut query_string: String = String::from(
+        r#" 
+        SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
+        cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
+        cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name AS map_name,  
+        CASE
+            WHEN u.board_name IS NULL
+                THEN u.steam_name
+            WHEN u.board_name IS NOT NULL
+                THEN u.board_name
+        END user_name, u.avatar
+        FROM "p2boards".changelog AS cl
+        INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
+        INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
+        INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)
+    "#,
+    );
+    let mut filters: Vec<String> = Vec::new();
+    if let Some(coop) = params.coop {
+        if !coop {
+            filters.push("chapter.is_multiplayer = False\n".to_string());
+        } else if let Some(sp) = params.sp {
+            if !sp {
+                filters.push("chapter.is_multiplayer = True\n".to_string());
+            }
+        }
+    }
+    if let Some(has_demo) = params.has_demo {
+        if has_demo {
+            filters.push("cl.demo_id IS NOT NULL\n".to_string());
+        } else {
+            filters.push("cl.demo_id IS NULL\n".to_string());
+        }
+    }
+    if let Some(yt) = params.yt {
+        if yt {
+            filters.push("cl.youtube_id IS NOT NULL\n".to_string());
+        } else {
+            filters.push("cl.youtube_id IS NULL\n".to_string());
+        }
+    }
+    if let Some(wr_gain) = params.wr_gain {
+        if wr_gain {
+            filters.push("cl.post_rank = 1\n".to_string());
+        }
+    }
+    if let Some(chamber) = params.chamber {
+        filters.push(format!("cl.map_id = '{}'\n", &chamber));
+    }
+    if let Some(profile_number) = params.profile_number {
+        filters.push(format!("cl.profile_number = {}\n", &profile_number));
+    } else if let Some(nick_name) = params.nick_name {
+        if let Some(profile_numbers) = Users::check_board_name(pool, nick_name.clone())
+            .await?
+            .as_mut()
+        {
+            if profile_numbers.len() == 1 {
+                filters.push(format!(
+                    "cl.profile_number = '{}'\n",
+                    &profile_numbers[0].to_string()
+                ));
+            } else {
+                let mut profile_str = format!(
+                    "(cl.profile_number = '{}'\n",
+                    &profile_numbers[0].to_string()
+                );
+                profile_numbers.remove(0);
+                for num in profile_numbers.iter() {
+                    profile_str.push_str(&format!(" OR cl.profile_number = '{}'\n", num));
+                }
+                profile_str.push(')');
+                filters.push(profile_str);
+            }
+        } else {
+            bail!("No users found with specified username pattern.");
+        }
+    }
+    if let Some(first) = params.first {
+        filters.push(format!("cl.id > {}\n", &first));
+    } else if let Some(last) = params.last {
+        filters.push(format!("cl.id < {}\n", &last));
+    }
+    if let Some(additional_filters) = additional_filters {
+        filters.append(additional_filters);
+    }
+    // Build the statement based off the elements we added to our vector (used to make sure only first statement is WHERE, and additional are OR)
+    for (i, entry) in filters.iter().enumerate() {
+        if i == 0 {
+            query_string = format!("{} WHERE {}", query_string, entry);
+        } else {
+            query_string = format!("{} AND {}", query_string, entry);
+        }
+    }
+    //TODO: Maybe allow for custom order params????
+    query_string = format!("{} ORDER BY cl.timestamp DESC NULLS LAST\n", query_string);
+    if let Some(limit) = params.limit {
+        query_string = format!("{} LIMIT {}\n", query_string, limit);
+    } else {
+        // Default limit
+        query_string = format!("{} LIMIT 200\n", query_string);
+    }
+    Ok(query_string)
 }
 
 impl Default for ChangelogQueryParams {

@@ -1,5 +1,6 @@
 use actix_web::web;
 
+use crate::api::v1::handlers::admin::*;
 use crate::api::v1::handlers::changelog::*;
 use crate::api::v1::handlers::chapters::*;
 use crate::api::v1::handlers::coop::*;
@@ -44,6 +45,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(post_points_chapter)
             .service(get_points_overall)
             .service(post_points_overall)
-            .service(changelog_with_demo),
+            .service(changelog_with_demo)
+            .service(get_admin_changelog), // Admin
     );
 }

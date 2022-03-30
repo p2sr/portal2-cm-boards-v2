@@ -1,21 +1,64 @@
 use crate::models::models::{
-    Changelog, ChangelogInsert, DemoInsert, Demos, Maps, SubmissionChangelog,
+    Changelog, ChangelogInsert, DemoInsert, DemoOptions, Demos, Maps, SubmissionChangelog,
 };
 use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
 use crate::tools::helpers::check_for_valid_score;
 use actix_multipart::Multipart;
-use actix_web::{delete, post, web, HttpResponse, Responder};
+use actix_web::{delete, get, post, web, HttpResponse, Responder};
 use anyhow::{bail, Result};
 use futures::{StreamExt, TryStreamExt};
 use raze::api::*;
 use raze::utils::*;
-use serde::Deserialize;
 use sqlx::PgPool;
 use std::fs::remove_file;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::str;
+
+/// GET endpoint to return demo information.
+/// ## Expects **one** of following fields:
+///
+/// **Required Parameters**: cl_id, demo_id
+///
+/// ## Parameters:
+///
+/// - **cl_id**    
+///     - `i64`: ID for a changelog entry, will grab the most updated demo assocaited with that changelog entry.
+/// - **demo_id**
+///     - `i64`: ID for a specific demo (less likely to be what you want).
+///
+/// ## Example endpoints:       
+/// - `/api/v1/demos?cl_id=15625`
+/// - `/api/v1/demos?demo_id=12651`
+///
+#[get("/demos")]
+pub async fn get_demo(pool: web::Data<PgPool>, query: web::Query<DemoOptions>) -> impl Responder {
+    let query = query.into_inner();
+    let res_str = "Could not find demo.";
+    if query.demo_id.is_none() & !query.cl_id.is_none() {
+        match Demos::get_demo(pool.get_ref(), query.demo_id.unwrap()).await {
+            Ok(Some(demo)) => HttpResponse::Ok().json(demo),
+            Err(e) => {
+                eprintln!("{}", e);
+                HttpResponse::NotFound().body(res_str)
+            }
+            _ => HttpResponse::NotFound().body(res_str),
+        }
+    } else if !query.demo_id.is_none() & query.cl_id.is_none() {
+        match Changelog::get_demo_id_from_changelog(pool.get_ref(), query.cl_id.unwrap()).await {
+            Ok(Some(demo)) => HttpResponse::Ok().json(demo),
+            Err(e) => {
+                eprintln!("{}", e);
+                HttpResponse::NotFound().body(res_str)
+            }
+            _ => HttpResponse::NotFound().body(res_str),
+        }
+    } else {
+        HttpResponse::BadRequest()
+            .body("Neither a `cl_id` nor a `demo_id` was provided to search on.")
+    }
+}
 
 //  a. Handle renaming/db interactions (update demo table/specific time that is being uploaded)
 //  b. Pass to backblaze
@@ -109,6 +152,56 @@ pub async fn changelog_with_demo(
     }
 }
 
+// Different demo entries can have the same changelog ID, but a changelog entry should only have the most recent, valid demo_id.
+/// DELETE endpoint to remove a demo from both backbalze and the database.
+/// ## Expects **one** of the two parametes
+///
+/// ***Note***: If both, or neither parameter is provided you will encounter errors.
+/// If you want to delete the demo associated with a changelog entry, use the changelog entry.
+///
+/// Parameters: demo_id, cl_id
+///
+/// ## Parameters:
+///
+/// - **demo_id**    
+///     - `i64`: ID for a demo entry in the db, use this if you want to delete a specifc demo.
+/// - **cl_id**
+///     - `i64`: ID for a changelog entry, use this if you want to delete the demo associated with a changelog entry.
+///
+/// ## Example endpoints:       
+/// - `/api/v1/demos?cl_id=15625`
+/// - `/api/v1/demos?demo_id=12651`
+#[delete("/demos")]
+pub async fn delete_demo(
+    query: web::Query<DemoOptions>,
+    config: web::Data<Config>,
+    pool: web::Data<PgPool>,
+) -> impl Responder {
+    let query = query.into_inner();
+    let (cl, demo_id) = match get_changelog_and_demo_id(query, pool.get_ref()).await {
+        Ok((cl, demo_id)) => (cl, demo_id),
+        Err(e) => {
+            eprintln!("{}", e);
+            return HttpResponse::NotFound()
+                .body("Cannot find changelog and demo associated with provided information");
+        }
+    };
+    match delete_demo_file(pool.get_ref(), &config.into_inner(), cl, demo_id).await {
+        Ok(_) => match delete_demo_db(pool.get_ref(), demo_id).await {
+            Ok(_) => HttpResponse::Ok().body("Demo file and entry succesfully removed."),
+            Err(e) => {
+                eprintln!("{}", e);
+                return HttpResponse::InternalServerError()
+                    .body("Error deleting demo entry from database");
+            }
+        },
+        Err(e) => {
+            eprintln!("{}", e);
+            return HttpResponse::InternalServerError().body("Error deleting file from backblaze.");
+        }
+    }
+}
+
 /// Adds a demo and changelog insert to the database
 /// The debug value passed will remove the added changelog/demo entries inserted, and skip uploading the file for quicker debugging.
 async fn add_to_database(
@@ -166,6 +259,7 @@ async fn parse_and_write_multipart(payload: &mut Multipart, file_name: &mut Stri
     }
     Ok(())
 }
+
 /// Returns a client, and an authenticated session for use with backblaze.
 async fn b2_client_and_auth(config: &Config) -> Result<(reqwest::Client, B2Auth)> {
     let client = reqwest::ClientBuilder::new().build()?;
@@ -218,66 +312,10 @@ async fn upload_demo(config: &Config, file_name: &str) -> Result<Option<String>>
     Ok(resp1.file_id)
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct DeleteDemo {
-    pub demo_id: Option<i64>,
-    pub cl_id: Option<i64>,
-}
-
-// Different demo entries can have the same changelog ID, but a changelog entry should only have the most recent, valid demo_id.
-/// DELETE endpoint to remove a demo from both backbalze and the database.
-/// ## Expects **one** of the two parametes
-///
-/// ***Note***: If both, or neither parameter is provided you will encounter errors.
-/// If you want to delete the demo associated with a changelog entry, use the changelog entry.
-///
-/// Parameters: demo_id, cl_id
-///
-/// ## Parameters:
-///
-/// - **demo_id**    
-///     - `i64`: ID for a demo entry in the db, use this if you want to delete a specifc demo.
-/// - **cl_id**
-///     - `i64`: ID for a changelog entry, use this if you want to delete the demo associated with a changelog entry.
-///
-/// ## Example endpoints:       
-/// - `/api/v1/demos?cl_id=15625`
-/// - `/api/v1/demos?demo_id=12651`
-#[delete("/demos")]
-pub async fn delete_demo(
-    query: web::Query<DeleteDemo>,
-    config: web::Data<Config>,
-    pool: web::Data<PgPool>,
-) -> impl Responder {
-    let query = query.into_inner();
-    let (cl, demo_id) = match get_changelog_and_demo_id(query, pool.get_ref()).await {
-        Ok((cl, demo_id)) => (cl, demo_id),
-        Err(e) => {
-            eprintln!("{}", e);
-            return HttpResponse::NotFound()
-                .body("Cannot find changelog and demo associated with provided information");
-        }
-    };
-    match delete_demo_file(pool.get_ref(), &config.into_inner(), cl, demo_id).await {
-        Ok(_) => match delete_demo_db(pool.get_ref(), demo_id).await {
-            Ok(_) => HttpResponse::Ok().body("Demo file and entry succesfully removed."),
-            Err(e) => {
-                eprintln!("{}", e);
-                return HttpResponse::InternalServerError()
-                    .body("Error deleting demo entry from database");
-            }
-        },
-        Err(e) => {
-            eprintln!("{}", e);
-            return HttpResponse::InternalServerError().body("Error deleting file from backblaze.");
-        }
-    }
-}
-
 /// Takes in either a demo_id or a changelog_id, and returns a changelog entry and a demno_id
 /// We return a demo_id because there is a chance that there are multiple demos uploaded for the same changelog entry,
 /// and we might want to delete an older demo.
-async fn get_changelog_and_demo_id(query: DeleteDemo, pool: &PgPool) -> Result<(Changelog, i64)> {
+async fn get_changelog_and_demo_id(query: DemoOptions, pool: &PgPool) -> Result<(Changelog, i64)> {
     if let Some(cl_id) = query.cl_id {
         // Find the demo_id currently associated with the changelog entry.
         let changelog = Changelog::get_changelog(pool, cl_id).await?;
@@ -325,7 +363,6 @@ async fn delete_demo_file(
     }
 }
 
-// TODO: Delete the demo_id from changelog entries
 /// Once the file has been removed, delete the demo entry.
 async fn delete_demo_db(pool: &PgPool, demo_id: i64) -> Result<bool> {
     // Delete references to the demo_id in the changelog table.
@@ -336,7 +373,6 @@ async fn delete_demo_db(pool: &PgPool, demo_id: i64) -> Result<bool> {
 
 /// Create file_name
 async fn generate_file_name(pool: &PgPool, cl: Changelog) -> Result<String> {
-    //mapname(Remove Spaces)_score_profilenumber
     let mut map_name = Maps::get_map_name(pool, cl.map_id).await?.unwrap();
     map_name.retain(|c| !c.is_whitespace());
     Ok(format!("{}_{}_{}", map_name, cl.score, cl.profile_number))
