@@ -1,4 +1,4 @@
-use crate::models::models::{Admin, ChangelogPage, ChangelogQueryParams};
+use crate::models::models::{Admin, ChangelogQueryParams};
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
@@ -51,6 +51,9 @@ async fn get_admin_changelog(
     }
 }
 
+/// **GET** method for user statistics on total times, banned times and non-verified times.
+///
+/// Does not include any data on users without either a banned, or non-verified time.
 #[get("/admin/banned_stats")]
 async fn get_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
     match Admin::get_user_banned_time_stats(pool.get_ref()).await {

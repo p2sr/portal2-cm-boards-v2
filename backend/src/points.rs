@@ -311,11 +311,17 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
         } else {
             // Coop
             let url = format!("http://localhost:8080/api/v1/map/coop/{}", &map);
+            let teststring = "76561198081957111".to_string();
             let res: Vec<CoopRanked> = reqwest::blocking::get(&url) // Assumes all top 200
                 .expect("Error in query to our local API (Make sure the webserver is running")
                 .json()
                 .expect("Error in converting our API values to JSON");
             for score in res {
+                if score.map_data.profile_number1 == teststring {
+                    println!("{:#?}", score);
+                } else if score.map_data.profile_number2 == teststring {
+                    println!("{:#?}", score);
+                }
                 //score_calc(score.map_data.score);
                 // Do checks for both player 1 and player2, if one has an entry in the hashmap already, we ignore the points we would add.
                 match coop_hm.insert(score.map_data.profile_number1.clone(), 1) {

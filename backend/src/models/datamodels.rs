@@ -108,7 +108,7 @@ pub struct CoopMap {
 }
 
 /// Wrapper for the coop map data and the rank/score.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CoopRanked {
     pub map_data: CoopMap,
     pub rank: i32,

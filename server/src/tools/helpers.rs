@@ -6,12 +6,16 @@ use std::collections::HashMap;
 
 /// Calcultes the score using the pre-existing iVerb point formula.
 pub fn score(i: i32) -> f32 {
-    let i = i as f32;
-    let res: f32 = pow(200.0 - (i - 1.0), 2) / 200.0;
-    if 1.0 > res {
-        1.0
+    if i > 200 {
+        0.0
     } else {
-        res
+        let i = i as f32;
+        let res: f32 = pow(200.0 - (i - 1.0), 2) / 200.0;
+        if 1.0 > res {
+            1.0
+        } else {
+            res
+        }
     }
 }
 
@@ -25,32 +29,38 @@ pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Ve
     let mut coop_entries_filtered = Vec::new();
     let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(limit);
     remove_dups.insert("".to_string(), 1);
-    for (i, entry) in coop_entries.into_iter().enumerate() {
+    let mut i = 1;
+    for entry in coop_entries.into_iter() {
         match remove_dups.insert(entry.profile_number1.clone(), 1) {
             // If player 1 has a better time, check to see if player 2 doesn't.
             Some(_) => match remove_dups.insert(entry.profile_number2.clone(), 1) {
                 Some(_) => (),
-                _ => coop_entries_filtered.push(CoopRanked {
-                    map_data: entry.clone(),
-                    rank: i as i32 + 1,
-                    points: score(i as i32 + 1),
-                }),
+                _ => {
+                    coop_entries_filtered.push(CoopRanked {
+                        map_data: entry.clone(),
+                        rank: i,
+                        points: score(i),
+                    });
+                    i += 1;
+                }
             },
             // This case handles if player 1 doesn't have a better time, and it tries to add player 2 in as well, if two has a better time or not, this is included.
             _ => match remove_dups.insert(entry.profile_number2.clone(), 1) {
                 Some(_) => {
                     coop_entries_filtered.push(CoopRanked {
                         map_data: entry.clone(),
-                        rank: i as i32 + 1,
-                        points: score(i as i32 + 1),
+                        rank: i,
+                        points: score(i),
                     });
+                    i += 1;
                 }
                 _ => {
                     coop_entries_filtered.push(CoopRanked {
                         map_data: entry.clone(),
-                        rank: i as i32 + 1,
-                        points: score(i as i32 + 1),
+                        rank: i,
+                        points: score(i),
                     });
+                    i += 1;
                 }
             },
         }
