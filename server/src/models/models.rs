@@ -189,6 +189,14 @@ pub struct UsersPage {
     pub avatar: String,
 }
 
+#[derive(Debug, FromRow, Deserialize, Serialize, Clone)]
+
+pub struct UsersDisplay {
+    pub profile_number: String,
+    pub user_name: String,
+    pub avatar: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, FromRow)]
 pub struct Socials {
     pub twitch: Option<String>,
@@ -376,4 +384,9 @@ pub struct SubmissionChangelog {
 pub struct DemoOptions {
     pub demo_id: Option<i64>,
     pub cl_id: Option<i64>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AdminLevel {
+    pub admin_level: Option<i32>,
 }

@@ -16,7 +16,6 @@ impl Admin {
                 Ok(s) => s,
                 Err(e) => bail!(e),
             };
-        println!("{}", query_string);
         let res = sqlx::query_as::<_, ChangelogPage>(&query_string)
             .fetch_all(pool)
             .await;

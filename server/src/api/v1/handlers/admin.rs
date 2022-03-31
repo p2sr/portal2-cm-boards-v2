@@ -1,4 +1,4 @@
-use crate::models::models::{Admin, ChangelogQueryParams};
+use crate::models::models::{Admin, AdminLevel, ChangelogQueryParams, Users};
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
@@ -63,5 +63,39 @@ async fn get_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
             HttpResponse::NotFound().body("Could not find banned stats.")
         }
         _ => HttpResponse::NotFound().body("Could not find banned stats."),
+    }
+}
+
+/// **GET** method that returns lists of admins
+///
+/// **Optional Parameters**:
+///    - **admin_level**           
+///         - The level of admin the user has
+///
+/// ### Usage:
+/// - `admin_level` = 0     
+///     - Non-admin user
+/// - `admin_level` = 1
+///     - **DEFAULT** - Standard admin
+/// - `admin_level` = 2
+///     - Shadow admin - Has admin permissions, is not publically listed (Typically reserved for former admins, trusted players).
+/// - `admin_level` = 3
+///     - Developer admin - Has admin permissions as an activen developer only
+///
+/// ## Example endpoints:
+///  - **Default**           
+///     - `/api/v1/admins`
+///  - **With parameters**   
+///     - `/api/v1/admins?admin-level=2`
+///
+#[get("/admins")]
+async fn get_admin_list(pool: web::Data<PgPool>, query: web::Query<AdminLevel>) -> impl Responder {
+    match Users::get_all_admins(pool.get_ref(), query.into_inner().admin_level.unwrap_or(1)).await {
+        Ok(Some(res)) => HttpResponse::Ok().json(res),
+        Err(e) => {
+            eprintln!("Error getting Admins -> {}", e);
+            HttpResponse::NotFound().body("Could not find admins.")
+        }
+        _ => HttpResponse::NotFound().body("Could not find admins."),
     }
 }

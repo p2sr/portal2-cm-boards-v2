@@ -123,6 +123,7 @@ async fn test_db_users() {
     assert_eq!(admin_vec.len(), 8);
     assert_eq!(admin_vec[7].user_name, "Lathil".to_string());
     insert_user.profile_number = "0".to_string();
+    
     // Test inserts/updates/deletes
     assert!(Users::insert_new_users(&pool, insert_user.clone()).await.unwrap());
     let insert_user_data = Users::get_user_data(&pool, insert_user.profile_number.clone()).await.unwrap().unwrap();
@@ -132,6 +133,10 @@ async fn test_db_users() {
     assert!(Users::update_existing_user(&pool, insert_user.clone()).await.unwrap());
     assert!(Users::delete_user(&pool, insert_user.profile_number.clone()).await.unwrap());
     let _res = Users::get_user_data(&pool, insert_user.profile_number.clone()).await;
+
+    // Donations
+    let donators = Users::get_donators(&pool).await.unwrap().unwrap();
+    assert!(donators.len() != 0);
 }
 
 #[actix_web::test]
@@ -334,7 +339,8 @@ async fn test_db_changelog() {
 #[actix_web::test]
 async fn test_db_pages() {
     use crate::models::models::*;
-    let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    use crate::tools::helpers::{filter_coop_entries, score};
+    let (config, pool) = get_config().await.expect("Error getting config and DB pool");
 
     let sp_map_id = "47763".to_string();
     let coop_map_id = "52642".to_string();
@@ -342,6 +348,19 @@ async fn test_db_pages() {
     assert_ne!(smp.len(), 0);
     let cmp = CoopMap::get_coop_map_page(&pool, coop_map_id.clone(), DEFAULT_PAGE_SIZE as i32, 81).await.unwrap();
     assert_ne!(cmp.len(), 0);
+    let coop_entries_filtered = filter_coop_entries(cmp, config.proof.results as usize).await;
+    // Ensure we didn't mess up the ranking/points algorithm.
+    for i in 0..coop_entries_filtered.len() {
+        assert_eq!((i + 1) as i32, coop_entries_filtered[i].rank);
+        assert_eq!(score((i + 1) as i32), coop_entries_filtered[i].points);
+        if i == 0 {             // Point check for the first entry.
+            assert_eq!(200.0, coop_entries_filtered[i].points);
+        } else if i == 149 {    // Point check for the 150th entry.
+            assert_eq!(13.005, coop_entries_filtered[i].points);
+        } else if i == 200 {    // Point check for the 201st entry.
+            assert_eq!(0.0, coop_entries_filtered[i].points)
+        }
+    }
 
     let sppres = SpPreviews::get_sp_previews(&pool).await.unwrap();
     assert_eq!(sppres.len(), 60);
@@ -350,4 +369,28 @@ async fn test_db_pages() {
 
     let _spbanned = SpBanned::get_sp_banned(&pool, sp_map_id).await.unwrap();
     let _coopbanned = CoopBanned::get_coop_banned(&pool, coop_map_id, 19).await.unwrap();
+}
+
+#[actix_web::test]
+async fn test_db_admins() {
+    use crate::models::models::*;
+    let (_, pool) = get_config().await.expect("Error getting config and DB pool.");
+    let query_params = ChangelogQueryParams {
+        limit: Some(5),
+        nick_name: None,
+        profile_number: None,
+        chamber: None,
+        sp: None,
+        coop: None,
+        wr_gain: None,
+        has_demo: None,
+        yt: None,
+        first: None,
+        last: None,
+    };
+    let ban_page = Admin::get_admin_page(&pool, query_params).await.unwrap().unwrap();
+    assert!(ban_page.len() == 5);
+
+    let ban_stats = Admin::get_user_banned_time_stats(&pool).await.unwrap().unwrap();
+    assert!(ban_stats.len() != 0);
 }

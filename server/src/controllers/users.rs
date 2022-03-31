@@ -116,7 +116,7 @@ impl Users {
             .await?;
         Ok(Some(res))
     }
-    /// Returns UsersPage for all admins
+    /// Returns UsersDisplay for all admins
     /// Usage:  admin_value = 0     -> Non-admin user
     ///         admin_value = 1     -> Standard admin
     ///         admin_value = 2     -> Shadow admin
@@ -124,17 +124,15 @@ impl Users {
     ///             (Typically reserved for former admins, trusted players)
     ///         admin_value = 3     -> Developer admin
     ///             (Has admin permissions as an activen developer only)
-    #[allow(dead_code)]
-    pub async fn get_all_admins(pool: &PgPool, admin_value: i32) -> Result<Option<Vec<UsersPage>>> {
-        let res = sqlx::query_as::<_, UsersPage>(
+    pub async fn get_all_admins(
+        pool: &PgPool,
+        admin_value: i32,
+    ) -> Result<Option<Vec<UsersDisplay>>> {
+        let res = sqlx::query_as::<_, UsersDisplay>(
             r#"
-                SELECT            
-                CASE 
-                    WHEN users.board_name IS NULL
-                        THEN users.steam_name
-                    WHEN users.board_name IS NOT NULL
-                        THEN users.board_name
-                    END user_name, users.avatar
+                SELECT users.profile_number, 
+                    COALESCE(users.board_name, users.steam_name) AS user_name,
+                    users.avatar
                 FROM "p2boards".users
                 WHERE users.admin = $1
                 "#,
