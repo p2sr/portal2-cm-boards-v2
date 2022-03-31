@@ -36,23 +36,47 @@ impl Admin {
         // TODO: Goal is to get the user's information, # times, and # banned times from all users with banned times.
         // TODO: Get verified % ?
         let res: Vec<BannedTimeDetails> = sqlx::query_as::<_, BannedTimeDetails>(
-            r#"
-            SELECT 
-                CASE
-                    WHEN users.board_name IS NULL
-                        THEN users.steam_name
-                    WHEN users.board_name IS NOT NULL
-                        THEN users.board_name
-                    END user_name, users.avatar,
-                    (SELECT COUNT(*) FROM "p2boards".changelog WHERE profile_number = users.profile_number) as num_times,
-                    (SELECT COUNT(*) FROM "p2boards".changelog WHERE profile_number = users.profile_number AND banned = 'true') as times_banned
-                FROM "p2boards".users
-                INNER JOIN "p2boards".changelog ON (users.profile_number = changelog.profile_number)
-                WHERE "#)
+            r#"SELECT d.profile_number, d.user_name, d.avatar, d.total_runs, d.banned_runs, d.non_verified_runs
+            FROM "p2boards".users
+            FULL OUTER JOIN (
+              SELECT users1.profile_number, 
+              COALESCE(users1.board_name, users1.steam_name) AS user_name,
+              users1.avatar, a.banned_runs, b.total_runs, c.non_verified_runs
+                  FROM "p2boards".users AS users1
+                  FULL OUTER JOIN ( 
+                      SELECT usr3.profile_number, COUNT(cl2.id) AS non_verified_runs
+                          FROM "p2boards".changelog as cl2
+                          INNER JOIN "p2boards".users AS usr3 ON (usr3.profile_number = cl2.profile_number)
+                          WHERE cl2.verified = 'false'
+                          GROUP BY usr3.profile_number)
+                      AS c
+                      ON users1.profile_number = c.profile_number
+                  FULL OUTER JOIN (
+                      SELECT usr.profile_number,
+                      COUNT(changelog.id) AS banned_runs
+                          FROM "p2boards".changelog
+                          INNER JOIN "p2boards".users AS usr ON (usr.profile_number = changelog.profile_number)
+                          WHERE changelog.banned = 'true'
+                          GROUP BY usr.profile_number) 
+                      AS a
+                      ON users1.profile_number = a.profile_number
+                  FULL OUTER JOIN (
+                      SELECT usr2.profile_number,
+                      COUNT(cl.id) AS total_runs
+                          FROM "p2boards".changelog as cl
+                          INNER JOIN "p2boards".users AS usr2 ON (usr2.profile_number = cl.profile_number)
+                          GROUP BY usr2.profile_number)
+                      AS b
+                      ON users1.profile_number = b.profile_number)
+              AS d
+              ON d.profile_number = users.profile_number
+            WHERE d.non_verified_runs IS NOT NULL 
+            OR d.banned_runs IS NOT NULL
+          ORDER BY d.total_runs DESC;"#)
             .fetch_all(pool)
             .await
             .unwrap();
 
-        Ok(Some(vec![]))
+        Ok(Some(res))
     }
 }

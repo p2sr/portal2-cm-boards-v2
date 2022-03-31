@@ -10,10 +10,12 @@ pub struct Admin {}
 
 #[derive(Debug, FromRow, Deserialize, Serialize, Clone)]
 pub struct BannedTimeDetails {
+    pub profile_number: String,
     pub user_name: String,
     pub avatar: String,
-    pub num_times: i32,
-    pub times_banned: i32,
+    pub total_runs: i64,
+    pub banned_runs: Option<i64>,
+    pub non_verified_runs: Option<i64>,
 }
 
 /// One-to-one struct for changelog data.

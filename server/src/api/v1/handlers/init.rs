@@ -46,6 +46,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(get_points_overall)
             .service(post_points_overall)
             .service(changelog_with_demo)
-            .service(get_admin_changelog), // Admin
+            .service(get_admin_changelog) // Admin
+            .service(get_banned_stats),
     );
 }

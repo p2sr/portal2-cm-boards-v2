@@ -50,3 +50,12 @@ async fn get_admin_changelog(
         _ => HttpResponse::NotFound().body("No changelog entries found."),
     }
 }
+
+#[get("/admin/banned_stats")]
+async fn get_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
+    let res = Admin::get_user_banned_time_stats(pool.get_ref())
+        .await
+        .unwrap()
+        .unwrap();
+    HttpResponse::Ok().json(res)
+}
