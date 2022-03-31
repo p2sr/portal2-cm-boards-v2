@@ -53,9 +53,12 @@ async fn get_admin_changelog(
 
 #[get("/admin/banned_stats")]
 async fn get_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
-    let res = Admin::get_user_banned_time_stats(pool.get_ref())
-        .await
-        .unwrap()
-        .unwrap();
-    HttpResponse::Ok().json(res)
+    match Admin::get_user_banned_time_stats(pool.get_ref()).await {
+        Ok(Some(res)) => HttpResponse::Ok().json(res),
+        Err(e) => {
+            eprintln!("Error getting banned time stats -> {}", e);
+            HttpResponse::NotFound().body("Could not find banned stats.")
+        }
+        _ => HttpResponse::NotFound().body("Could not find banned stats."),
+    }
 }

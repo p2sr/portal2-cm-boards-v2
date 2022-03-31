@@ -151,6 +151,18 @@ impl Users {
             }
         }
     }
+    /// Returns all users that have donated to the board. Ordered by highest amount.
+    pub async fn get_donators(pool: &PgPool) -> Result<Option<Vec<Users>>> {
+        let res = sqlx::query_as::<_, Users>(
+            r#"
+            SELECT * FROM "p2boards".users
+                WHERE donation_amount IS NOT NULL
+                ORDER BY CAST(donation_amount AS decimal) DESC;"#,
+        )
+        .fetch_all(pool)
+        .await?;
+        Ok(Some(res))
+    }
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
     /// Inserts a new user into the databse
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<bool> {

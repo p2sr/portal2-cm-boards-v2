@@ -9,7 +9,7 @@ async fn get_user(pool: web::Data<PgPool>, profile_number: web::Path<String>) ->
     match res {
         Ok(Some(user)) => HttpResponse::Ok().json(user),
         Ok(None) => HttpResponse::NotFound().body("User does not exist."),
-        _ => HttpResponse::NotFound().body("Error fetching previews"),
+        _ => HttpResponse::NotFound().body("Error fetching Users"),
     }
 }
 
@@ -32,7 +32,7 @@ async fn check_ban_status(
     let res = Users::check_banned(pool.get_ref(), profile_number.into_inner().clone()).await;
     match res {
         Ok(banned_bool) => HttpResponse::Ok().json(banned_bool),
-        _ => HttpResponse::NotFound().body("Error fetching previews"),
+        _ => HttpResponse::NotFound().body("Error fetching banned users"),
     }
 }
 
@@ -50,5 +50,17 @@ async fn post_new_user(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> i
             );
             HttpResponse::InternalServerError().body("Could not add user to database.")
         }
+    }
+}
+// TODO: Fix the naming
+#[get("/donators")]
+pub async fn get_donators(pool: web::Data<PgPool>) -> impl Responder {
+    match Users::get_donators(pool.get_ref()).await {
+        Ok(Some(res)) => HttpResponse::Ok().json(res),
+        Err(e) => {
+            eprintln!("Error getting donation stats -> {}", e);
+            HttpResponse::NotFound().body("Could not find donation stats.")
+        }
+        _ => HttpResponse::NotFound().body("Could not find donation stats."),
     }
 }
