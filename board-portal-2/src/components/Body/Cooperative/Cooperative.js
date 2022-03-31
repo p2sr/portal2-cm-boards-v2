@@ -6,7 +6,7 @@ import courses from "./Courses";
 import Typography from "@material-ui/core/Typography";
 import imagePaths from "../SinglePlayer/ChamberImages";
 
-const ENDPOINT = "http://localhost:8080/api/coop";
+const ENDPOINT = "http://localhost:8080/api/v1/coop";
 
 /**
  * @name - App
@@ -28,7 +28,6 @@ function Cooperative() {
       try {
         let response = await fetch(ENDPOINT);
         let data = await response.json();
-
         setLevelData(data);
       } catch (error) {
         console.log(error);

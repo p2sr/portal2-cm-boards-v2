@@ -3,24 +3,12 @@ import Score from "./Score";
 function Scores({ mapData, mapType }) {
   const getName = (item) => {
     if (mapType === "sp") {
-      return item.map_data.boardname
-        ? item.map_data.boardname
-        : item.map_data.steamname;
+      return item.map_data.user_name
     } else if (mapType === "coop") {
-      if (item.map_data.boardname2 || item.map_data.steamname2) {
-        return `${
-          item.map_data.boardname1
-            ? item.map_data.boardname1
-            : item.map_data.steamname1
-        } & ${
-          item.map_data.boardname2
-            ? item.map_data.boardname2
-            : item.map_data.steamname2
-        }`;
+      if (item.map_data.user_name2) {
+        return `${item.map_data.user_name1} & ${item.map_data.user_name2}`;
       } else {
-        return item.map_data.boardname1
-          ? item.map_data.boardname1
-          : item.map_data.steamname1;
+        return item.map_data.user_name1
       }
     }
   };

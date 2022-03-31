@@ -26,16 +26,7 @@ function ChamberCard(props) {
       <CardContent className={classes.first_place}>
         <Grid container direction="row" justify="space-between">
           <Typography variant="body2">
-            {`${
-              props.scores[0].boardname1
-                ? props.scores[0].boardname1
-                : props.scores[0].steamname1
-            }
-                        & ${
-                          props.scores[0].boardname2
-                            ? props.scores[0].boardname2
-                            : props.scores[0].steamname2
-                        }`}
+            {`${props.scores[0].user_name1} & ${props.scores[0].user_name2}`}
           </Typography>
           <Typography variant="body2">{props.scores[0].score}</Typography>
         </Grid>
@@ -49,12 +40,7 @@ function ChamberCard(props) {
             >
               <Grid container direction="row" justify="space-between">
                 <Typography variant="caption">
-                  {`${score.boardname1 ? score.boardname1 : score.steamname1}
-                                    & ${
-                                      score.boardname2
-                                        ? score.boardname2
-                                        : score.steamname2
-                                    }`}
+                  {`${score.user_name1} & ${score.user_name2}`}
                 </Typography>
                 <Typography variant="caption">{score.score}</Typography>
               </Grid>

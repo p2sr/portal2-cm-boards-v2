@@ -7,7 +7,7 @@ import Graph from "./Graph"
 import Filters from "./Filters"
 import { ThemeContext } from "../../../App.js"
 
-const ENDPOINT = "http://localhost:8080/api/changelog"
+const ENDPOINT = "http://localhost:8080/api/v1/changelog"
 
 /**
  * @name - ChangeLog
