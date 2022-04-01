@@ -1,5 +1,6 @@
 use chrono::NaiveDateTime;
 use sqlx::FromRow;
+use std::collections::HashMap;
 
 //
 // Database
@@ -389,4 +390,39 @@ pub struct DemoOptions {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AdminLevel {
     pub admin_level: Option<i32>,
+}
+
+///
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PointsReceiveWrapper {
+    pub id: Option<i32>,
+    pub hm_points: HashMap<String, Points>,
+    pub ordered_points: Vec<(String, Points)>,
+}
+
+///
+#[derive(Debug, Clone, Serialize)]
+pub struct PointsWriteWrapper<'a> {
+    pub id: Option<i32>,
+    pub points: &'a Vec<(String, Points)>,
+}
+
+///
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PointsReadWrapper {
+    pub id: Option<i32>,
+    pub points: Vec<(String, Points)>,
+}
+
+/// Point information for a given player.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Points {
+    pub points: f32,
+    pub score: i32, // TODO: Need to change the format to support SAR timing
+    pub num_scores: i32,
+    pub total_rank_sum: i32,
+    pub worst: (i32, String),
+    pub best: (i32, String),
+    pub user_name: Option<String>,
+    pub avatar: Option<String>,
 }

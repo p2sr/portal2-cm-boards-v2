@@ -8,10 +8,11 @@ pub struct PointsWrapper {
     points: HashMap<String, Points>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SendWrapper {
+#[derive(Debug, Clone, Serialize)]
+pub struct SendWrapper<'a> {
     id: Option<i32>,
-    points: Vec<(String, Points)>,
+    hm_points: &'a HashMap<String, Points>,
+    ordered_points: Vec<(String, Points)>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -90,12 +91,13 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         // TODO: This allocation is really annoying, would *love* to fix it. Maybe compute this on the webserver??
         let hm_vec_clone = hm_vec.clone();
         let mut send_vec: Vec<SendWrapper> = Vec::with_capacity(16);
-        for chapter in hm_vec_clone.into_iter() {
+        for (i, chapter) in hm_vec_clone.into_iter().enumerate() {
             let mut sorted: Vec<_> = chapter.points.into_iter().collect();
             sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
             send_vec.push(SendWrapper {
                 id: chapter.id,
-                points: sorted,
+                hm_points: &hm_vec[i].points,
+                ordered_points: sorted,
             });
         }
 
@@ -170,7 +172,8 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
             .post(&url)
             .json(&SendWrapper {
                 id: None,
-                points: sorted,
+                hm_points: &sp_hm,
+                ordered_points: sorted,
             })
             .send()
             .expect("Error querying our local API");
@@ -185,7 +188,8 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
             .post(&url)
             .json(&SendWrapper {
                 id: None,
-                points: sorted,
+                hm_points: &coop_hm,
+                ordered_points: sorted,
             })
             .send()
             .expect("Error querying our local API");
@@ -229,6 +233,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
                 }
             }
         }
+        let ohmclone = overall_hm.clone();
         let mut sorted: Vec<_> = overall_hm.into_iter().collect();
         sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
 
@@ -238,7 +243,8 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
             .post(&url)
             .json(&SendWrapper {
                 id: None,
-                points: sorted,
+                hm_points: &ohmclone,
+                ordered_points: sorted,
             })
             .send()
             .expect("Error querying our local API");

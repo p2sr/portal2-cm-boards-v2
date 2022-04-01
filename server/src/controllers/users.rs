@@ -151,15 +151,8 @@ impl Users {
         )
         .bind(admin_value)
         .fetch_all(pool)
-        .await;
-        match res {
-            Ok(user_data) => Ok(Some(user_data)),
-            Err(e) => {
-                eprintln!("User not found get_user_data -> {}", e);
-                // return Err(anyhow::Error::new(e).context("Error with user data."))
-                Ok(None)
-            }
-        }
+        .await?;
+        Ok(Some(res))
     }
     /// Returns all users that have donated to the board. Ordered by highest amount.
     pub async fn get_donators(pool: &PgPool) -> Result<Option<Vec<Users>>> {
@@ -173,6 +166,9 @@ impl Users {
         .await?;
         Ok(Some(res))
     }
+    //TODO: pub async fn get_profile(pool: &PgPool, profile_number: String) -> Result<Option<ProfilePage>> {
+    //     Ok(Some(ProfilePage {}))
+    // }
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
     /// Inserts a new user into the databse
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<bool> {

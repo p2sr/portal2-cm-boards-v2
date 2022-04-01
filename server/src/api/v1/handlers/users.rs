@@ -54,7 +54,7 @@ async fn post_new_user(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> i
 }
 // TODO: Fix the naming
 #[get("/donators")]
-pub async fn get_donators(pool: web::Data<PgPool>) -> impl Responder {
+async fn get_donators(pool: web::Data<PgPool>) -> impl Responder {
     match Users::get_donators(pool.get_ref()).await {
         Ok(Some(res)) => HttpResponse::Ok().json(res),
         Err(e) => {
@@ -74,3 +74,8 @@ async fn get_wall_of_shame(pool: web::Data<PgPool>) -> impl Responder {
         _ => HttpResponse::NotFound().body("Error fetching previews"),
     }
 }
+
+//TODO: #[get("/profile/{profile_number}")]
+// async fn get_profile(pool: web::Data<PgPool>) -> impl Responder {
+//     let res = ;
+// }

@@ -1,3 +1,4 @@
+use crate::models::models::Points;
 use anyhow::Error;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -12,11 +13,13 @@ use tokio::sync::Mutex;
 pub struct CacheState {
     pub current_state: Arc<Mutex<HashMap<&'static str, bool>>>,
     pub default_cat_ids: HashMap<String, i32>,
+    pub points: Arc<Mutex<HashMap<&'static str, HashMap<String, Points>>>>,
 }
 impl CacheState {
     /// Constructs a new hashmap for the cache state with static str's to represent all the values we want to cache
     pub fn new(default_cat_ids: HashMap<String, i32>) -> Self {
         let mut hm = HashMap::new();
+        let mut points = HashMap::new();
         let cached_endpoints: Vec<&'static str> = vec![
             "sp_previews",
             "coop_previews",
@@ -35,17 +38,22 @@ impl CacheState {
             "points13",
             "points14",
             "points15",
-            "pointssp",
-            "pointscoop",
-            "pointsoverall",
+            "points_sp",
+            "points_coop",
+            "points_overall",
         ];
         for x in cached_endpoints {
-            hm.insert(x, false);
+            if x != "sp_previews" || x != "coop_previews" {
+                points.insert(x, HashMap::new());
+            } else {
+                hm.insert(x, false);
+            }
         }
-        //println!("{:#?}", hm);
+        // TODO: Dump the cache for in-memory, then load the most recent cache on startup
         CacheState {
             current_state: Arc::new(Mutex::new(hm)),
             default_cat_ids,
+            points: Arc::new(Mutex::new(points)),
         }
     }
 }

@@ -1,65 +1,55 @@
+use crate::models::models::{Points, PointsReadWrapper, PointsReceiveWrapper, PointsWriteWrapper};
+use crate::tools::cache::CacheState;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use anyhow::{Error, Result};
-// use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
 /// Writes out json data to cache points for the boards.
-pub async fn write_to_file(id: &str, data: web::Json<SendWrapper>) -> Result<(), Error> {
+pub async fn write_to_file(id: &str, data: &web::Json<PointsReceiveWrapper>) -> Result<(), Error> {
     use std::fs;
     fs::create_dir_all("./points")?;
     let path_str = format!("./points/{}.json", id);
     let path = Path::new(&path_str);
-    serde_json::to_writer(&File::create(path)?, &data)
+    let write = PointsWriteWrapper {
+        id: data.id,
+        points: &data.ordered_points,
+    };
+    serde_json::to_writer(&File::create(path)?, &write)
         .map(|_| ())
         .map_err(|err| err.into())
 }
 
 // TODO: Should be able to make this faster, but stuck with weird limitations to mapping result values from serde.
 /// Reads in json from the cache for the passed in ID.
-pub async fn read_from_file(id: &str) -> Result<SendWrapper, Error> {
+pub async fn read_from_file(id: &str) -> Result<PointsReadWrapper, Error> {
     let path_str = format!("./points/{}.json", id);
     let path = Path::new(&path_str);
     let mut file = File::open(path)?;
     let mut buff = String::new();
     file.read_to_string(&mut buff)?;
-    let res: SendWrapper = serde_json::from_str(&buff)?;
+    let res: PointsReadWrapper = serde_json::from_str(&buff)?;
     Ok(res)
-}
-
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-// pub struct PointsWrapper {
-//     id: Option<i32>,
-//     points: HashMap<String, Points>,
-// }
-
-/// Wrapper struct that contains an optional ID to identify chapter (None if not a chapter), and a hashmap that contains all point information.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SendWrapper {
-    id: Option<i32>,
-    points: Vec<(String, Points)>,
-}
-
-/// Point information for a given player.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Points {
-    points: f32,
-    score: i32, // TODO: Need to change the format to support SAR timing
-    num_scores: i32,
-    total_rank_sum: i32,
-    worst: (i32, String),
-    best: (i32, String),
-    user_name: Option<String>,
-    avatar: Option<String>,
 }
 
 /// Update single player points data.
 #[post("/points/sp")]
-async fn post_points_sp(data: web::Json<SendWrapper>) -> impl Responder {
+async fn post_points_sp(
+    data: web::Json<PointsReceiveWrapper>,
+    cache: web::Data<CacheState>,
+) -> impl Responder {
     // Cache data in .json files
-    match write_to_file("sp", data).await {
-        Ok(_) => HttpResponse::Ok().body("Success"), // TODO: Fix error handling (return values?)
+    match write_to_file("sp", &data).await {
+        Ok(_) => {
+            let points_hm = &mut cache.points.lock().await;
+            let points_cache = points_hm.get_mut("points_sp").unwrap();
+            for (k, v) in data.into_inner().hm_points.into_iter() {
+                points_cache.insert(k, v);
+            }
+            // println!("Updated cache.");
+            HttpResponse::Ok().body("Success")
+        }
         _ => HttpResponse::NotFound().body("Error updaing score entries for sp"),
     }
 }
@@ -76,10 +66,21 @@ async fn get_points_sp() -> impl Responder {
 
 /// Update coop points data.
 #[post("/points/coop")]
-async fn post_points_coop(data: web::Json<SendWrapper>) -> impl Responder {
+async fn post_points_coop(
+    data: web::Json<PointsReceiveWrapper>,
+    cache: web::Data<CacheState>,
+) -> impl Responder {
     // Cache data in .json files
-    match write_to_file("coop", data).await {
-        Ok(_) => HttpResponse::Ok().body("Success"), // TODO: Fix error handling (return values?)
+    match write_to_file("coop", &data).await {
+        Ok(_) => {
+            let points_hm = &mut cache.points.lock().await;
+            let points_cache = points_hm.get_mut("points_coop").unwrap();
+            for (k, v) in data.into_inner().hm_points.into_iter() {
+                points_cache.insert(k, v);
+            }
+            // println!("Updated cache.");
+            HttpResponse::Ok().body("Success")
+        }
         _ => HttpResponse::NotFound().body("Error updaing score entries for coop"),
     }
 }
@@ -94,16 +95,23 @@ async fn get_points_coop() -> impl Responder {
     }
 }
 
-/// Update chapter data, uses JSON ID (see [SendWrapper]).
+/// Update chapter data, uses JSON ID (see [PointsReceiveWrapper]).
 #[post("/points/chapter")]
-async fn post_points_chapter(data: web::Json<SendWrapper>) -> impl Responder {
-    match write_to_file(
-        &data.id.expect("No chapter ID for chapter").to_string(),
-        data,
-    )
-    .await
-    {
-        Ok(_) => HttpResponse::Ok().body("Success"), // TODO: Fix error handling (return values?)
+async fn post_points_chapter(
+    data: web::Json<PointsReceiveWrapper>,
+    cache: web::Data<CacheState>,
+) -> impl Responder {
+    let id = data.id.expect("No chapter ID for chapter").to_string();
+    match write_to_file(&id, &data).await {
+        Ok(_) => {
+            let points_hm = &mut cache.points.lock().await;
+            let points_cache = points_hm.get_mut(&*format!("points{}", id)).unwrap();
+            for (k, v) in data.into_inner().hm_points.into_iter() {
+                points_cache.insert(k, v);
+            }
+            // println!("Updated cache.");
+            HttpResponse::Ok().body("Success")
+        }
         _ => HttpResponse::NotFound().body("Error updaing score entries for chapter"),
     }
 }
@@ -120,9 +128,21 @@ async fn get_points_chapter(id: web::Path<u64>) -> impl Responder {
 
 /// Update overall points data.
 #[post("/points/overall")]
-async fn post_points_overall(data: web::Json<SendWrapper>) -> impl Responder {
-    match write_to_file("overall", data).await {
-        Ok(_) => HttpResponse::Ok().body("Success"), // TODO: Fix error handling (return values?)
+async fn post_points_overall(
+    data: web::Json<PointsReceiveWrapper>,
+    cache: web::Data<CacheState>,
+) -> impl Responder {
+    match write_to_file("overall", &data).await {
+        Ok(_) => {
+            let points_hm = &mut cache.points.lock().await;
+            let points_cache = points_hm.get_mut("points_overall").unwrap();
+            for (k, v) in data.into_inner().hm_points.into_iter() {
+                points_cache.insert(k, v);
+            }
+            // println!("Updated cache.");
+            println!("{:#?}", points_cache);
+            HttpResponse::Ok().body("Success")
+        } // TODO: Fix error handling (return values?)
         _ => HttpResponse::NotFound().body("Error updaing score entries for overall"),
     }
 }
