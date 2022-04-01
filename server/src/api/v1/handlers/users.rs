@@ -1,4 +1,4 @@
-use crate::models::models::Users;
+use crate::models::models::{Users, UsersDisplay};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
@@ -62,5 +62,15 @@ pub async fn get_donators(pool: web::Data<PgPool>) -> impl Responder {
             HttpResponse::NotFound().body("Could not find donation stats.")
         }
         _ => HttpResponse::NotFound().body("Could not find donation stats."),
+    }
+}
+
+/// GET method for the UsersDisplay of all banned users on the board.
+#[get("/wall_of_shame")]
+async fn get_wall_of_shame(pool: web::Data<PgPool>) -> impl Responder {
+    let res = Users::get_banned_display(pool.get_ref()).await;
+    match res {
+        Ok(Some(users)) => HttpResponse::Ok().json(users),
+        _ => HttpResponse::NotFound().body("Error fetching previews"),
     }
 }

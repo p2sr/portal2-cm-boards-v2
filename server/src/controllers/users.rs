@@ -69,6 +69,18 @@ impl Users {
         .await?;
         Ok(res)
     }
+    /// Returns a list of all banned player's as a UsersDisplay object.
+    pub async fn get_banned_display(pool: &PgPool) -> Result<Option<Vec<UsersDisplay>>> {
+        let res = sqlx::query_as::<_, UsersDisplay>(
+            r#" SELECT users.profile_number,
+                COALESCE(users.board_name, users.steam_name) as user_name, 
+                users.avatar
+                    FROM "p2boards".users WHERE users.banned = 'true'"#,
+        )
+        .fetch_all(pool)
+        .await?;
+        Ok(Some(res))
+    }
     /// Returns the boolean flag associated with the user in the boards, if Err, assumed User does not exist.
     pub async fn check_banned(pool: &PgPool, profile_number: String) -> Result<bool> {
         let res = sqlx::query(

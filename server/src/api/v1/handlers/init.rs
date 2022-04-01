@@ -15,7 +15,6 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v1")
             .service(get_singleplayer_maps) // SP
-            // .service(web::resource(["/map/sp/{map_id}"]).to(get_singleplayer_maps))
             .service(get_singleplayer_preview)
             .service(get_banned_scores_sp)
             .service(post_banned_scores_sp)
@@ -29,12 +28,12 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(get_cooperative_preview)
             .service(get_changelog)
             .service(post_score_coop)
-            // .service(post_changelog_filtered)
             .service(check_ban_status) // Users
             .service(get_user)
             .service(get_banned_users)
             .service(post_new_user)
             .service(get_donators)
+            .service(get_wall_of_shame)
             .service(get_map_ids_by_chapter) // Chapters
             .service(get_chapter_by_name)
             .service(get_default_cat) // Maps

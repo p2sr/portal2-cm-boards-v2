@@ -78,7 +78,7 @@ pub struct SpMap {
     pub avatar: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct SpRanked {
     pub map_data: SpMap,
     pub rank: i32,

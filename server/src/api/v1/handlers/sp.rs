@@ -67,19 +67,11 @@ pub async fn get_singleplayer_maps(
         Ok(sp_map) => {
             let mut ranked_vec = Vec::with_capacity(config.proof.results as usize);
             for (i, entry) in sp_map.into_iter().enumerate() {
-                if i > 200 {
-                    ranked_vec.push(SpRanked {
-                        map_data: entry,
-                        rank: i as i32 + 1,
-                        points: score(i as i32 + 1),
-                    });
-                } else {
-                    ranked_vec.push(SpRanked {
-                        map_data: entry,
-                        rank: i as i32 + 1,
-                        points: 0.0,
-                    });
-                }
+                ranked_vec.push(SpRanked {
+                    map_data: entry,
+                    rank: i as i32 + 1,
+                    points: score(i as i32 + 1),
+                })
             }
             HttpResponse::Ok().json(ranked_vec)
         }
