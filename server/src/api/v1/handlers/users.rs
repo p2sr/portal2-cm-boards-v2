@@ -1,4 +1,5 @@
-use crate::models::models::{Users, UsersDisplay};
+use crate::models::models::{PointsProfileWrapper, ProfileData, ProfilePage, Users, UsersDisplay};
+use crate::tools::cache::CacheState;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
@@ -75,7 +76,47 @@ async fn get_wall_of_shame(pool: web::Data<PgPool>) -> impl Responder {
     }
 }
 
-//TODO: #[get("/profile/{profile_number}")]
-// async fn get_profile(pool: web::Data<PgPool>) -> impl Responder {
-//     let res = ;
-// }
+#[get("/profile/{profile_number}")]
+async fn get_profile(
+    pool: web::Data<PgPool>,
+    profile_number: web::Path<String>,
+    cache: web::Data<CacheState>,
+) -> impl Responder {
+    let profile_number = profile_number.into_inner();
+    match Users::get_profile(pool.get_ref(), &profile_number).await {
+        Ok(Some(data)) => {
+            let mut points: Vec<&PointsProfileWrapper> = Vec::new();
+            let points_hm = cache.points.lock().await;
+            // for i in 1..16 {
+            //     let points_cache = points_hm.get(&*format!("points{}", i)).unwrap();
+            //     // TODO: Check this unwrap()
+            //     let x = PointsProfileWrapper {
+            //         id: i,
+            //         points: points_cache.get(&profile_number).unwrap(),
+            //     };
+            //     points.push(x);
+            // }
+            let points_cache = points_hm.get("points_sp").unwrap();
+            let sp = PointsProfileWrapper {
+                id: -1,
+                points: points_cache.get(&profile_number).unwrap(),
+            };
+            points.push(&sp);
+            let points_cache = points_hm.get("points_coop").unwrap();
+            let coop = PointsProfileWrapper {
+                id: -2,
+                points: points_cache.get(&profile_number).unwrap(),
+            };
+            points.push(&coop);
+            let points_cache = points_hm.get("points_overall").unwrap();
+            let overall = PointsProfileWrapper {
+                id: -3,
+                points: points_cache.get(&profile_number).unwrap(),
+            };
+            points.push(&overall);
+            let profile_page = ProfilePage { points, data };
+            HttpResponse::Ok().json(profile_page)
+        }
+        _ => HttpResponse::NotFound().body("Could not create profile page for user."),
+    }
+}

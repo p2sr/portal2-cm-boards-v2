@@ -275,20 +275,6 @@ AND c2.verified=True
 ORDER BY score ASC;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 SELECT users.profile_number, a.user_name, a.banned_runs, b.total_runs, c.non_verified_runs
   FROM "p2boards".users RIGHT JOIN (
       SELECT usr.profile_number,
@@ -386,3 +372,22 @@ SELECT d.profile_number, d.user_name, d.total_runs, d.banned_runs, d.non_verifie
   WHERE d.non_verified_runs IS NOT NULL 
   OR d.banned_runs IS NOT NULL
 ORDER BY d.total_runs DESC;
+
+
+
+SELECT old.steam_id, old.name, old.score, old.timestamp FROM 
+  (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM "p2boards".maps 
+  INNER JOIN "p2boards".changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
+  SELECT *
+    FROM (
+        SELECT MAX(o1.timestamp)
+          FROM
+          (SELECT DISTINCT ON (m1.steam_id) m1.steam_id, m1.name, cl1.score, cl1.timestamp, cl1.id
+            FROM "p2boards".changelog AS cl1
+              INNER JOIN "p2boards".maps AS m1
+                ON (cl1.map_id = m1.steam_id)
+              WHERE cl1.profile_number = '76561198040982247'
+              AND cl1.banned = 'false'
+              AND cl1.verified = 'true'
+              and cl1.category_id = m1.default_cat_id
+              ORDER BY m1.steam_id, cl1.score) AS o1) AS a)) AS old;

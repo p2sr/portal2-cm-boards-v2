@@ -166,9 +166,60 @@ impl Users {
         .await?;
         Ok(Some(res))
     }
-    //TODO: pub async fn get_profile(pool: &PgPool, profile_number: String) -> Result<Option<ProfilePage>> {
-    //     Ok(Some(ProfilePage {}))
-    // }
+    pub async fn get_profile(
+        pool: &PgPool,
+        profile_number: &String,
+    ) -> Result<Option<ProfileData>> {
+        let oldest = sqlx::query_as::<_, MapScoreDate>(r#"
+            SELECT old.steam_id, old.name, old.score, old.timestamp FROM 
+                (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM "p2boards".maps 
+                INNER JOIN "p2boards".changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
+                SELECT *
+                    FROM (
+                        SELECT MIN(o1.timestamp)
+                        FROM
+                        (SELECT DISTINCT ON (m1.steam_id) m1.steam_id, m1.name, cl1.score, cl1.timestamp, cl1.id
+                            FROM "p2boards".changelog AS cl1
+                            INNER JOIN "p2boards".maps AS m1
+                                ON (cl1.map_id = m1.steam_id)
+                            WHERE cl1.profile_number = $1
+                            AND cl1.banned = 'false'
+                            AND cl1.verified = 'true'
+                            AND cl1.category_id = m1.default_cat_id
+                            ORDER BY m1.steam_id, cl1.score) AS o1) AS a)) AS old;"#)
+            .bind(profile_number)
+            .fetch_one(pool)
+            .await?;
+        let newest = sqlx::query_as::<_, MapScoreDate>(r#"
+            SELECT old.steam_id, old.name, old.score, old.timestamp FROM 
+                (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM "p2boards".maps 
+                INNER JOIN "p2boards".changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
+                SELECT *
+                    FROM (
+                        SELECT MAX(o1.timestamp)
+                        FROM
+                        (SELECT DISTINCT ON (m1.steam_id) m1.steam_id, m1.name, cl1.score, cl1.timestamp, cl1.id
+                            FROM "p2boards".changelog AS cl1
+                            INNER JOIN "p2boards".maps AS m1
+                                ON (cl1.map_id = m1.steam_id)
+                            WHERE cl1.profile_number = $1
+                            AND cl1.banned = 'false'
+                            AND cl1.verified = 'true'
+                            AND cl1.category_id = m1.default_cat_id
+                            ORDER BY m1.steam_id, cl1.score) AS o1) AS a)) AS old;"#)
+            .bind(profile_number)
+            .fetch_one(pool)
+            .await?;
+        let wrs = sqlx::query_as::<_, ProfileWrs>(r#""#)
+            .bind(profile_number)
+            .fetch_one(pool)
+            .await?;
+        Ok(Some(ProfileData {
+            oldest,
+            newest,
+            wrs,
+        }))
+    }
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
     /// Inserts a new user into the databse
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<bool> {

@@ -392,6 +392,8 @@ pub struct AdminLevel {
     pub admin_level: Option<i32>,
 }
 
+// Points
+
 ///
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PointsReceiveWrapper {
@@ -425,4 +427,39 @@ pub struct Points {
     pub best: (i32, String),
     pub user_name: Option<String>,
     pub avatar: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct MapScoreDate {
+    pub map: String,
+    pub map_name: String,
+    pub score: i32,
+    pub timestamp: Option<NaiveDateTime>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ProfileWrs {
+    pub sp_wrs: i32,
+    pub coop_wrs: i32,
+    pub overall_wrs: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProfileData {
+    pub oldest: MapScoreDate,
+    pub newest: MapScoreDate,
+    pub wrs: ProfileWrs,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PointsProfileWrapper<'a> {
+    pub id: i32,
+    pub points: &'a Points,
+}
+
+// Average ranks can be computed with points.
+#[derive(Debug, Clone, Serialize)]
+pub struct ProfilePage<'a> {
+    pub points: Vec<&'a PointsProfileWrapper>,
+    pub data: ProfileData,
 }
