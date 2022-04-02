@@ -437,29 +437,21 @@ pub struct MapScoreDate {
     pub timestamp: Option<NaiveDateTime>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct ProfileWrs {
-    pub sp_wrs: i32,
-    pub coop_wrs: i32,
-    pub overall_wrs: i32,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileData {
     pub oldest: MapScoreDate,
     pub newest: MapScoreDate,
-    pub wrs: ProfileWrs,
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct PointsProfileWrapper<'a> {
+pub struct PointsProfileWrapper {
     pub id: i32,
-    pub points: &'a Points,
+    pub points: Points,
 }
 
 // Average ranks can be computed with points.
 #[derive(Debug, Clone, Serialize)]
-pub struct ProfilePage<'a> {
-    pub points: Vec<&'a PointsProfileWrapper>,
+pub struct ProfilePage {
+    pub points: Vec<PointsProfileWrapper>,
     pub data: ProfileData,
 }

@@ -34,6 +34,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(post_new_user)
             .service(get_donators)
             .service(get_wall_of_shame)
+            .service(get_profile)
             .service(get_map_ids_by_chapter) // Chapters
             .service(get_chapter_by_name)
             .service(get_default_cat) // Maps

@@ -171,7 +171,7 @@ impl Users {
         profile_number: &String,
     ) -> Result<Option<ProfileData>> {
         let oldest = sqlx::query_as::<_, MapScoreDate>(r#"
-            SELECT old.steam_id, old.name, old.score, old.timestamp FROM 
+            SELECT old.steam_id AS map, old.name AS map_name, old.score, old.timestamp FROM 
                 (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM "p2boards".maps 
                 INNER JOIN "p2boards".changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
                 SELECT *
@@ -191,7 +191,7 @@ impl Users {
             .fetch_one(pool)
             .await?;
         let newest = sqlx::query_as::<_, MapScoreDate>(r#"
-            SELECT old.steam_id, old.name, old.score, old.timestamp FROM 
+            SELECT old.steam_id AS map, old.name AS map_name, old.score, old.timestamp FROM 
                 (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM "p2boards".maps 
                 INNER JOIN "p2boards".changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
                 SELECT *
@@ -210,15 +210,11 @@ impl Users {
             .bind(profile_number)
             .fetch_one(pool)
             .await?;
-        let wrs = sqlx::query_as::<_, ProfileWrs>(r#""#)
-            .bind(profile_number)
-            .fetch_one(pool)
-            .await?;
-        Ok(Some(ProfileData {
-            oldest,
-            newest,
-            wrs,
-        }))
+        // let wrs = sqlx::query_as::<_, ProfileWrs>(r#""#)
+        //     .bind(profile_number)
+        //     .fetch_one(pool)
+        //     .await?;
+        Ok(Some(ProfileData { oldest, newest }))
     }
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
     /// Inserts a new user into the databse
