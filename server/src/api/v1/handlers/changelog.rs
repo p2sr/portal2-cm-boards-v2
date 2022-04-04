@@ -104,11 +104,11 @@ async fn post_changelog(
     config: web::Data<Config>,
     params: web::Json<SubmissionChangelog>,
 ) -> impl Responder {
-    let mut cl_insert = ChangelogInsert::new_from_submission(
-        params.into_inner(),
-        cache.into_inner().default_cat_ids.clone(),
-    )
-    .await;
+    let cache = cache.into_inner();
+    let mut cl_insert =
+        ChangelogInsert::new_from_submission(params.into_inner(), cache.default_cat_ids.clone())
+            .await;
+    let map_id = cl_insert.map_id.clone();
     match check_for_valid_score(
         pool.get_ref(),
         cl_insert.profile_number.clone(),
@@ -136,7 +136,13 @@ async fn post_changelog(
         }
     };
     match Changelog::insert_changelog(pool.get_ref(), cl_insert).await {
-        Ok(id) => HttpResponse::Ok().json(id),
+        Ok(id) => {
+            // TODO: Add an endpoint to upload a coop time.
+            cache
+                .reload_rank(pool.get_ref(), &map_id, config.get_ref(), true)
+                .await;
+            HttpResponse::Ok().json(id)
+        }
         Err(e) => {
             eprintln!("Error with adding changelog entry to database -> {}", e);
             HttpResponse::InternalServerError().body("Could not add user to databse")

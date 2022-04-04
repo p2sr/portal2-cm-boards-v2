@@ -36,14 +36,14 @@ async fn main() -> Result<(), Error> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let host = config.server.host.clone();
     let port = config.server.port;
+    // Get a map of map_ids to default category IDs.
+    let default_cat_ids = crate::tools::helpers::get_default_cat_ids(&pool).await;
+    // Construct the cache.
+    let init_data = crate::tools::cache::CacheState::new(&pool, &config, default_cat_ids).await;
     println!(
         "Server starting at http://{}:{}/",
         config.server.host, config.server.port
     );
-    // Get a map of map_ids to default category IDs.
-    let default_cat_ids = crate::tools::helpers::get_default_cat_ids(&pool).await;
-    // Construct the cache.
-    let init_data = crate::tools::cache::CacheState::new(default_cat_ids);
     // Start our web server, mount and set up routes, data, wrapping, middleware and loggers
     HttpServer::new(move || {
         let cors = Cors::default()

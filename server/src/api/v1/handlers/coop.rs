@@ -63,13 +63,14 @@ async fn get_cooperative_maps(
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
+    let map_id = map_id.into_inner();
     let res = CoopMap::get_coop_map_page(
         pool.get_ref(),
-        map_id.clone(),
+        &map_id,
         config.proof.results,
         cat_id
             .cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
+            .unwrap_or(cache.into_inner().default_cat_ids[&map_id]),
     )
     .await;
     match res {

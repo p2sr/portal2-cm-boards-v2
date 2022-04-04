@@ -42,6 +42,7 @@ async fn get_singleplayer_preview(
     }
 }
 
+// TODO: Add game
 /// Generates a map page for a given map_id
 /// OPTIONAL PARAMETER cat_id
 ///   Example endpoint  -> /map/sp/47802               Will assume default category ID
@@ -54,17 +55,19 @@ pub async fn get_singleplayer_maps(
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
+    let map_id = map_id.into_inner();
     let res = SpMap::get_sp_map_page(
         pool.get_ref(),
-        map_id.clone(),
+        &map_id,
         config.proof.results,
         cat_id
             .cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
+            .unwrap_or(cache.into_inner().default_cat_ids[&map_id]),
     )
     .await;
     match res {
         Ok(sp_map) => {
+            // Check cache
             let mut ranked_vec = Vec::with_capacity(config.proof.results as usize);
             for (i, entry) in sp_map.into_iter().enumerate() {
                 ranked_vec.push(SpRanked {

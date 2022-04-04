@@ -1,5 +1,5 @@
 use crate::models::models::{Points, PointsReadWrapper, PointsReceiveWrapper, PointsWriteWrapper};
-use crate::tools::cache::CacheState;
+use crate::tools::cache::{write_to_file, CacheState};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use anyhow::{Error, Result};
 use std::fs::File;
@@ -7,7 +7,10 @@ use std::io::Read;
 use std::path::Path;
 
 /// Writes out json data to cache points for the boards.
-pub async fn write_to_file(id: &str, data: &web::Json<PointsReceiveWrapper>) -> Result<(), Error> {
+pub async fn write_points_to_file(
+    id: &str,
+    data: &web::Json<PointsReceiveWrapper>,
+) -> Result<(), Error> {
     use std::fs;
     fs::create_dir_all("./points")?;
     let path_str = format!("./points/{}.json", id);
@@ -23,7 +26,7 @@ pub async fn write_to_file(id: &str, data: &web::Json<PointsReceiveWrapper>) -> 
 
 // TODO: Should be able to make this faster, but stuck with weird limitations to mapping result values from serde.
 /// Reads in json from the cache for the passed in ID.
-pub async fn read_from_file(id: &str) -> Result<PointsReadWrapper, Error> {
+pub async fn read_points_from_file(id: &str) -> Result<PointsReadWrapper, Error> {
     let path_str = format!("./points/{}.json", id);
     let path = Path::new(&path_str);
     let mut file = File::open(path)?;
@@ -40,13 +43,15 @@ async fn post_points_sp(
     cache: web::Data<CacheState>,
 ) -> impl Responder {
     // Cache data in .json files
-    match write_to_file("sp", &data).await {
+    match write_points_to_file("sp", &data).await {
         Ok(_) => {
+            let id = "points_sp";
             let points_hm = &mut cache.points.lock().await;
-            let points_cache = points_hm.get_mut("points_sp").unwrap();
+            let points_cache = points_hm.get_mut(&id).unwrap();
             for (k, v) in data.into_inner().hm_points.into_iter() {
                 points_cache.insert(k, v);
             }
+            write_to_file(&id, &points_cache).await.unwrap();
             // println!("Updated cache.");
             HttpResponse::Ok().body("Success")
         }
@@ -57,7 +62,7 @@ async fn post_points_sp(
 /// Gget single player points data.
 #[get("points/sp")]
 async fn get_points_sp() -> impl Responder {
-    let res = read_from_file("sp").await;
+    let res = read_points_from_file("sp").await;
     match res {
         Ok(sp_points) => HttpResponse::Ok().json(sp_points),
         _ => HttpResponse::NotFound().body("No score entries for SP found."),
@@ -71,13 +76,15 @@ async fn post_points_coop(
     cache: web::Data<CacheState>,
 ) -> impl Responder {
     // Cache data in .json files
-    match write_to_file("coop", &data).await {
+    match write_points_to_file("coop", &data).await {
         Ok(_) => {
+            let id = "points_coop";
             let points_hm = &mut cache.points.lock().await;
-            let points_cache = points_hm.get_mut("points_coop").unwrap();
+            let points_cache = points_hm.get_mut(&id).unwrap();
             for (k, v) in data.into_inner().hm_points.into_iter() {
                 points_cache.insert(k, v);
             }
+            write_to_file(&id, &points_cache).await.unwrap();
             // println!("Updated cache.");
             HttpResponse::Ok().body("Success")
         }
@@ -88,7 +95,7 @@ async fn post_points_coop(
 /// Get coop points data.
 #[get("points/coop")]
 async fn get_points_coop() -> impl Responder {
-    let res = read_from_file("coop").await;
+    let res = read_points_from_file("coop").await;
     match res {
         Ok(coop_points) => HttpResponse::Ok().json(coop_points),
         _ => HttpResponse::NotFound().body("No score entries found."),
@@ -102,13 +109,15 @@ async fn post_points_chapter(
     cache: web::Data<CacheState>,
 ) -> impl Responder {
     let id = data.id.expect("No chapter ID for chapter").to_string();
-    match write_to_file(&id, &data).await {
+    match write_points_to_file(&id, &data).await {
         Ok(_) => {
+            let id_ = format!("points{}", id);
             let points_hm = &mut cache.points.lock().await;
-            let points_cache = points_hm.get_mut(&*format!("points{}", id)).unwrap();
+            let points_cache = points_hm.get_mut(&*id_).unwrap();
             for (k, v) in data.into_inner().hm_points.into_iter() {
                 points_cache.insert(k, v);
             }
+            write_to_file(&id_, &points_cache).await.unwrap();
             // println!("Updated cache.");
             HttpResponse::Ok().body("Success")
         }
@@ -119,7 +128,7 @@ async fn post_points_chapter(
 /// Get points data for a specific chapter.
 #[get("points/chapter/{id}")]
 async fn get_points_chapter(id: web::Path<u64>) -> impl Responder {
-    let res = read_from_file(&id.to_string()).await;
+    let res = read_points_from_file(&id.to_string()).await;
     match res {
         Ok(chapter_points) => HttpResponse::Ok().json(chapter_points),
         _ => HttpResponse::NotFound().body("No coop score entries found."),
@@ -132,13 +141,15 @@ async fn post_points_overall(
     data: web::Json<PointsReceiveWrapper>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
-    match write_to_file("overall", &data).await {
+    match write_points_to_file("overall", &data).await {
         Ok(_) => {
+            let id = "points_overall";
             let points_hm = &mut cache.points.lock().await;
-            let points_cache = points_hm.get_mut("points_overall").unwrap();
+            let points_cache = points_hm.get_mut(&id).unwrap();
             for (k, v) in data.into_inner().hm_points.into_iter() {
                 points_cache.insert(k, v);
             }
+            write_to_file(&id, &points_cache).await.unwrap();
             // println!("Updated cache.");
             println!("{:#?}", points_cache);
             HttpResponse::Ok().body("Success")
@@ -150,7 +161,7 @@ async fn post_points_overall(
 /// Get overall points data.
 #[get("points/overall")]
 async fn get_points_overall() -> impl Responder {
-    let res = read_from_file("overall").await;
+    let res = read_points_from_file("overall").await;
     match res {
         Ok(overall_points) => HttpResponse::Ok().json(overall_points),
         _ => HttpResponse::NotFound().body("No score entries found."),

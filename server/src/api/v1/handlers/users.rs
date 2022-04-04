@@ -1,4 +1,4 @@
-use crate::models::models::{PointsProfileWrapper, ProfileData, ProfilePage, Users, UsersDisplay};
+use crate::models::models::{PointsProfileWrapper, ProfilePage, Users};
 use crate::tools::cache::CacheState;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
@@ -110,7 +110,14 @@ async fn get_profile(
                 id: -3,
                 points: points_cache.get(&profile_number).unwrap().clone(),
             });
-            let profile_page = ProfilePage { points, data };
+            let r = &*cache.ranks.lock().await;
+            let ranks = r.current_ranks.get(&profile_number).unwrap().clone();
+
+            let profile_page = ProfilePage {
+                points,
+                ranks,
+                data,
+            };
             HttpResponse::Ok().json(profile_page)
         }
         Err(e) => {
@@ -120,34 +127,3 @@ async fn get_profile(
         _ => HttpResponse::NotFound().body("Could not create profile page for user."),
     }
 }
-
-// let mut points: Vec<&PointsProfileWrapper> = Vec::new();
-// let points_hm = cache.points.lock().await;
-// for i in 1..16 {
-//     let points_cache = points_hm.get(&*format!("points{}", i)).unwrap();
-//     // TODO: Check this unwrap()
-//     let x = PointsProfileWrapper {
-//         id: i,
-//         points: points_cache.get(&profile_number).unwrap(),
-//     };
-//     points.push(&x);
-// }
-// let points_cache = points_hm.get("points_sp").unwrap();
-// let sp = PointsProfileWrapper {
-//     id: -1,
-//     points: points_cache.get(&profile_number).unwrap(),
-// };
-// points.push(&sp);
-// let points_cache = points_hm.get("points_coop").unwrap();
-// let coop = PointsProfileWrapper {
-//     id: -2,
-//     points: points_cache.get(&profile_number).unwrap(),
-// };
-// points.push(&coop);
-// let points_cache = points_hm.get("points_overall").unwrap();
-// let overall = PointsProfileWrapper {
-//     id: -3,
-//     points: points_cache.get(&profile_number).unwrap(),
-// };
-// points.push(&overall);
-// let profile_page = ProfilePage { points, data };

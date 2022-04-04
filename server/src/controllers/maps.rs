@@ -11,10 +11,23 @@ impl Maps {
             r#"
                 SELECT maps.steam_id FROM "p2boards".maps
                     INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
-                    WHERE chapters.is_multiplayer = $1
-                "#,
+                    WHERE chapters.is_multiplayer = $1"#,
         )
         .bind(is_mp)
+        .map(|row: PgRow| row.get(0))
+        .fetch_all(pool)
+        .await?;
+        Ok(res)
+    }
+    pub async fn get_steam_ids_by_game(pool: &PgPool, game: i32) -> Result<Vec<String>> {
+        let res = sqlx::query(
+            r#"
+                SELECT maps.steam_id FROM "p2boards".maps
+                    INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
+                    INNER JOIN "p2boards".games ON (chapter.game_id = games.id)
+                    WHERE games.id = $1"#,
+        )
+        .bind(game)
         .map(|row: PgRow| row.get(0))
         .fetch_all(pool)
         .await?;

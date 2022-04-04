@@ -5,7 +5,7 @@ use sqlx::PgPool;
 impl SpMap {
     pub async fn get_sp_map_page(
         pool: &PgPool,
-        map_id: String,
+        map_id: &String,
         limit: i32,
         cat_id: i32,
     ) -> Result<Vec<SpMap>> {

@@ -30,7 +30,7 @@ impl CoopMap {
     // TODO: Check to make sure this is filtered when returned (I think it is).
     pub async fn get_coop_map_page(
         pool: &PgPool,
-        map_id: String,
+        map_id: &String,
         limit: i32,
         cat_id: i32,
     ) -> Result<Vec<CoopMap>> {

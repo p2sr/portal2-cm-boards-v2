@@ -454,4 +454,5 @@ pub struct PointsProfileWrapper {
 pub struct ProfilePage {
     pub points: Vec<PointsProfileWrapper>,
     pub data: ProfileData,
+    pub ranks: HashMap<String, i32>,
 }
