@@ -1,7 +1,9 @@
 use crate::models::models::{PointsProfileWrapper, ProfilePage, Users};
 use crate::tools::cache::CacheState;
 use actix_web::{get, post, web, HttpResponse, Responder};
+use anyhow::Result;
 use sqlx::PgPool;
+use std::collections::HashMap;
 
 /// GET the user information for a given profile_number.
 #[get("/users/{profile_number}")]
@@ -84,46 +86,69 @@ async fn get_profile(
 ) -> impl Responder {
     let profile_number = profile_number.into_inner();
     match Users::get_profile(pool.get_ref(), &profile_number).await {
-        Ok(Some(data)) => {
-            let mut points: Vec<PointsProfileWrapper> = Vec::new();
-            let points_hm = cache.points.lock().await;
-            for i in 1..16 {
-                let points_cache = points_hm.get(&*format!("points{}", i)).unwrap();
-                // TODO: Check this unwrap()
-                points.push(PointsProfileWrapper {
-                    id: i,
-                    points: points_cache.get(&profile_number).unwrap().clone(),
-                });
+        Ok(Some(data)) => match profile_from_cache(cache, &profile_number).await {
+            Ok((points, ranks)) => {
+                let profile_page = ProfilePage {
+                    points,
+                    ranks,
+                    data,
+                };
+                HttpResponse::Ok().json(profile_page)
             }
-            let points_cache = points_hm.get("points_sp").unwrap();
-            points.push(PointsProfileWrapper {
-                id: -1,
-                points: points_cache.get(&profile_number).unwrap().clone(),
-            });
-            let points_cache = points_hm.get("points_coop").unwrap();
-            points.push(PointsProfileWrapper {
-                id: -2,
-                points: points_cache.get(&profile_number).unwrap().clone(),
-            });
-            let points_cache = points_hm.get("points_overall").unwrap();
-            points.push(PointsProfileWrapper {
-                id: -3,
-                points: points_cache.get(&profile_number).unwrap().clone(),
-            });
-            let r = &*cache.ranks.lock().await;
-            let ranks = r.current_ranks.get(&profile_number).unwrap().clone();
-
-            let profile_page = ProfilePage {
-                points,
-                ranks,
-                data,
-            };
-            HttpResponse::Ok().json(profile_page)
-        }
+            Err(e) => {
+                eprintln!("Error creating profile page -> {:?}", e);
+                HttpResponse::NotFound().body("Could find profile page for user.")
+            }
+        },
         Err(e) => {
             eprintln!("Error creating profile page -> {:?}", e);
-            HttpResponse::NotFound().body("Could not create profile page for user.")
+            HttpResponse::NotFound().body("Could find profile page for user.")
         }
-        _ => HttpResponse::NotFound().body("Could not create profile page for user."),
+        _ => HttpResponse::NotFound().body("Could find profile page for user."),
     }
+}
+
+pub async fn profile_from_cache(
+    cache: web::Data<CacheState>,
+    profile_number: &String,
+) -> Result<(Vec<PointsProfileWrapper>, HashMap<String, i32>)> {
+    let mut points: Vec<PointsProfileWrapper> = Vec::new();
+    let points_hm = cache.points.lock().await;
+    for i in 1..16 {
+        if let Some(points_cache) = points_hm.get(&*format!("points{}", i)) {
+            if let Some(x) = points_cache.get(profile_number) {
+                points.push(PointsProfileWrapper {
+                    id: i,
+                    points: x.clone(),
+                });
+            }
+        }
+    }
+    if let Some(points_cache) = points_hm.get("points_sp") {
+        if let Some(x) = points_cache.get(profile_number) {
+            points.push(PointsProfileWrapper {
+                id: -1,
+                points: x.clone(),
+            });
+        }
+    }
+    if let Some(points_cache) = points_hm.get("points_coop") {
+        if let Some(x) = points_cache.get(profile_number) {
+            points.push(PointsProfileWrapper {
+                id: -2,
+                points: x.clone(),
+            });
+        }
+    }
+    if let Some(points_cache) = points_hm.get("points_overall") {
+        if let Some(x) = points_cache.get(profile_number) {
+            points.push(PointsProfileWrapper {
+                id: -3,
+                points: x.clone(),
+            });
+        }
+    }
+    let r = &*cache.ranks.lock().await;
+    let ranks = r.current_ranks.get(profile_number).unwrap().clone();
+    Ok((points, ranks))
 }

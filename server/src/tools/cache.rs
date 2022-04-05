@@ -3,7 +3,7 @@ use crate::tools::config::Config;
 use anyhow::Result;
 use serde::Serialize;
 use sqlx::PgPool;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
@@ -172,10 +172,10 @@ impl CacheState {
             // This logic is super unfortunate, we cannot reuse the logic for the inital setup because
             // the user will most likely already exist in our hashmap. This means we have to allocate
             // **another** hashmap, this is really unfortunate, and I want to fix it somehow in the future.
-            let mut checker = HashMap::new();
+            let mut checker = HashSet::with_capacity(500);
 
             for (i, entry) in res.into_iter().enumerate() {
-                if checker.insert(entry.profile_number1.clone(), 1).is_none() {
+                if !checker.insert(entry.profile_number1.clone()) {
                     let user = r
                         .current_ranks
                         .entry(entry.profile_number1)
@@ -184,7 +184,7 @@ impl CacheState {
                         user.insert(map_id.clone(), (i + 1) as i32);
                     }
                 }
-                if checker.insert(entry.profile_number2.clone(), 1).is_none() {
+                if !checker.insert(entry.profile_number2.clone()) {
                     let user = r
                         .current_ranks
                         .entry(entry.profile_number2)
