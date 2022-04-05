@@ -10,7 +10,7 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ranks {
     // profile_number -> map_id -> rank mapping
     pub current_ranks: HashMap<String, HashMap<String, i32>>,
@@ -71,7 +71,7 @@ impl CacheState {
             }
         }
 
-        let current_ranks = CacheState::load_all_ranks(&default_cat_ids, pool, config)
+        let current_ranks = CacheState::load_all_ranks(&default_cat_ids, pool, config, true)
             .await
             .unwrap();
 
@@ -91,9 +91,25 @@ impl CacheState {
         default_cat_ids: &HashMap<String, i32>,
         pool: &PgPool,
         config: &Config,
+        try_from_file: bool,
     ) -> Result<Ranks> {
-        use std::time::Instant;
-        let now = Instant::now();
+        // use std::time::Instant;
+        // let now = Instant::now();
+        let id = "ranks";
+        // Try to load using a file on startup.
+        if try_from_file {
+            match read_from_file::<Ranks>(id).await {
+                Ok(r) => {
+                    // let elapsed = now.elapsed();
+                    // println!("Elapsed: {:.2?}", elapsed);
+                    return Ok(r);
+                }
+                Err(e) => {
+                    eprintln!("Error grabbing rank cache from file -> {}", e);
+                    ()
+                }
+            }
+        }
 
         let coop = Maps::get_steam_ids(pool, true).await?;
         let sp = Maps::get_steam_ids(pool, false).await?;
@@ -128,9 +144,11 @@ impl CacheState {
                 }
             }
         }
-        let elapsed = now.elapsed();
-        println!("Elapsed: {:.2?}", elapsed);
-        Ok(Ranks { current_ranks })
+        let fin = Ranks { current_ranks };
+        write_to_file(id, &fin).await.unwrap();
+        // let elapsed = now.elapsed();
+        // println!("Elapsed: {:.2?}", elapsed);
+        Ok(fin)
     }
     // TODO: Testing
     pub async fn reload_rank(
