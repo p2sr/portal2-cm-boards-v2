@@ -4,6 +4,9 @@ use anyhow::{bail, Result};
 use sqlx::PgPool;
 
 impl Admin {
+    /// Returns a changelog page that filtered to information for ease of use for admins.
+    ///
+    /// Uses [crate::controllers::changelog::build_filtered_changelog] to build the filtered query.
     pub async fn get_admin_page(
         pool: &PgPool,
         params: ChangelogQueryParams,
@@ -28,12 +31,10 @@ impl Admin {
             }
         }
     }
+    /// Returns a [crate::models::models::BannedTimeDetails] to display information on specific users and their problematic scores.
     pub async fn get_user_banned_time_stats(
         pool: &PgPool,
     ) -> Result<Option<Vec<BannedTimeDetails>>> {
-        // NOTE: This query definitely doesn't work
-        // TODO: Goal is to get the user's information, # times, and # banned times from all users with banned times.
-        // TODO: Get verified % ?
         let res: Vec<BannedTimeDetails> = sqlx::query_as::<_, BannedTimeDetails>(
             r#"SELECT d.profile_number, d.user_name, d.avatar, d.total_runs, d.banned_runs, d.non_verified_runs
             FROM "p2boards".users

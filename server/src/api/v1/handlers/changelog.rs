@@ -9,7 +9,7 @@ use sqlx::PgPool;
 
 /// **GET** method for changelog entiries. Utilizes `ChangelogQueryParrams` as an optional addition to the query
 ///
-/// **Optional Parameters**: [crate::controllers::models::ChangelogQueryParams]
+/// **Optional Parameters**: [crate::models::models::ChangelogQueryParams]
 /// ## Parameters:
 ///    - **limit**           
 ///         - The # of max returned results.

@@ -14,6 +14,8 @@ pub struct ProofConfig {
     pub demo: i32,
     pub video: i32,
 }
+
+/// Authentication information used to interact with BackBlaze's storage API.
 #[derive(Deserialize, Debug, Clone)]
 pub struct BackBlazeConfig {
     pub keyid: String,
@@ -21,6 +23,7 @@ pub struct BackBlazeConfig {
     pub bucket: String,
 }
 
+/// Wrapper for all other config variables.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     pub database_url: String,
@@ -28,7 +31,7 @@ pub struct Config {
     pub proof: ProofConfig,
     pub backblaze: BackBlazeConfig,
 }
-// Extracts the environment variables from .env
+// Extracts the environment variables from the .env file at the src level.
 impl Config {
     /// The function fall that attempts to parse the `.env`
     pub fn from_env() -> Result<Self, ConfigError> {

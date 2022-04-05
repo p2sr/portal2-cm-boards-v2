@@ -4,7 +4,7 @@ use sqlx::PgPool;
 
 /// **GET** method for admin-relevant entiries. Utilizes `ChangelogQueryParrams` as an optional addition to the query
 ///
-/// **Optional Parameters**: [crate::controllers::models::ChangelogQueryParams]
+/// **Optional Parameters**: [crate::models::models::ChangelogQueryParams]
 /// ## Parameters:
 ///    - **limit**           
 ///         - The # of max returned results.
@@ -40,7 +40,7 @@ use sqlx::PgPool;
 ///
 /// Makes a call to the underlying [Admin::get_admin_page]
 #[get("/admin/changelog")]
-async fn get_admin_changelog(
+pub async fn get_admin_changelog(
     pool: web::Data<PgPool>,
     query_params: web::Query<ChangelogQueryParams>,
 ) -> impl Responder {
@@ -55,7 +55,7 @@ async fn get_admin_changelog(
 ///
 /// Does not include any data on users without either a banned, or non-verified time.
 #[get("/admin/banned_stats")]
-async fn get_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
+pub async fn get_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
     match Admin::get_user_banned_time_stats(pool.get_ref()).await {
         Ok(Some(res)) => HttpResponse::Ok().json(res),
         Err(e) => {
@@ -89,7 +89,10 @@ async fn get_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
 ///     - `/api/v1/admins?admin-level=2`
 ///
 #[get("/admins")]
-async fn get_admin_list(pool: web::Data<PgPool>, query: web::Query<AdminLevel>) -> impl Responder {
+pub async fn get_admin_list(
+    pool: web::Data<PgPool>,
+    query: web::Query<AdminLevel>,
+) -> impl Responder {
     match Users::get_all_admins(pool.get_ref(), query.into_inner().admin_level.unwrap_or(1)).await {
         Ok(Some(res)) => HttpResponse::Ok().json(res),
         Err(e) => {

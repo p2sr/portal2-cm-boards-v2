@@ -2,5 +2,5 @@
 pub mod cache;
 /// Configuration module that handles extracting information from the environment for setup.
 pub mod config;
-/// Arithmatic calculation functions for the board.
+/// Helper functions used accross different modules
 pub mod helpers;

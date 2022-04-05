@@ -1,4 +1,6 @@
-//#![deny(missing_docs)]
+// #![deny(missing_docs)]
+//! The main web-server compontent of the boards. Written in Rust, this is the primary
+//! REST API that the boards uses to interact with the database
 #[macro_use]
 extern crate serde_derive;
 use actix_cors::Cors;

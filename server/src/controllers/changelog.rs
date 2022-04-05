@@ -175,6 +175,18 @@ impl ChangelogPage {
     }
 }
 
+/// Build a query String based off a pre-defined string. You pass in a [crate::models::models::ChangelogQueryParams], and an optional vector of additional filers.
+/// 
+/// Each element of the vector of additional filters will be assigned the correct "WHERE" or "AND", as appropriate.
+/// 
+/// ## Exanple use
+/// ``` rust
+/// let mut additional_filters: Vec<String> =
+///     vec!["cl.banned = 'true' OR cl.verified = 'false' OR u.banned = 'true'".to_string(),
+///     "u.profile_number = '76561198135023038'".to_string()];
+/// let query_string = build_filtered_changelog(pool, params, Some(&mut additional_filters)).await.unwrap();
+/// ```
+/// 
 pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParams, additional_filters: Option<&mut Vec<String>>) -> Result<String> {
     let mut query_string: String = String::from(
         r#" 
@@ -275,7 +287,8 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
         query_string = format!("{} LIMIT {}\n", query_string, limit);
     } else {
         // Default limit
-        query_string = format!("{} LIMIT 200\n", query_string);
+        // TODO: Update to use the correct
+        query_string = format!("{} LIMIT 500\n", query_string);
     }
     Ok(query_string)
 }
@@ -283,7 +296,7 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
 impl Default for ChangelogQueryParams {
     fn default() -> Self {
         ChangelogQueryParams {
-            limit: Some(200),
+            limit: Some(500),
             nick_name: None,
             profile_number: None,
             chamber: None,
@@ -299,6 +312,7 @@ impl Default for ChangelogQueryParams {
 }
 
 impl ChangelogInsert {
+    /// Create a [crate::models::models::ChangelogInsert] from a [crate::models::models::SubmissionChangelog]
     pub async fn new_from_submission(
         params: SubmissionChangelog,
         cache: HashMap<String, i32>,

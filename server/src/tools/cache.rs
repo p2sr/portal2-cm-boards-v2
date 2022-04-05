@@ -1,3 +1,52 @@
+//! Caching implementations specific to the board.
+//!
+//! Currently built off [std::collections::HashMap].
+//!
+//! ## Accessing in endpoints.
+//! ```rust
+//! use crate::tools::cache::CacheState;
+//! use actix_web::{get, web, HttpResponse, Responder};
+//!
+//! #[get("/test")]
+//! async fn test(cache: web::Data<CacheState>) -> impl Responder {
+//!     let cache = cache.into_inner(); // Extracts the CacheState from the [actix_web::web::Data] wrapper
+//!     // Access the default category ids.
+//!     let map_id = "47458";
+//!     let def_cat_id = cache.default_cat_ids[map_id];
+//!
+//!     // Check the current cache state for points.
+//!     let state_data = &mut cache.current_state.lock().await; // We use &mut here so that we can change the value accordingly.
+//!     // Check the cache state for "coop_previews"
+//!     // Check `cached_endpoints` in CacheState::new() for which endpoints are current cached.
+//!     let is_cached = state_data.get_mut("coop_previews").unwrap();
+//!     // Derefernce the bool and match accordingly.
+//!     if !*is_cached {
+//!         // Assume we cache here, to see full example check [crate::server::api::v1::handlers::coop::get_cooperative_preview]
+//!         *is_cached = true;
+//!     }
+//!
+//!     // Check points which maps as follows:
+//!     // Points descriptor str -> profile_number -> [crate::models::models::Points]
+//!     let points_id = "points_sp";
+//!     let points_hm = &mut cache.points.lock().await;
+//!     // This gives us a &mut HashMap that maps profile_number to Points struct
+//!     // For full example see [server::api::v1::handlers::points::post_points_sp]
+//!     let points_cache = points_hm.get_mut(points_id).unwrap();
+//!
+//!     // Use Ranks
+//!     let profile_number = "76561198135023038".to_string();
+//!     let ranks = &mut cache.ranks.lock().await;
+//!     // Accessing current_ranks field, then using as a hashmap with the mapping from map_id -> rank
+//!     let user = ranks
+//!         .current_ranks
+//!         .entry(profile_number)
+//!         .or_insert(HashMap::new());
+//!
+//!     HttpResponse::Ok().body("test")
+//! }
+//! ```
+//!
+
 use crate::models::models::{CoopMap, Maps, Points, SpMap};
 use crate::tools::config::Config;
 use anyhow::Result;
@@ -10,9 +59,12 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+/// Cache for the current ranks all players have within the top X scores (defined by [crate::tools::config::ProofConfig])
+///
+/// The mapping is as follows:
+/// - profile_number -> map_id -> rank
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ranks {
-    // profile_number -> map_id -> rank mapping
     pub current_ranks: HashMap<String, HashMap<String, i32>>,
 }
 
@@ -27,6 +79,17 @@ pub struct CacheState {
 
 impl CacheState {
     /// Constructs a new hashmap for the cache state with static str's to represent all the values we want to cache
+    ///
+    /// ## Current list of cached endpoints.
+    ///
+    ///  ```
+    ///  "sp_previews", "coop_previews", "points1", "points2", "points3",
+    ///  "points4", "points5", "points6", "points7", "points8", "points9",
+    ///  "points10", "points11", "points12", "points13", "points14", "points15",
+    ///  "points_sp", "points_coop", "points_overall"
+    /// ```
+    ///
+    /// **NOTE**: Portal 2 references coop chapters 1-6 as chapter ID's 1-6, meaning 1-6 are coop, and 7-15 are SP.
     pub async fn new(
         pool: &PgPool,
         config: &Config,
@@ -82,11 +145,13 @@ impl CacheState {
             ranks: Arc::new(Mutex::new(current_ranks)),
         }
     }
-
+    /// Try to load points data from files rather than expecting that the backend must send over the data fresh every time the web server is run.
     async fn load(x: &'static str) -> Result<HashMap<String, Points>> {
         Ok(read_from_file::<HashMap<String, Points>>(x).await?)
     }
-
+    /// Create a fresh set of ranks to cache. Takes a good amount of time to go through all 108 maps and populate ranks for all.
+    ///
+    /// We prefer to try and use `reload_rank` where possible to reload ranks on individual maps.
     pub async fn load_all_ranks(
         default_cat_ids: &HashMap<String, i32>,
         pool: &PgPool,
@@ -151,6 +216,7 @@ impl CacheState {
         Ok(fin)
     }
     // TODO: Testing
+    /// Refreshes map rank cache on a specific map. Especially slow for coop, but faster than refreshing all maps.
     pub async fn reload_rank(
         &self,
         pool: &PgPool,
@@ -215,7 +281,29 @@ impl CacheState {
     }
 }
 
-/// Writes data to a file if the type implements Serialize
+/// Writes data to a file if the type implements [serde::Serialize]
+///
+/// The function takes an `id` that will be used to find a file in the following path:
+/// - `./cachce/{id}.json`
+///
+/// The ./cache/ is relative to the `server` directory, above src level.
+/// ## Example
+/// ```rust
+/// #[derive(Serialize, Debug)]
+/// pub struct A {
+///     a: &str,
+/// }
+///
+/// async fn test() {
+///     let id = "test"; // Will try to write to `./cache/test.json`
+///     let test_val = A { a: "hello world" };
+///     match write_to_file::<A
+/// >(id, test_val).await {
+///         Ok(()) => println!("Success!"),
+///         Err(e) => eprintln!("Error -> {}", e),
+///     }
+/// }
+/// ```
 pub async fn write_to_file<T: Serialize>(id: &str, data: &T) -> Result<()> {
     use std::fs;
     fs::create_dir_all("./cache")?;
@@ -226,7 +314,28 @@ pub async fn write_to_file<T: Serialize>(id: &str, data: &T) -> Result<()> {
         .map_err(|err| err.into())
 }
 
-// Reads data from a file for any type that implements Deserialize
+// TODO: Have the id be generic over any type that implements [std::fmt]
+/// Reads data from a file for any type that implements [serde::Deserialize]
+///
+/// The function takes an `id` that will be used to find a file in the following path:
+/// - `./cachce/{id}.json`
+///
+/// The ./cache/ is relative to the `server` directory, above src level.
+/// ## Example
+/// ```rust
+/// #[derive(Deserialize, Debug)]
+/// pub struct A {
+///     a: i32,
+/// }
+///
+/// async fn test() {
+///     let id = "test"; // Will try to open `./cache/test.json`
+///     match read_from_file::<A>(id).await {
+///         Ok(a) => println!("{:#?}", a),
+///         Err(e) => eprintln!("Error -> {}", e),
+///     }
+/// }
+/// ```
 pub async fn read_from_file<T: for<'de> serde::Deserialize<'de>>(id: &str) -> Result<T> {
     let path_str = format!("./cache/{}.json", id);
     let path = Path::new(&path_str);

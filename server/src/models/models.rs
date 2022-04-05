@@ -6,9 +6,10 @@ use std::collections::HashMap;
 // Database
 //
 
-/// WIP
+/// Empty struct to allow for implementation blocks for admin specific db interactions
 pub struct Admin {}
 
+/// Details on a user's banned/unverified runs for the admin display page
 #[derive(Debug, FromRow, Deserialize, Serialize, Clone)]
 pub struct BannedTimeDetails {
     pub profile_number: String,
@@ -17,6 +18,12 @@ pub struct BannedTimeDetails {
     pub total_runs: i64,
     pub banned_runs: Option<i64>,
     pub non_verified_runs: Option<i64>,
+}
+
+/// Wrapper around an optional i32, for use in [actix_web::web::Query]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AdminLevel {
+    pub admin_level: Option<i32>,
 }
 
 /// One-to-one struct for changelog data.
@@ -118,6 +125,7 @@ pub struct CoopBundled {
     pub cl_id2: Option<i64>,
 }
 
+/// Insert struct for creating a new `CoopBundled`
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct CoopBundledInsert {
     pub p_id1: String,
@@ -138,6 +146,7 @@ pub struct Demos {
     pub cl_id: i64,
 }
 
+/// Insert struct for `Demos`, excludes `id`
 #[derive(Debug, Default, Serialize, Deserialize, FromRow, Clone)]
 pub struct DemoInsert {
     pub file_id: String,
@@ -183,21 +192,24 @@ pub struct Users {
     pub discord_id: Option<String>,
 }
 
+/// Includes only a `user_name` and `avatar`, does not include the `profile_number`
+///
+/// Used for when the `profile_number` is included in another portion of the returned values.
 #[derive(Debug, FromRow, Deserialize, Serialize, Clone)]
-
 pub struct UsersPage {
     pub user_name: String,
     pub avatar: String,
 }
 
+/// Wraps `profile_number`, `user_name` and `avatar` for displaying a user.
 #[derive(Debug, FromRow, Deserialize, Serialize, Clone)]
-
 pub struct UsersDisplay {
     pub profile_number: String,
     pub user_name: String,
     pub avatar: String,
 }
 
+/// Social media accounts from `Users`
 #[derive(Serialize, Deserialize, Debug, FromRow)]
 pub struct Socials {
     pub twitch: Option<String>,
@@ -300,7 +312,7 @@ pub struct CoopPreview {
     pub user_name2: Option<String>,
 }
 
-/// Wrapper for prevciewing the top 7 for all Coop maps=.
+/// Wrapper for prevciewing the top 7 for all Coop maps.
 #[derive(Serialize, Deserialize)]
 pub struct CoopPreviews {
     pub map_id: String,
@@ -337,6 +349,7 @@ pub struct CalcValues {
 }
 
 // Currently a dumbass work around to issues with deserializing an option natively theough the Query
+/// Generic wrapper around an Option i32 for [actix_web::web::Query]
 #[derive(Debug, Deserialize)]
 pub struct Opti32 {
     pub cat_id: Option<i32>,
@@ -387,14 +400,9 @@ pub struct DemoOptions {
     pub cl_id: Option<i64>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AdminLevel {
-    pub admin_level: Option<i32>,
-}
-
 // Points
 
-///
+/// Wrapper for us receiving points from the backend
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PointsReceiveWrapper {
     pub id: Option<i32>,
@@ -402,14 +410,14 @@ pub struct PointsReceiveWrapper {
     pub ordered_points: Vec<(String, Points)>,
 }
 
-///
+/// Wrapper for writing points, uses a ref to the points to avoid unnecessary allocation, cannot be used to Deserialize.
 #[derive(Debug, Clone, Serialize)]
 pub struct PointsWriteWrapper<'a> {
     pub id: Option<i32>,
     pub points: &'a Vec<(String, Points)>,
 }
 
-///
+/// Wrapper for reading points from a file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PointsReadWrapper {
     pub id: Option<i32>,
@@ -429,6 +437,7 @@ pub struct Points {
     pub avatar: Option<String>,
 }
 
+/// Map ID & Name, score and timestamp for a given score.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct MapScoreDate {
     pub map: String,
@@ -437,19 +446,21 @@ pub struct MapScoreDate {
     pub timestamp: Option<NaiveDateTime>,
 }
 
+/// Oldest and newest `MapScoreDate` for a profile.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileData {
     pub oldest: MapScoreDate,
     pub newest: MapScoreDate,
 }
 
+/// Wrapper for a profile page, includes the ID associated with the points and the poits themselves.
 #[derive(Debug, Clone, Serialize)]
 pub struct PointsProfileWrapper {
     pub id: i32,
     pub points: Points,
 }
 
-// Average ranks can be computed with points.
+/// Profile Page that includes a Vec of PointsProfileWrappers, ProfileData and a hasmap of map_ids to current ranks.
 #[derive(Debug, Clone, Serialize)]
 pub struct ProfilePage {
     pub points: Vec<PointsProfileWrapper>,
