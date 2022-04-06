@@ -33,7 +33,7 @@ use std::str;
 /// - `/api/v1/demos?demo_id=12651`
 ///
 #[get("/demos")]
-pub async fn demo(pool: web::Data<PgPool>, query: web::Query<DemoOptions>) -> impl Responder {
+pub async fn demos(pool: web::Data<PgPool>, query: web::Query<DemoOptions>) -> impl Responder {
     let query = query.into_inner();
     let res_str = "Could not find demo.";
     if query.demo_id.is_none() & !query.cl_id.is_none() {
@@ -328,9 +328,9 @@ async fn get_changelog_and_demo_id(query: DemoOptions, pool: &PgPool) -> Result<
             bail!("No changelog entry found to match changelog_id")
         }
     } else if let Some(d_id) = query.demo_id {
-        let demo = Demos::get_demo(pool, d_id).await?;
-        if let Some(demo) = demo {
-            let changelog = Changelog::get_changelog(pool, demo.cl_id).await?;
+        let d = Demos::get_demo(pool, d_id).await?;
+        if let Some(d) = d {
+            let changelog = Changelog::get_changelog(pool, d.cl_id).await?;
             if let Some(cl) = changelog {
                 return Ok((cl, d_id));
             } else {
@@ -352,9 +352,9 @@ async fn delete_demo_file(
     demo_id: i64,
 ) -> Result<()> {
     let (client, auth) = b2_client_and_auth(&config).await.unwrap();
-    let demo = Demos::get_demo(pool, demo_id).await.unwrap().unwrap();
+    let d = Demos::get_demo(pool, demo_id).await.unwrap().unwrap();
     let file_name = generate_file_name(pool, cl).await?;
-    match b2_delete_file_version(&client, &auth, file_name, demo.file_id).await {
+    match b2_delete_file_version(&client, &auth, file_name, d.file_id).await {
         Ok(_) => Ok(()),
         Err(e) => {
             eprintln!("Failed to delete file -> {:#?}", e);
