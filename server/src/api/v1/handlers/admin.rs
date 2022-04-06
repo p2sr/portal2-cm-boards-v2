@@ -68,7 +68,7 @@ use sqlx::PgPool;
 ///     },...]
 /// ```
 #[get("/admin/changelog")]
-pub async fn get_admin_changelog(
+pub async fn admin_changelog(
     pool: web::Data<PgPool>,
     query_params: web::Query<ChangelogQueryParams>,
 ) -> impl Responder {
@@ -102,7 +102,7 @@ pub async fn get_admin_changelog(
 ///     },...]
 /// ```
 #[get("/admin/banned_stats")]
-pub async fn get_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
+pub async fn admin_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
     match Admin::get_user_banned_time_stats(pool.get_ref()).await {
         Ok(Some(res)) => HttpResponse::Ok().json(res),
         Err(e) => {
@@ -152,7 +152,7 @@ pub async fn get_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
 ///     },...]
 /// ```
 #[get("/admins")]
-pub async fn get_admin_list(
+pub async fn admins_list(
     pool: web::Data<PgPool>,
     admin_level: web::Query<AdminLevel>,
 ) -> impl Responder {

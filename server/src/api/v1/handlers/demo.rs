@@ -33,7 +33,7 @@ use std::str;
 /// - `/api/v1/demos?demo_id=12651`
 ///
 #[get("/demos")]
-pub async fn get_demo(pool: web::Data<PgPool>, query: web::Query<DemoOptions>) -> impl Responder {
+pub async fn demo(pool: web::Data<PgPool>, query: web::Query<DemoOptions>) -> impl Responder {
     let query = query.into_inner();
     let res_str = "Could not find demo.";
     if query.demo_id.is_none() & !query.cl_id.is_none() {
@@ -94,7 +94,7 @@ pub async fn get_demo(pool: web::Data<PgPool>, query: web::Query<DemoOptions>) -
 /// - `/api/v1/demos/changelog?timestamp=2020-08-18%2024:60:60&profile_number=76561198040982247&score=1763&map_id=47763`
 ///
 #[post("/demos/changelog")]
-pub async fn changelog_with_demo(
+pub async fn demos_changelog(
     mut payload: Multipart,
     config: web::Data<Config>,
     query: web::Query<SubmissionChangelog>,

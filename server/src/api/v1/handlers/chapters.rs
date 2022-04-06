@@ -10,10 +10,7 @@ use sqlx::PgPool;
 /// - **Default** - Using the chapter_id of `1`
 ///     - `/api/v1/maps_from_chapter/1`
 #[get("/maps_from_chapter/{chapter_id}")]
-async fn get_map_ids_by_chapter(
-    chapter_id: web::Path<i32>,
-    pool: web::Data<PgPool>,
-) -> impl Responder {
+async fn maps_from_chapter(chapter_id: web::Path<i32>, pool: web::Data<PgPool>) -> impl Responder {
     let res = Chapters::get_map_ids(pool.get_ref(), chapter_id.into_inner()).await;
     match res {
         Ok(Some(s)) => HttpResponse::Ok().json(s),
@@ -28,7 +25,7 @@ async fn get_map_ids_by_chapter(
 /// - **Default** - Uses the search string
 ///     - `/api/v1/chapters/The%20Part`
 #[get("/chapters/{name}")]
-async fn get_chapter_by_name(name: web::Path<String>, pool: web::Data<PgPool>) -> impl Responder {
+async fn chapter_by_name(name: web::Path<String>, pool: web::Data<PgPool>) -> impl Responder {
     println!("{}", name);
     let res = Chapters::get_chapter_by_name(pool.get_ref(), name.into_inner()).await;
     match res {

@@ -38,7 +38,7 @@ pub async fn read_points_from_file(id: &str) -> Result<PointsReadWrapper, Error>
 
 /// Update single player points data.
 #[post("/points/sp")]
-async fn post_points_sp(
+async fn points_sp_add(
     data: web::Json<PointsReceiveWrapper>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
@@ -61,7 +61,7 @@ async fn post_points_sp(
 
 /// Gget single player points data.
 #[get("points/sp")]
-async fn get_points_sp() -> impl Responder {
+async fn points_sp() -> impl Responder {
     let res = read_points_from_file("sp").await;
     match res {
         Ok(sp_points) => HttpResponse::Ok().json(sp_points),
@@ -71,7 +71,7 @@ async fn get_points_sp() -> impl Responder {
 
 /// Update coop points data.
 #[post("/points/coop")]
-async fn post_points_coop(
+async fn points_coop_add(
     data: web::Json<PointsReceiveWrapper>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
@@ -94,7 +94,7 @@ async fn post_points_coop(
 
 /// Get coop points data.
 #[get("points/coop")]
-async fn get_points_coop() -> impl Responder {
+async fn points_coop() -> impl Responder {
     let res = read_points_from_file("coop").await;
     match res {
         Ok(coop_points) => HttpResponse::Ok().json(coop_points),
@@ -104,7 +104,7 @@ async fn get_points_coop() -> impl Responder {
 
 /// Update chapter data, uses JSON ID (see [PointsReceiveWrapper]).
 #[post("/points/chapter")]
-async fn post_points_chapter(
+async fn points_chapter_add(
     data: web::Json<PointsReceiveWrapper>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
@@ -127,7 +127,7 @@ async fn post_points_chapter(
 
 /// Get points data for a specific chapter.
 #[get("points/chapter/{id}")]
-async fn get_points_chapter(id: web::Path<u64>) -> impl Responder {
+async fn points_chapter(id: web::Path<u64>) -> impl Responder {
     let res = read_points_from_file(&id.to_string()).await;
     match res {
         Ok(chapter_points) => HttpResponse::Ok().json(chapter_points),
@@ -137,7 +137,7 @@ async fn get_points_chapter(id: web::Path<u64>) -> impl Responder {
 
 /// Update overall points data.
 #[post("/points/overall")]
-async fn post_points_overall(
+async fn points_overall_add(
     data: web::Json<PointsReceiveWrapper>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
@@ -160,7 +160,7 @@ async fn post_points_overall(
 
 /// Get overall points data.
 #[get("points/overall")]
-async fn get_points_overall() -> impl Responder {
+async fn points_overall() -> impl Responder {
     let res = read_points_from_file("overall").await;
     match res {
         Ok(overall_points) => HttpResponse::Ok().json(overall_points),

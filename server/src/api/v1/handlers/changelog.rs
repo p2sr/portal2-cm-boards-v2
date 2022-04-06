@@ -45,7 +45,7 @@ use sqlx::PgPool;
 ///
 /// Makes a call to the underlying [ChangelogPage::get_changelog_page]
 #[get("/changelog")]
-async fn get_changelog(
+async fn changelog(
     pool: web::Data<PgPool>,
     query_params: web::Query<ChangelogQueryParams>,
 ) -> impl Responder {
@@ -98,7 +98,7 @@ async fn get_changelog(
 /// ```
 ///
 #[post("/changelog")]
-async fn post_changelog(
+async fn changelog_add(
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
     config: web::Data<Config>,

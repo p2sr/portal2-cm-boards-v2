@@ -37,10 +37,7 @@ use sqlx::PgPool;
 ///             },...]}]
 /// ```
 #[get("/sp")]
-async fn get_singleplayer_preview(
-    pool: web::Data<PgPool>,
-    cache: web::Data<CacheState>,
-) -> impl Responder {
+async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Responder {
     // See if we can utilize the cache
     let state_data = &mut cache.current_state.lock().await;
     let is_cached = state_data.get_mut("sp_previews").unwrap();
@@ -80,7 +77,7 @@ async fn get_singleplayer_preview(
 /// - **Default**
 ///     - `/api/v1/map/sp/47802` - Will assume default category ID
 /// - **Specific Category**                   
-///     -`/api/v1/map/sp/47802?cat_id=40`
+///     - `/api/v1/map/sp/47802?cat_id=40`
 ///
 /// Makes a call to the underlying [SpMap::get_sp_map_page].
 ///
@@ -105,7 +102,7 @@ async fn get_singleplayer_preview(
 ///     },....]
 /// ```
 #[get("/map/sp/{map_id}")]
-pub async fn get_singleplayer_maps(
+pub async fn sp_map(
     map_id: web::Path<String>,
     cat_id: web::Query<OptCatID>,
     config: web::Data<Config>,
@@ -160,7 +157,7 @@ pub async fn get_singleplayer_maps(
 /// ]
 /// ```
 #[get("/sp/all_banned/{map_id}")]
-async fn get_banned_scores_sp(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {
+async fn sp_all_banned(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {
     let res = SpBanned::get_sp_banned(pool.get_ref(), map_id.to_string()).await;
     match res {
         Ok(banned_entries) => HttpResponse::Ok().json(banned_entries),
@@ -188,7 +185,7 @@ async fn get_banned_scores_sp(map_id: web::Path<u64>, pool: web::Data<PgPool>) -
 /// true
 /// ```
 #[get("/sp/banned/{map_id}")]
-async fn post_banned_scores_sp(
+async fn sp_banned(
     map_id: web::Path<String>,
     params: web::Query<ScoreParams>,
     cache: web::Data<CacheState>,
@@ -271,7 +268,7 @@ async fn post_banned_scores_sp(
 /// }
 /// ```
 #[get("/sp/history")]
-async fn get_sp_pbs(
+async fn sp_history(
     query: web::Query<HistoryParams>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
@@ -346,9 +343,59 @@ async fn get_sp_pbs(
 //     }
 // }
 
-/// Receives new data to update an existing score.
-#[put("/maps/sp/update")]
-async fn put_score_sp(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> impl Responder {
+// TODO: Make this more ergonomic? Don't require all values.
+// TODO: Authentication should impact what a user can update.
+// TODO: Update to return all.
+/// **PUT** Method to update data for an existing singleplayer score.
+///
+/// Expects a JSON object as input. Best practice is to pass the current JSON [Changelog] object, and alter the fields you want changed.
+///
+/// ## Parameters:
+/// - `id`
+///     - **Required** : `i64` : The ID of the changelog entry you want to update.
+/// - `timestamp`    
+///     - **Required** : `String` : `%Y-%m-%d %H:%M:%S` (use `%20` to denote a space)
+/// - `profile_number`
+///     - **Required** : `String` : Steam ID Number
+/// - `score`         
+///     - **Required** : `i32` : Current board time format         
+/// - `map_id`       
+///     - **Required** : `String` : Steam ID for the map
+/// - `banned`
+///     - **Required** : `bool` : If the score is banned.
+/// - `submission`
+///     - **Required** : `bool` : If the score is a submission.
+/// - `category_id`   
+///     - `i32` : ID for the category being played.
+/// - `demo_id`
+///     - **Optional** : `i64` : ID for the associated demo.
+/// - `youtube_id`
+///     - **Optional** : `String`: Youtube URL Extension.
+/// - `previous_id`
+///     - **Optional** : `i64` : Previous score ID for the user.
+/// - `coop_id`
+///     - **Optional** : `i64` : Coop ID for the score.
+/// - `post_rank`
+///     - **Optional** : `i32` : Rank when submitted.
+/// - `pre_rank`
+///     - **Optional** : `i32` : Previous Rank when the new score was submitted.
+/// - `note`          
+///     - **Optional** : `String` : User comment for the run.
+/// - `score_delta`
+///     - **Optional** : `i32` : Difference in score between the two entries.
+/// - `verified`
+///     - **Optional** : `bool` : If the run is verified.
+/// - `admin_note`
+///     - **Optional** : `String` : Note by admin.
+///
+/// Makes a call to the underlying [Changelog::update_changelog]
+///
+/// ## Example JSON output
+/// ```json
+/// true
+/// ```
+#[put("/sp/update")]
+async fn sp_update(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> impl Responder {
     // TODO: Handle demo uploads.
     let res = Changelog::update_changelog(pool.get_ref(), params.0).await;
     match res {
@@ -383,7 +430,7 @@ async fn put_score_sp(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> 
 ///
 /// Makes a call to the underlying [check_for_valid_score]
 ///
-/// ##Example JSON output:
+/// ## Example JSON output:
 /// ```json
 /// {
 ///     "previous_id": 102347,
@@ -394,7 +441,7 @@ async fn put_score_sp(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> 
 /// }
 /// ```
 #[get("/sp/validate")]
-pub async fn get_newscore_details(
+pub async fn sp_validate(
     pool: web::Data<PgPool>,
     data: web::Query<ScoreLookup>,
     cache: web::Data<CacheState>,

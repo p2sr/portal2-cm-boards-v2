@@ -14,10 +14,7 @@ use sqlx::PgPool;
 /// - **Default**
 ///     - `/api/v1/coop`
 #[get("/coop")]
-async fn get_cooperative_preview(
-    pool: web::Data<PgPool>,
-    cache: web::Data<CacheState>,
-) -> impl Responder {
+async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Responder {
     let state_data = &mut cache.current_state.lock().await;
     let is_cached = state_data.get_mut("coop_previews").unwrap();
     if !*is_cached {
@@ -56,7 +53,7 @@ async fn get_cooperative_preview(
 /// - **Specific Category ID** - Will use the cat_id specified.
 ///     - `/api/v1/map/coop/47802?cat_id=40`
 #[get("/map/coop/{map_id}")]
-async fn get_cooperative_maps(
+async fn coop_map(
     map_id: web::Path<String>,
     cat_id: web::Query<OptCatID>,
     config: web::Data<Config>,
@@ -96,7 +93,7 @@ async fn get_cooperative_maps(
 ///
 /// Makes a call to the underlying [CoopBanned::get_coop_banned]
 #[get("/coop/map_banned/{map_id}")]
-async fn get_banned_scores_coop(
+async fn coop_banned_all(
     map_id: web::Path<String>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
@@ -135,7 +132,7 @@ async fn get_banned_scores_coop(
 ///     - `/api/v1/coop/time_banned/47825?profile_number=76561198823602829&score=1890&cat_id=62`
 // TODO: Handle differently for coop?
 #[get("/coop/time_banned/{map_id}")]
-async fn post_banned_scores_coop(
+async fn coop_banned(
     map_id: web::Path<String>,
     params: web::Query<ScoreParams>,
     cache: web::Data<CacheState>,
@@ -157,9 +154,8 @@ async fn post_banned_scores_coop(
     }
 }
 
-#[allow(unused_variables)]
 #[post("/coop/post_score")]
-async fn post_score_coop(
+async fn coop_add(
     params: web::Json<CoopBundledInsert>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
