@@ -17,7 +17,7 @@ pub fn post_sp_pb(
 ) -> bool {
     // Grab the PB history.
     let url = format!(
-        "http://localhost:8080/api/v1/map/sp/{}/{}",
+        "http://localhost:8080/api/v1/sp/history?map_id={}&profile_number={}",
         id, profile_number
     );
     let res = reqwest::blocking::get(&url)
@@ -140,7 +140,7 @@ pub fn post_coop_pb(
     if let Some(profile_number2) = profile_number2 {
         // Grab the PB history. For now, we're just going to use 2 calls to our API rather than a combined call. (We'll use SP here).
         let url = format!(
-            "http://localhost:8080/api/v1/map/sp/{}/{}",
+            "http://localhost:8080/api/v1/sp/history?map_id={}&profile_number={}",
             id, profile_number1
         ); // TODO: Handle crashing if no PB history is found.
         let pb_history1: SpPbHistory = reqwest::blocking::get(&url)
@@ -148,7 +148,7 @@ pub fn post_coop_pb(
             .json()
             .expect("Error in converting our API values to JSON");
         let url = format!(
-            "http://localhost:8080/api/v1/map/sp/{}/{}",
+            "http://localhost:8080/api/v1/sp/history?map_id={}&profile_number={}",
             id, profile_number2
         ); // TODO: Handle crashing if no PB history is found.
         let pb_history2: SpPbHistory = reqwest::blocking::get(&url)

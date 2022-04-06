@@ -351,7 +351,7 @@ pub struct CalcValues {
 // Currently a dumbass work around to issues with deserializing an option natively theough the Query
 /// Generic wrapper around an Option i32 for [actix_web::web::Query]
 #[derive(Debug, Deserialize)]
-pub struct Opti32 {
+pub struct OptCatID {
     pub cat_id: Option<i32>,
 }
 
@@ -360,6 +360,14 @@ pub struct Opti32 {
 pub struct ScoreParams {
     pub profile_number: String,
     pub score: i32,
+    pub cat_id: Option<i32>,
+}
+
+/// Wrapper to allow queries to include `map_id`, `profile_number` and optional `cat_id`.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct HistoryParams {
+    pub profile_number: String,
+    pub map_id: String,
     pub cat_id: Option<i32>,
 }
 
@@ -398,6 +406,15 @@ pub struct SubmissionChangelog {
 pub struct DemoOptions {
     pub demo_id: Option<i64>,
     pub cl_id: Option<i64>,
+}
+
+/// Used to lookup information on a specific score.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ScoreLookup {
+    pub profile_number: String,
+    pub score: i32,
+    pub map_id: String,
+    pub cat_id: Option<i32>,
 }
 
 // Points

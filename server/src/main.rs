@@ -1,6 +1,42 @@
-// #![deny(missing_docs)]
+//! # Overview
 //! The main web-server compontent of the boards. Written in Rust, this is the primary
 //! REST API that the boards uses to interact with the database
+//!
+//! ## Navigation
+//!
+//! ### API
+//!
+//! The API module contains the different API versions, and the versions contain handles for the endpoints [api::v1::handlers].
+//!
+//! The handlers are broken up into categories that follow closely with their purpose area on the boards. Each
+//! category will contain different endpoints. Each endpoint should have usage documentation. **This is my recommendation on where to go
+//! if you're looking to use the API's endpoints for your application.**
+//!  
+//! ### Controllers
+//! The controllers source code contains the code for Database Interactions. The documentation here is virtually non-existant however, as
+//! the code is written as methods implemented on models. So view individual modules in [models::models], or check
+//! the API documention to see what underlying calls the API endpoints make.
+//!
+//! ### Models
+//! The models that represent the data we extract from the database, and most modules used internally in the code. These have good information
+//! on high-level purpose and any implementations on those models. This is where you would go to see what db interactions exist for a given
+//! data model.
+//!
+//! ### Tests
+//! The testing module does not contain any useful documentation, and is used for testing development.
+//!
+//! ### Tools
+//!
+//! #### Helpers
+//! Miscellaneous functions used by different portions of the code
+//!
+//! #### Cache
+//! Caching implementations specific to the board, well documented.
+//!
+//! #### Config
+//! Extracts configuration information from the local .env file to be used to customize boards. Includes networking information,
+//! proof requirements for the boards, connection information for the database and external file servers etc.
+//!
 #[macro_use]
 extern crate serde_derive;
 use actix_cors::Cors;

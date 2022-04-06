@@ -99,7 +99,7 @@ async fn test_db_users() {
     assert_eq!(user.admin, test_user.admin);
     assert_eq!(user.donation_amount, test_user.donation_amount);
     assert_eq!(user.discord_id, test_user.discord_id);
-    let test_user = Users::get_user_data(&pool, user.profile_number.clone()).await.unwrap().unwrap();
+    let test_user = Users::get_user_data(&pool, &user.profile_number).await.unwrap().unwrap();
     assert_eq!(user.board_name, Some(test_user.user_name));
     assert_eq!(user.avatar, Some(test_user.avatar));
     let test_vec = Users::check_board_name(&pool, "Daniel".to_string()).await.unwrap().unwrap();
@@ -126,13 +126,13 @@ async fn test_db_users() {
     
     // Test inserts/updates/deletes
     assert!(Users::insert_new_users(&pool, insert_user.clone()).await.unwrap());
-    let insert_user_data = Users::get_user_data(&pool, insert_user.profile_number.clone()).await.unwrap().unwrap();
+    let insert_user_data = Users::get_user_data(&pool, &insert_user.profile_number).await.unwrap().unwrap();
     assert_eq!(insert_user.board_name, Some(insert_user_data.user_name));
     assert_eq!(insert_user.avatar, Some(insert_user_data.avatar));
     insert_user.board_name = Some("BigDaniel11AtlasPog".to_string());
     assert!(Users::update_existing_user(&pool, insert_user.clone()).await.unwrap());
     assert!(Users::delete_user(&pool, insert_user.profile_number.clone()).await.unwrap());
-    let _res = Users::get_user_data(&pool, insert_user.profile_number.clone()).await;
+    let _res = Users::get_user_data(&pool, &insert_user.profile_number).await;
 
     // Donations
     let donators = Users::get_donators(&pool).await.unwrap().unwrap();
@@ -272,7 +272,7 @@ async fn test_db_changelog() {
 
     let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string(), 19).await.unwrap();
     assert!(!banned_scores);
-    let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247".to_string(), "47763".to_string()).await.unwrap();
+    let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247", "47763", 19).await.unwrap();
     assert_ne!(0, pb_history.len());
     let new_cl_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
     let mut new_cl = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();

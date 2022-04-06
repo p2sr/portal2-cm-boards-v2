@@ -9,29 +9,29 @@ use sqlx::PgPool;
 
 /// **GET** method for changelog entiries. Utilizes `ChangelogQueryParrams` as an optional addition to the query
 ///
-/// **Optional Parameters**: [crate::models::models::ChangelogQueryParams]
+/// **Optional Parameters**: [ChangelogQueryParams]
 /// ## Parameters:
-///    - **limit**           
+///    - `limit`           
 ///         - The # of max returned results.
-///    - **nick_name**       
+///    - `nick_name`       
 ///         - Filters for results from all profile_numbers were steam/board name matches `(%TEXT%)`.
-///    - **profile_number**  
+///    - `profile_number`  
 ///         - Returns scores only from a specific profile (steam) id.
-///    - **chamber**         
+///    - `chamber`         
 ///         - Filters for only a specfic map by id.
-///    - **sp**              
+///    - `sp`              
 ///         - Boolean for determines if sp maps should be returned
-///    - **coop**            
+///    - `coop`            
 ///         - Boolean that determines if coop maps should be returned
-///    - **wr_gain**         
+///    - `wr_gain`         
 ///         - Boolean that, if true, will only return scores that were originally World Records
-///    - **has_demo**        
+///    - `has_demo`        
 ///         - Boolean that will filter for only scores with demos
-///    - **yt**              
+///    - `yt`              
 ///         - Boolean that will filter for onlny scores with youtube links
-///    - **first**           
+///    - `first`           
 ///         - Will only return scores with an ID higher than the given amount
-///    - **last**            
+///    - `last`            
 ///         - Will only return scores with an ID lower than the given amount
 /// ## Example endpoints:
 ///  - **Default**           
@@ -66,19 +66,19 @@ async fn get_changelog(
 ///
 /// ## Parameters (expects valid JSON Object):
 ///
-/// - **timestamp**    
+/// - `timestamp`    
 ///     - `String`: `%Y-%m-%d %H:%M:%S` (use `%20` to denote a space)
-/// - **profile_number**
+/// - `profile_number`
 ///     - `String`: Steam ID Number
-/// - **score**         
+/// - `score`         
 ///     - `i32`: Current board time format         
-/// - **map_id**       
+/// - `map_id`       
 ///     - `String`: Steam ID for the map
-/// - **youtube_id**
+/// - `youtube_id`
 ///     - `String`: Youtube URL Extension.
-/// - **note**          
+/// - `note`          
 ///     - `String`: Note for the run
-/// - **category_id**   
+/// - `category_id`   
 ///     - `i32`: ID for the category being played  
 ///
 /// ## Example endpoints:       

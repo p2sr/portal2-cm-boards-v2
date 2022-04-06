@@ -16,7 +16,7 @@ impl Users {
         Ok(Some(res))
     }
     /// Gets a user's avatar and user_name/board_name (favors board_name)
-    pub async fn get_user_data(pool: &PgPool, profile_number: String) -> Result<Option<UsersPage>> {
+    pub async fn get_user_data(pool: &PgPool, profile_number: &str) -> Result<Option<UsersPage>> {
         let res = sqlx::query_as::<_, UsersPage>(
             r#"
                 SELECT            

@@ -1,6 +1,6 @@
 use crate::models::models::{
-    Changelog, ChangelogInsert, Opti32, ScoreParams, SpBanned, SpMap, SpPbHistory, SpPreviews,
-    SpRanked, Users, UsersPage,
+    Changelog, HistoryParams, OptCatID, ScoreLookup, ScoreParams, SpBanned, SpMap, SpPbHistory,
+    SpPreviews, SpRanked, Users, UsersPage,
 };
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
 use crate::tools::helpers::check_for_valid_score;
@@ -9,8 +9,33 @@ use actix_web::{get, post, put, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
-/// GET endpoint to handle the preview page showing all sp maps.
-/// Returns: Json wrapped values -> {map_id, scores{ steam_id, profile_number, score, youtube_id, category_id, user_name } }
+// TODO: Invalidate cache when a time is banned/verified/when a player is banned.
+/// **GET** method to handle the preview page showing all singleplayer maps.
+///
+/// Inital load tends to be relatively slow, but the information cached, and
+/// remains in chache until a new singleplayer score is submitted
+///
+/// ## Example endpoints:
+///  - **Default**           
+///     - `/api/v1/sp`
+///
+/// Makes a call to the underlying [SpPreviews::get_sp_previews]
+/// **or** uses a cached value.
+///
+/// ```json
+/// [
+///     {
+///         "map_id": "47458",
+///         "scores": [
+///             {
+///                 "profile_number": "76561198795823814",
+///                 "score": 2326,
+///                 "youtube_id": "DPgJgmLmzCw?start=0",
+///                 "category_id": 1,
+///                 "user_name": "Royal",
+///                 "map_id": "47458"
+///             },...]}]
+/// ```
 #[get("/sp")]
 async fn get_singleplayer_preview(
     pool: web::Data<PgPool>,
@@ -43,14 +68,46 @@ async fn get_singleplayer_preview(
 }
 
 // TODO: Add game
-/// Generates a map page for a given map_id
-/// OPTIONAL PARAMETER cat_id
-///   Example endpoint  -> /map/sp/47802               Will assume default category ID
-///                     -> /map/sp/47802?cat_id=40     Will use cat_id of 40
+/// **GET** method to generate a single player map page [SpRanked] for a given map_id
+///
+/// **Optional Parameters**: `cat_id`
+///
+/// ## Parameters:
+///    - `cat_id`           
+///         - The ID of the category you want a Single Player Ranked Page for.
+///
+/// ## Example endpoint
+/// - **Default**
+///     - `/api/v1/map/sp/47802` - Will assume default category ID
+/// - **Specific Category**                   
+///     -`/api/v1/map/sp/47802?cat_id=40`
+///
+/// Makes a call to the underlying [SpMap::get_sp_map_page].
+///
+/// ## Example JSON output
+/// ```json
+/// [
+///     {
+///         "map_data": {
+///             "timestamp": "2021-04-28T06:51:16",
+///             "profile_number": "76561198254956991",
+///             "score": 1729,
+///             "demo_id": 21885,
+///             "youtube_id": "MtwWXAO2E5c?start=0",
+///             "submission": false,
+///             "note": "https://www.youtube.com/watch?v=orwgEEaJln0",
+///             "category_id": 40,
+///             "user_name": "Zyntex",
+///             "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/9d/9d160bcde456f7bb452b1ed9d9e740cd73f89266_full.jpg"
+///         },
+///         "rank": 1,
+///         "points": 200.0
+///     },....]
+/// ```
 #[get("/map/sp/{map_id}")]
 pub async fn get_singleplayer_maps(
     map_id: web::Path<String>,
-    cat_id: web::Query<Opti32>,
+    cat_id: web::Query<OptCatID>,
     config: web::Data<Config>,
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
@@ -81,8 +138,28 @@ pub async fn get_singleplayer_maps(
         _ => HttpResponse::NotFound().body("Error fetching SP Map Page"),
     }
 }
-/// Gives the profile number and score for all banned times on a given SP map
-#[get("/maps/sp/banned/{map_id}")]
+/// **GET** method to return the profile number and score for all banned times on a given singleplayer map.
+///
+/// ## Example Endpoins
+/// - **Default**
+///     - `/api/v1/sp/all_banned/47458`
+///
+/// Makes a call to the underlying [SpBanned::get_sp_banned]
+///
+/// ## Example JSON output
+/// ```json
+/// [
+///     {
+///         "profile_number": "76561197961322276",
+///         "score": -2147483648
+///     },
+///     {
+///         "profile_number": "76561198096964328",
+///         "score": -2147483648
+///     }
+/// ]
+/// ```
+#[get("/sp/all_banned/{map_id}")]
 async fn get_banned_scores_sp(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {
     let res = SpBanned::get_sp_banned(pool.get_ref(), map_id.to_string()).await;
     match res {
@@ -90,8 +167,26 @@ async fn get_banned_scores_sp(map_id: web::Path<u64>, pool: web::Data<PgPool>) -
         _ => HttpResponse::NotFound().body("Error fetching SP Banned Player info."),
     }
 }
-
-/// Gives the profile number and score for all banned times on a given SP map
+/// **GET** method to return true or false given a `map_id`, `profile_number` and `score`
+///
+/// ## Parameters:
+///    - `map_id`
+///         - Required: Part of the endpoint, **not** a part of the query string.
+///    - `profile_number`           
+///         - Required: `String`, ID for the player.
+///    - `score`           
+///         - Required: `i32`, Time for the run.
+///
+/// ## Example Endpoins
+/// - **With Parameters**
+///     - `/api/v1/sp/banned/47458?profile_number=76561198823602829&score=2445`
+///
+/// Makes a call to the underlying [SpBanned::get_sp_banned]
+///
+/// ## Example JSON output
+/// ```json
+/// true
+/// ```
 #[get("/sp/banned/{map_id}")]
 async fn post_banned_scores_sp(
     map_id: web::Path<String>,
@@ -115,14 +210,76 @@ async fn post_banned_scores_sp(
     }
 }
 
-/// Returns a players PB history on an SP map
-#[get("/map/sp/{map_id}/{profile_number}")]
-async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) -> impl Responder {
-    let map_id = info.0.clone();
-    let profile_number = info.1.clone();
+/// **GET** method to return a history of scores on a current map, for a given player.
+///
+/// Query parameters represented as [HistoryParams]
+///
+/// ** Required Parameters**: map_id, profile_number
+///
+/// ** Optional Parameters**: cat_id
+///
+/// ## Parameters:
+///    - `profile_number`           
+///         - Required: `String`, ID for the player.
+///    - `map_id`           
+///         - Required: `String`, ID for the map.
+///    - `cat_id`           
+///         - Optional: `String`, ID for the category.
+///
+/// ## Example Endpoints:
+/// - **With Parametes**
+///     - `/api/v1/sp/history?map_id=47458&profile_number=76561198795823814
+/// - **With cat_id**
+///     - `/api/v1/sp/history?map_id=47458&profile_number=76561198795823814&cat_id=1
+///
+/// Makes a call to the underlying [Users::get_user_data] & [Changelog::get_sp_pb_history]
+///
+/// # Example JSON output
+/// - For a user that exists
+/// ```json
+/// {
+///     "user_name": "Royal",
+///     "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/d8/d84366b1be1f0439b0edc7fc8404fe2ea29a9c54_full.jpg",
+///     "pb_history": [
+///         {
+///             "id": 152184,
+///             "timestamp": "2021-07-06T09:11:04",
+///             "profile_number": "76561198795823814",
+///             "score": 2326,
+///             "map_id": "47458",
+///             "demo_id": 24527,
+///             "banned": false,
+///             "youtube_id": "DPgJgmLmzCw?start=0",
+///             "previous_id": 141996,
+///             "coop_id": null,
+///             "post_rank": 1,
+///             "pre_rank": 1,
+///             "submission": true,
+///             "note": "",
+///             "category_id": 1,
+///             "score_delta": -7,
+///             "verified": true,
+///             "admin_note": null
+///         },..]}
+/// ```
+/// - For a user that does not exist.
+/// ```json
+/// {
+///     "user_name": null,
+///     "avatar": null,
+///     "pb_history": null
+/// }
+/// ```
+#[get("/sp/history")]
+async fn get_sp_pbs(
+    query: web::Query<HistoryParams>,
+    pool: web::Data<PgPool>,
+    cache: web::Data<CacheState>,
+) -> impl Responder {
+    let query = query.into_inner();
     let user_data: UsersPage;
     // Get information for the player (user_name and avatar).
-    let res = Users::get_user_data(pool.get_ref(), profile_number.clone()).await;
+    let res = Users::get_user_data(pool.get_ref(), &query.profile_number).await;
     // TODO: Handle the case where the is no user in the db
     match res {
         Ok(Some(res)) => user_data = res,
@@ -136,8 +293,15 @@ async fn get_sp_pbs(info: web::Path<(String, String)>, pool: web::Data<PgPool>) 
         _ => return HttpResponse::NotFound().body("Error fetching User Data on given user."),
     }
     // Get Changelog data for all previous times.
-    let res =
-        Changelog::get_sp_pb_history(pool.get_ref(), profile_number.clone(), map_id.clone()).await;
+    let res = Changelog::get_sp_pb_history(
+        pool.get_ref(),
+        &query.profile_number,
+        &query.map_id,
+        query
+            .cat_id
+            .unwrap_or(cache.into_inner().default_cat_ids[&query.map_id]),
+    )
+    .await;
     match res {
         Ok(changelog_data) => HttpResponse::Ok().json(SpPbHistory {
             user_name: Some(user_data.user_name),
@@ -193,17 +357,46 @@ async fn put_score_sp(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> 
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ScoreLookup {
-    pub profile_number: String,
-    pub score: i32,
-    pub map_id: String,
-}
-/// Wrapper for check_for_valid_score for the public facing API.
-#[post("/newscore_details")]
+/// **GET** method for validating an SP Score. Mainly used by our backend that pulls times from the Steam leaderboards.
+///
+/// Query parameters represented as [ScoreLookup]
+///
+/// **Required Parameters**: profile_number, score, map_id
+///
+/// **Optional Parameters**: cat_id
+///
+/// ## Parameters:
+///    - `profile_number`           
+///         - Required: `String`, ID for the player.
+///    - `score`           
+///         - Required: `i32`, Time for the run.
+///    - `map_id`           
+///         - Required: `String`, ID for the map.
+///    - `cat_id`           
+///         - Optional: `i32`, ID for the cateogry. If left blank, will use the default for the map.
+///
+/// ## Example endpoints:
+///  - **With Required**           
+///     - `/api/v1/sp/validate?profile_number=76561198039230536&score=2346&map_id=47458`
+///  - **With cat_id**   
+///     - `/api/v1/sp/validate?profile_number=76561198039230536&score=2346&map_id=47458&?cat_id=1`
+///
+/// Makes a call to the underlying [check_for_valid_score]
+///
+/// ##Example JSON output:
+/// ```json
+/// {
+///     "previous_id": 102347,
+///     "post_rank": 500,
+///     "pre_rank": 3,
+///     "score_delta": 2,
+///     "banned": false
+/// }
+/// ```
+#[get("/sp/validate")]
 pub async fn get_newscore_details(
     pool: web::Data<PgPool>,
-    data: web::Json<ScoreLookup>,
+    data: web::Query<ScoreLookup>,
     cache: web::Data<CacheState>,
     config: web::Data<Config>,
 ) -> impl Responder {
@@ -213,14 +406,15 @@ pub async fn get_newscore_details(
         data.score,
         data.map_id.clone(),
         config.proof.results,
-        cache.into_inner().default_cat_ids[&data.map_id],
+        data.cat_id
+            .unwrap_or(cache.into_inner().default_cat_ids[&data.map_id]),
     )
     .await;
     match res {
         Ok(details) => HttpResponse::Ok().json(details),
         Err(e) => {
             eprintln!("Error finding newscore details -> {:#?}", e);
-            HttpResponse::NotFound().body("Error finding user")
+            HttpResponse::NotFound().json("Score is not valid.")
         }
     }
 }

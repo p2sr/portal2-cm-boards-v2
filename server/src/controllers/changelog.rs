@@ -48,15 +48,17 @@ impl Changelog {
         }
     }
     /// Returns a vec of changelog for a user's PB history on a given SP map.
-    pub async fn get_sp_pb_history(pool: &PgPool, profile_number: String, map_id: String) -> Result<Vec<Changelog>> {
+    pub async fn get_sp_pb_history(pool: &PgPool, profile_number: &str, map_id: &str, cat_id: i32) -> Result<Vec<Changelog>> {
         let res = sqlx::query_as::<_, Changelog>(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
                 WHERE changelog.profile_number = $1
                 AND changelog.map_id = $2
+                AND changelog.category_id = $3
                 ORDER BY changelog.timestamp DESC NULLS LAST"#)
             .bind(profile_number)
             .bind(map_id)
+            .bind(cat_id)
             .fetch_all(pool)
             .await;
         match res{

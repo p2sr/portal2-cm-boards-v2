@@ -93,7 +93,7 @@ pub async fn check_for_valid_score(
             bail!("User does not exist");
         }
     }
-    let cl = Changelog::get_sp_pb_history(pool, profile_number.clone(), map_id.clone()).await;
+    let cl = Changelog::get_sp_pb_history(pool, &profile_number, &map_id, cat_id).await;
     let cl = match cl {
         Ok(x) => x,
         Err(e) => {

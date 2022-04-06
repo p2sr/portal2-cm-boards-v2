@@ -1,5 +1,5 @@
 use crate::models::models::{
-    Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, Opti32,
+    Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, OptCatID,
     ScoreParams,
 };
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
@@ -58,7 +58,7 @@ async fn get_cooperative_preview(
 #[get("/map/coop/{map_id}")]
 async fn get_cooperative_maps(
     map_id: web::Path<String>,
-    cat_id: web::Query<Opti32>,
+    cat_id: web::Query<OptCatID>,
     config: web::Data<Config>,
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
@@ -93,12 +93,14 @@ async fn get_cooperative_maps(
 ///     - `/api/v1/coop/map_banned/47802`
 /// - **Specific Category ID** - Will use the cat_id specified.
 ///     - `/api/v1/coop/map_banned/47802?cat_id=40`
+///
+/// Makes a call to the underlying [CoopBanned::get_coop_banned]
 #[get("/coop/map_banned/{map_id}")]
 async fn get_banned_scores_coop(
     map_id: web::Path<String>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
-    params: web::Query<Opti32>,
+    params: web::Query<OptCatID>,
 ) -> impl Responder {
     let res = CoopBanned::get_coop_banned(
         pool.get_ref(),
