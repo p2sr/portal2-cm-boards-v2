@@ -329,7 +329,7 @@ pub fn check_cheated(id: &String, banned_users: &Vec<String>) -> bool {
 
 #[allow(dead_code)]
 pub fn check_user(profile_number: &str) -> bool {
-    let url = format!("http://localhost:8080/api/v1/users/{}", profile_number);
+    let url = format!("http://localhost:8080/api/v1/user/{}", profile_number);
     let user = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json::<Users>();

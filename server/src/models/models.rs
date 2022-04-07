@@ -163,6 +163,12 @@ pub struct Games {
     pub game_name: String,
 }
 
+/// Query wrapper for game_id
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GameID {
+    pub game_id: Option<i32>,
+}
+
 /// One-to-one struct for map data.
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct Maps {

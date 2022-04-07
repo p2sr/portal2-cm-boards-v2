@@ -73,10 +73,7 @@ pub fn post_sp_pb(
         score_delta = Some(score - i);
     }
     let mut cat_id = 0;
-    let url = format!(
-        "http://localhost:8080/api/v1/category/default_category/{}",
-        id
-    );
+    let url = format!("http://localhost:8080/api/v1/default_category/{}", id);
     let res = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json::<i32>();
@@ -220,10 +217,7 @@ pub fn post_coop_pb(
             score_delta2 = Some(score - i);
         }
         let mut cat_id = 0;
-        let url = format!(
-            "http://localhost:8080/api/v1/category/default_category/{}",
-            id
-        );
+        let url = format!("http://localhost:8080/api/v1/default_category/{}", id);
         let res = reqwest::blocking::get(&url)
             .expect("Error in query to our local API (Make sure the webserver is running")
             .json::<i32>();

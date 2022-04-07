@@ -22,6 +22,8 @@ use sqlx::PgPool;
 /// Makes a call to the underlying [SpPreviews::get_sp_previews]
 /// **or** uses a cached value.
 ///
+/// ## Example JSON output
+///
 /// ```json
 /// [
 ///     {
@@ -67,11 +69,9 @@ async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Respo
 // TODO: Add game
 /// **GET** method to generate a single player map page [SpRanked] for a given map_id
 ///
-/// **Optional Parameters**: `cat_id`
-///
 /// ## Parameters:
 ///    - `cat_id`           
-///         - The ID of the category you want a Single Player Ranked Page for.
+///         - **Optional** - `i32` - The ID of the category you want a Single Player Ranked Page for.
 ///
 /// ## Example endpoint
 /// - **Default**
@@ -82,6 +82,7 @@ async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Respo
 /// Makes a call to the underlying [SpMap::get_sp_map_page].
 ///
 /// ## Example JSON output
+///
 /// ```json
 /// [
 ///     {
@@ -144,6 +145,7 @@ pub async fn sp_map(
 /// Makes a call to the underlying [SpBanned::get_sp_banned]
 ///
 /// ## Example JSON output
+///
 /// ```json
 /// [
 ///     {
@@ -181,6 +183,7 @@ async fn sp_all_banned(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl 
 /// Makes a call to the underlying [SpBanned::get_sp_banned]
 ///
 /// ## Example JSON output
+///
 /// ```json
 /// true
 /// ```
@@ -211,10 +214,6 @@ async fn sp_banned(
 ///
 /// Query parameters represented as [HistoryParams]
 ///
-/// ** Required Parameters**: map_id, profile_number
-///
-/// ** Optional Parameters**: cat_id
-///
 /// ## Parameters:
 ///    - `profile_number`           
 ///         - Required: `String`, ID for the player.
@@ -232,7 +231,9 @@ async fn sp_banned(
 /// Makes a call to the underlying [Users::get_user_data] & [Changelog::get_sp_pb_history]
 ///
 /// # Example JSON output
+///
 /// - For a user that exists
+///
 /// ```json
 /// {
 ///     "user_name": "Royal",
@@ -259,7 +260,9 @@ async fn sp_banned(
 ///             "admin_note": null
 ///         },..]}
 /// ```
+///
 /// - For a user that does not exist.
+///
 /// ```json
 /// {
 ///     "user_name": null,
@@ -391,6 +394,7 @@ async fn sp_history(
 /// Makes a call to the underlying [Changelog::update_changelog]
 ///
 /// ## Example JSON output
+///
 /// ```json
 /// true
 /// ```
@@ -408,19 +412,15 @@ async fn sp_update(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> imp
 ///
 /// Query parameters represented as [ScoreLookup]
 ///
-/// **Required Parameters**: profile_number, score, map_id
-///
-/// **Optional Parameters**: cat_id
-///
 /// ## Parameters:
 ///    - `profile_number`           
-///         - Required: `String`, ID for the player.
+///         - **Required**: `String`, ID for the player.
 ///    - `score`           
-///         - Required: `i32`, Time for the run.
+///         - **Required**: `i32`, Time for the run.
 ///    - `map_id`           
-///         - Required: `String`, ID for the map.
+///         - **Required**: `String`, ID for the map.
 ///    - `cat_id`           
-///         - Optional: `i32`, ID for the cateogry. If left blank, will use the default for the map.
+///         - **Optional**: `i32`, ID for the cateogry. If left blank, will use the default for the map.
 ///
 /// ## Example endpoints:
 ///  - **With Required**           
@@ -431,6 +431,7 @@ async fn sp_update(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> imp
 /// Makes a call to the underlying [check_for_valid_score]
 ///
 /// ## Example JSON output:
+///
 /// ```json
 /// {
 ///     "previous_id": 102347,

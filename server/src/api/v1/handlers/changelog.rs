@@ -56,30 +56,26 @@ async fn changelog(
     }
 }
 
-/// **POST** endpoint for submitting a new changelog entry.
-/// Accepts field values for a new changelog insert
-/// ## Expects the following fields:
+/// **POST** method for submitting a new changelog entry.
 ///
-/// **Required Parameters**: timestamp, profile_number, score, map_id
-///
-/// **Optional Parameters**: youtube_id, note, cat_id
+/// Accepts field values for a new [ChangelogInsert]
 ///
 /// ## Parameters (expects valid JSON Object):
 ///
 /// - `timestamp`    
-///     - `String`: `%Y-%m-%d %H:%M:%S` (use `%20` to denote a space)
+///     - **Required** - `String` : `%Y-%m-%d %H:%M:%S` (use `%20` to denote a space)
 /// - `profile_number`
-///     - `String`: Steam ID Number
+///     - **Required** - `String` : Steam ID Number
 /// - `score`         
-///     - `i32`: Current board time format         
+///     - **Required** - `i32` : Current board time format         
 /// - `map_id`       
-///     - `String`: Steam ID for the map
+///     - **Required** - `String` : Steam ID for the map
 /// - `youtube_id`
-///     - `String`: Youtube URL Extension.
+///     - **Optional** - `String` : Youtube URL Extension.
 /// - `note`          
-///     - `String`: Note for the run
+///     - **Optional** - `String` : Note for the run
 /// - `category_id`   
-///     - `i32`: ID for the category being played  
+///     - **Optional** - `i32` : ID for the category being submitted, will use default for the map if not supplied,
 ///
 /// ## Example endpoints:       
 /// - `/api/v1/changelog`

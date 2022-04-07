@@ -172,7 +172,7 @@ pub async fn demos_changelog(
 /// - `/api/v1/demos?cl_id=15625`
 /// - `/api/v1/demos?demo_id=12651`
 #[delete("/demos")]
-pub async fn delete_demo(
+pub async fn demos_delete(
     query: web::Query<DemoOptions>,
     config: web::Data<Config>,
     pool: web::Data<PgPool>,
@@ -202,7 +202,8 @@ pub async fn delete_demo(
     }
 }
 
-/// Adds a demo and changelog insert to the database
+/// Adds a demo and changelog insert to the database.
+///
 /// The debug value passed will remove the added changelog/demo entries inserted, and skip uploading the file for quicker debugging.
 async fn add_to_database(
     pool: &PgPool,
@@ -272,7 +273,7 @@ async fn b2_client_and_auth(config: &Config) -> Result<(reqwest::Client, B2Auth)
     Ok((client, auth))
 }
 
-/// Handles uploading the demo file
+/// Handles uploading the demo file.
 async fn upload_demo(config: &Config, file_name: &str) -> Result<Option<String>> {
     // Ref: https://docs.rs/raze/0.4.1/raze/api/fn.b2_authorize_account.html
     let (client, auth) = b2_client_and_auth(&config).await.unwrap();
@@ -312,7 +313,8 @@ async fn upload_demo(config: &Config, file_name: &str) -> Result<Option<String>>
     Ok(resp1.file_id)
 }
 
-/// Takes in either a demo_id or a changelog_id, and returns a changelog entry and a demno_id
+/// Takes in either a demo_id or a changelog_id, and returns a changelog entry and a demno_id.
+///
 /// We return a demo_id because there is a chance that there are multiple demos uploaded for the same changelog entry,
 /// and we might want to delete an older demo.
 async fn get_changelog_and_demo_id(query: DemoOptions, pool: &PgPool) -> Result<(Changelog, i64)> {

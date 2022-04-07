@@ -5,6 +5,20 @@ use sqlx::{PgPool, Row};
 use std::collections::HashMap;
 
 impl Maps {
+    pub async fn get_maps(pool: &PgPool, game_id: i32) -> Result<Vec<Maps>> {
+        let res = sqlx::query_as::<_, Maps>(
+            r#"
+            SELECT maps.id, maps.steam_id, maps.lp_id,
+            maps.name, maps.chapter_id, maps.default_cat_id,
+            maps.is_public  FROM "p2boards".maps 
+                INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
+                WHERE chapters.game_id = $1;"#,
+        )
+        .bind(game_id)
+        .fetch_all(pool)
+        .await?;
+        Ok(res)
+    }
     /// Takes in a bool, if true returns MP map_ids, if false, returns as SP map_ids
     pub async fn get_steam_ids(pool: &PgPool, is_mp: bool) -> Result<Vec<String>> {
         let res = sqlx::query(
