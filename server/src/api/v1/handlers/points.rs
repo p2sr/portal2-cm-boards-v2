@@ -24,7 +24,6 @@ pub async fn write_points_to_file(
         .map_err(|err| err.into())
 }
 
-// TODO: Should be able to make this faster, but stuck with weird limitations to mapping result values from serde.
 /// Reads in json from the cache for the passed in ID.
 pub async fn read_points_from_file(id: &str) -> Result<PointsReadWrapper, Error> {
     let path_str = format!("./points/{}.json", id);
@@ -150,10 +149,9 @@ async fn points_overall_add(
                 points_cache.insert(k, v);
             }
             write_to_file(&id, &points_cache).await.unwrap();
-            // println!("Updated cache.");
             println!("{:#?}", points_cache);
             HttpResponse::Ok().body("Success")
-        } // TODO: Fix error handling (return values?)
+        }
         _ => HttpResponse::NotFound().body("Error updaing score entries for overall"),
     }
 }

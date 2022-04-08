@@ -156,9 +156,7 @@ impl ChangelogPage {
     pub async fn get_changelog_page(
         pool: &PgPool,
         params: ChangelogQueryParams,
-    ) -> Result<Option<Vec<ChangelogPage>>> {
-        // TODO: Add additonal filters
-        
+    ) -> Result<Option<Vec<ChangelogPage>>> {        
         let query_string = match build_filtered_changelog(pool, params, None).await {
             Ok(s) => s,
             Err(e) => bail!(e),
@@ -288,7 +286,6 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
     if let Some(limit) = params.limit {
         query_string = format!("{} LIMIT {}\n", query_string, limit);
     } else {
-        // Default limit
         // TODO: Update to use the correct
         query_string = format!("{} LIMIT 500\n", query_string);
     }

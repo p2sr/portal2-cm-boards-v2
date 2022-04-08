@@ -31,7 +31,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(maps)
             .service(default_category)
             .service(maps_from_chapter)
-            .service(chapter_by_name)
+            .service(chapters_filtered)
             .service(user)
             .service(user_add)
             .service(banned_users_all)

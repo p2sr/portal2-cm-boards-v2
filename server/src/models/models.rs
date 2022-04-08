@@ -106,12 +106,20 @@ pub struct Categories {
 }
 
 /// One-to-one struct for chapter data.
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, FromRow, Debug)]
 pub struct Chapters {
     pub id: i32,
     pub chapter_name: Option<String>,
     pub is_multiplayer: bool,
     pub game_id: i32,
+}
+
+/// Querying for Chapters
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChapterQueryParams {
+    pub chapter_name: Option<String>,
+    pub is_multiplayer: Option<bool>,
+    pub game_id: Option<i32>,
 }
 
 /// One-to-one struct for coop_bundled data.

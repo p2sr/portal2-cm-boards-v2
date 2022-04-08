@@ -27,7 +27,6 @@ impl CoopBundled {
 }
 
 impl CoopMap {
-    // TODO: Check to make sure this is filtered when returned (I think it is).
     pub async fn get_coop_map_page(
         pool: &PgPool,
         map_id: &String,

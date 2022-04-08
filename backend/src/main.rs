@@ -47,8 +47,6 @@ fn main() {
     //      ssp -> Specific SP map, next arg is map#, will recompute points
     //      scp -> Specific Coop map, next arg is map#, will recompute points
     //      rcp -> Recompute points (useful after a ban/admin confirmation)
-    // TODO: Stage point computation??
-    // TODO: Handle caching of point information.
     let start = PreciseTime::now();
     println!("{:#?}", new_args.arg);
     match new_args.arg.as_ref() {
@@ -87,10 +85,7 @@ fn fetch_all(limit: i32) {
     let utc = Utc::now().naive_utc();
     let _res_sp: Vec<_> = official_sp
         .into_par_iter()
-        .map(|map_id| {
-            // TODO: Pass values like # of results as args to the binary
-            fetch_entries(map_id, 0, limit * LIMIT_MULT_SP, utc, false)
-        })
+        .map(|map_id| fetch_entries(map_id, 0, limit * LIMIT_MULT_SP, utc, false))
         .collect();
     let _res_cp: Vec<_> = official_coop
         .into_par_iter()

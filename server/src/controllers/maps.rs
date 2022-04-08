@@ -105,7 +105,7 @@ impl Maps {
         let query_map_name = format!("%{}%", &map_name);
         let res = sqlx::query(
             r#"SELECT steam_id FROM "p2boards".maps 
-                WHERE LOWER(name) LIKE LOWER($1)"#,
+                WHERE LOWER(name) LIKE LOWER(%$1%)"#,
         )
         .bind(query_map_name)
         .map(|row: PgRow| row.get(0))

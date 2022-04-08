@@ -280,7 +280,6 @@ async fn sp_history(
     let user_data: UsersPage;
     // Get information for the player (user_name and avatar).
     let res = Users::get_user_data(pool.get_ref(), &query.profile_number).await;
-    // TODO: Handle the case where the is no user in the db
     match res {
         Ok(Some(res)) => user_data = res,
         Ok(None) => {

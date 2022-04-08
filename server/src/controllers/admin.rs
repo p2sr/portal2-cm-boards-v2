@@ -11,7 +11,6 @@ impl Admin {
         pool: &PgPool,
         params: ChangelogQueryParams,
     ) -> Result<Option<Vec<ChangelogPage>>> {
-        // TODO: Add a ratio of verified/non-verified scores, # banned per-user.
         let mut additional_filters: Vec<String> =
             vec!["cl.banned = 'true' OR cl.verified = 'false' OR u.banned = 'true'".to_string()];
         let query_string =

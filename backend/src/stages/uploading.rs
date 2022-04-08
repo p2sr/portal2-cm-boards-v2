@@ -153,7 +153,6 @@ pub fn post_coop_pb(
             .json()
             .expect("Error in converting our API values to JSON");
         let mut previous_id1 = None;
-        // TODO: Fix to handle new pb_history
         // TODO: Make specific to coop
         let pb_vec = pb_history1.pb_history;
         let mut past_score1: Option<i32> = None;
@@ -229,8 +228,7 @@ pub fn post_coop_pb(
         }
         //println!("{}", cat_id);
 
-        // TODO: We first need to upload individually as changelog entries, get the result from that insert (the changelogID it creates, then use that for the bundling process).
-        // TODO: Getting 404s on all post calls
+        // We first need to upload individually as changelog entries, get the result from that insert (the changelogID it creates, then use that for the bundling process).
         let score1 = ChangelogInsert {
             timestamp: Some(timestamp),
             profile_number: profile_number1.clone(),

@@ -75,10 +75,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         let hm_vec: Vec<PointsWrapper> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
             .into_par_iter()
             .map(|chapter_id| {
-                let url = format!(
-                    "http://localhost:8080/api/v1/maps_from_chapter/{}",
-                    &chapter_id
-                );
+                let url = format!("http://localhost:8080/api/v1/chapters/{}/maps", &chapter_id);
                 let map_ids: Vec<String> = reqwest::blocking::get(&url)
                     .expect("Error in query to our local API (Make sure the webserver is running")
                     .json()
@@ -101,7 +98,6 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
             });
         }
 
-        // TODO: Handle time-based sorting
         // Post all chapters to the webserver
         for chapter in send_vec.iter() {
             let client = reqwest::blocking::Client::new();
@@ -117,7 +113,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
             if x.id.unwrap() > 6 {
                 // SP
                 for (profile_number, new_points) in x.points {
-                    // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
+                    // TODO: Fix this im-> mut-> im pattern using different hashmap methods.
                     match sp_hm.get(&profile_number) {
                         Some(old_points) => {
                             match sp_hm.insert(profile_number.clone(), new_points.sum(old_points)) {
@@ -138,23 +134,18 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
             } else {
                 // Coop
                 for (profile_number, new_points) in x.points {
-                    // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
                     match coop_hm.get(&profile_number) {
                         Some(old_points) => {
                             match coop_hm.insert(profile_number.clone(), new_points.sum(old_points))
                             {
-                                //old_points.sum(&new_points)){
                                 Some(_) => (),
                                 None => unreachable!(),
                             }
                         }
-                        None => {
-                            match coop_hm.insert(profile_number.clone(), new_points.clone()) {
-                                // TODO: Maybe remove clone?
-                                Some(_) => unreachable!(),
-                                None => (),
-                            }
-                        }
+                        None => match coop_hm.insert(profile_number.clone(), new_points.clone()) {
+                            Some(_) => unreachable!(),
+                            None => (),
+                        },
                     }
                 }
             }
@@ -163,8 +154,6 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         let sp_hm_clone = sp_hm.clone();
         let mut sorted: Vec<_> = sp_hm_clone.into_iter().collect();
         sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
-
-        // TODO: Error Handling
 
         let client = reqwest::blocking::Client::new();
         let url = "http://localhost:8080/api/v1/points/sp".to_string();
@@ -181,7 +170,6 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         let mut sorted: Vec<_> = coop_hm_clone.into_iter().collect();
         sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());
 
-        // TODO: Error Handling
         let client = reqwest::blocking::Client::new();
         let url = "http://localhost:8080/api/v1/points/coop".to_string();
         client
@@ -196,41 +184,31 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
 
         // Generate aggregated overall.
         for (profile_number, new_points) in sp_hm {
-            // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
             match overall_hm.get(&profile_number) {
                 Some(old_points) => {
                     match overall_hm.insert(profile_number.clone(), new_points.sum(old_points)) {
-                        //old_points.sum(&new_points)){
                         Some(_) => (),
                         None => unreachable!(),
                     }
                 }
-                None => {
-                    match overall_hm.insert(profile_number.clone(), new_points.clone()) {
-                        // TODO: Maybe remove clone?
-                        Some(_) => unreachable!(),
-                        None => (),
-                    }
-                }
+                None => match overall_hm.insert(profile_number.clone(), new_points.clone()) {
+                    Some(_) => unreachable!(),
+                    None => (),
+                },
             }
         }
         for (profile_number, new_points) in coop_hm {
-            // TODO: Fix this im-> mut-> im pattern using differnet hashmap methods.
             match overall_hm.get(&profile_number) {
                 Some(old_points) => {
                     match overall_hm.insert(profile_number.clone(), new_points.sum(old_points)) {
-                        //old_points.sum(&new_points)){
                         Some(_) => (),
                         None => unreachable!(),
                     }
                 }
-                None => {
-                    match overall_hm.insert(profile_number.clone(), new_points.clone()) {
-                        // TODO: Maybe remove clone?
-                        Some(_) => unreachable!(),
-                        None => (),
-                    }
-                }
+                None => match overall_hm.insert(profile_number.clone(), new_points.clone()) {
+                    Some(_) => unreachable!(),
+                    None => (),
+                },
             }
         }
         let ohmclone = overall_hm.clone();

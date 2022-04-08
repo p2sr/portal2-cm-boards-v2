@@ -234,7 +234,7 @@ impl CacheState {
             .await
             .unwrap();
             let r = &mut self.ranks.lock().await;
-            // TOOD:
+            // TODO:
             // This logic is super unfortunate, we cannot reuse the logic for the inital setup because
             // the user will most likely already exist in our hashmap. This means we have to allocate
             // **another** hashmap, this is really unfortunate, and I want to fix it somehow in the future.

@@ -11,8 +11,6 @@ use log::{debug, error, trace};
 use serde_xml_rs::from_reader;
 use std::collections::HashMap;
 
-// TODO: If user doesn't exist, add a new user in db.
-
 /// Grabs the map at the current ID from valve's API and caches times.
 pub fn fetch_entries(
     id: i32,
@@ -146,7 +144,6 @@ pub fn filter_entries_sp(
             (rank.map_data.score, rank.rank),
         );
     }
-    // TODO: Query to see if the user exists.
 
     // TODO: Implement a per-map threshold???
     let (current_rank, not_cheated) =

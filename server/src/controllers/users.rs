@@ -44,9 +44,9 @@ impl Users {
                 WHERE 
                     CASE
                         WHEN users.board_name IS NULL
-                            THEN LOWER(users.steam_name) LIKE LOWER($1)
+                            THEN LOWER(users.steam_name) LIKE LOWER(%$1%)
                         WHEN users.board_name IS NOT NULL
-                            THEN LOWER(users.board_name) LIKE LOWER($1)
+                            THEN LOWER(users.board_name) LIKE LOWER(%$1%)
                     END
                 "#,
         )
