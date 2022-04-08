@@ -37,20 +37,21 @@ impl Users {
     }
     /// Pattern match on a given string to find similar names (supports board/steam names).
     pub async fn check_board_name(pool: &PgPool, nick_name: String) -> Result<Option<Vec<String>>> {
-        let query_nn = format!("%{}%", &nick_name);
+        // Limitation to how SQLX inserts strings.
+        let nick_name = format!("%{}%", &nick_name);
         let res = sqlx::query(
             r#"
                 SELECT users.profile_number FROM "p2boards".users
                 WHERE 
                     CASE
                         WHEN users.board_name IS NULL
-                            THEN LOWER(users.steam_name) LIKE LOWER(%$1%)
+                            THEN LOWER(users.steam_name) LIKE LOWER($1)
                         WHEN users.board_name IS NOT NULL
-                            THEN LOWER(users.board_name) LIKE LOWER(%$1%)
+                            THEN LOWER(users.board_name) LIKE LOWER($1)
                     END
                 "#,
         )
-        .bind(query_nn)
+        .bind(nick_name)
         .map(|row: PgRow| row.get(0))
         .fetch_all(pool)
         .await?;
