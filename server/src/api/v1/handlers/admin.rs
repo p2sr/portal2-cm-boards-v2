@@ -2,7 +2,7 @@ use crate::models::models::{Admin, AdminLevel, ChangelogQueryParams, Users};
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
-/// **GET** method for admin-relevant entiries. Utilizes [ChangelogQueryParrams] as an optional addition to the query
+/// **GET** method for admin-relevant entiries. Utilizes [ChangelogQueryParrams](crate::models::models::ChangelogQueryParams) as an optional addition to the query
 ///
 /// ## Parameters:
 ///    - `limit`           

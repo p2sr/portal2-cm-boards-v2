@@ -6,36 +6,57 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-/// Writes out json data to cache points for the boards.
-pub async fn write_points_to_file(
-    id: &str,
-    data: &web::Json<PointsReceiveWrapper>,
-) -> Result<(), Error> {
-    use std::fs;
-    fs::create_dir_all("./points")?;
-    let path_str = format!("./points/{}.json", id);
-    let path = Path::new(&path_str);
-    let write = PointsWriteWrapper {
-        id: data.id,
-        points: &data.ordered_points,
-    };
-    serde_json::to_writer(&File::create(path)?, &write)
-        .map(|_| ())
-        .map_err(|err| err.into())
-}
-
-/// Reads in json from the cache for the passed in ID.
-pub async fn read_points_from_file(id: &str) -> Result<PointsReadWrapper, Error> {
-    let path_str = format!("./points/{}.json", id);
-    let path = Path::new(&path_str);
-    let mut file = File::open(path)?;
-    let mut buff = String::new();
-    file.read_to_string(&mut buff)?;
-    let res: PointsReadWrapper = serde_json::from_str(&buff)?;
-    Ok(res)
-}
-
-/// Update single player points data.
+/// ***POST** method to upload aggregated Single Player Points.
+///
+/// Expects JSON string that deserializes into [PointsReceiveWrapper].
+///
+/// Uses the `hm_points` to store a hashmap of points for lookup in the cache, and the
+/// vector `ordered_points` as a pre-orded (by points, not score/time) to save to a file.
+///
+/// `id` is `null` for any non-chapter points results when written to a file.
+///
+/// ## Example JSON string
+/// ```json
+/// {
+///     "id": null,
+///     "hm_points": {
+///         "76561198124013765": {
+///             "points": 64.745,
+///             "score": 24185,
+///             "num_scores": 6,
+///             "total_rank_sum": 1028,
+///             "worst": [
+///                 211,
+///                 "62765"
+///             ],
+///             "best": [
+///                 115,
+///                 "62763"
+///             ],
+///             "user_name": "Bean",
+///             "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/6f/6f978bdda5b8e4a3ffaa7c223f578958109fd2da_full.jpg"
+///         },...},
+///         "ordered_points": [
+///             [
+///                 "76561198039230536",
+///                 {
+///                     "points": 11734.67,
+///                     "score": 245168,
+///                     "num_scores": 60,
+///                     "total_rank_sum": 194,
+///                     "worst": [
+///                         10,
+///                         "Multiple"
+///                     ],
+///                     "best": [
+///                         1,
+///                         "Multiple"
+///                     ],
+///                     "user_name": "Zypeh",
+///                     "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f9/f934276c99d0f970fdcb2d4e1229dde02d778d99_full.jpg"
+///                 }
+///             ],...]}
+/// ```
 #[post("/points/sp")]
 async fn points_sp_add(
     data: web::Json<PointsReceiveWrapper>,
@@ -164,4 +185,33 @@ async fn points_overall() -> impl Responder {
         Ok(overall_points) => HttpResponse::Ok().json(overall_points),
         _ => HttpResponse::NotFound().body("No score entries found."),
     }
+}
+
+/// Writes out json data to cache points for the boards.
+pub async fn write_points_to_file(
+    id: &str,
+    data: &web::Json<PointsReceiveWrapper>,
+) -> Result<(), Error> {
+    use std::fs;
+    fs::create_dir_all("./points")?;
+    let path_str = format!("./points/{}.json", id);
+    let path = Path::new(&path_str);
+    let write = PointsWriteWrapper {
+        id: data.id,
+        points: &data.ordered_points,
+    };
+    serde_json::to_writer(&File::create(path)?, &write)
+        .map(|_| ())
+        .map_err(|err| err.into())
+}
+
+/// Reads in json from the cache for the passed in ID.
+pub async fn read_points_from_file(id: &str) -> Result<PointsReadWrapper, Error> {
+    let path_str = format!("./points/{}.json", id);
+    let path = Path::new(&path_str);
+    let mut file = File::open(path)?;
+    let mut buff = String::new();
+    file.read_to_string(&mut buff)?;
+    let res: PointsReadWrapper = serde_json::from_str(&buff)?;
+    Ok(res)
 }

@@ -75,7 +75,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         let hm_vec: Vec<PointsWrapper> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
             .into_par_iter()
             .map(|chapter_id| {
-                let url = format!("http://localhost:8080/api/v1/chapters/{}/maps", &chapter_id);
+                let url = format!("http://localhost:8080/api/v1/chapter/{}/maps", &chapter_id);
                 let map_ids: Vec<String> = reqwest::blocking::get(&url)
                     .expect("Error in query to our local API (Make sure the webserver is running")
                     .json()
