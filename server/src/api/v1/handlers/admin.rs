@@ -2,32 +2,31 @@ use crate::models::models::{Admin, AdminLevel, ChangelogQueryParams, Users};
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
-/// **GET** method for admin-relevant entiries. Utilizes `ChangelogQueryParrams` as an optional addition to the query
+/// **GET** method for admin-relevant entiries. Utilizes [ChangelogQueryParrams] as an optional addition to the query
 ///
-/// **Optional Parameters**: [ChangelogQueryParams]
 /// ## Parameters:
-///    - **limit**           
-///         - The # of max returned results.
-///    - **nick_name**       
-///         - Filters for results from all profile_numbers were steam/board name matches `(%TEXT%)`.
-///    - **profile_number**  
-///         - Returns scores only from a specific profile (steam) id.
-///    - **chamber**         
-///         - Filters for only a specfic map by id.
-///    - **sp**              
-///         - Boolean for determines if sp maps should be returned
-///    - **coop**            
-///         - Boolean that determines if coop maps should be returned
-///    - **wr_gain**         
-///         - Boolean that, if true, will only return scores that were originally World Records
-///    - **has_demo**        
-///         - Boolean that will filter for only scores with demos
-///    - **yt**              
-///         - Boolean that will filter for onlny scores with youtube links
-///    - **first**           
-///         - Will only return scores with an ID higher than the given amount
-///    - **last**            
-///         - Will only return scores with an ID lower than the given amount
+///    - `limit`           
+///         - **Optional** - `i32` : The # of max returned results.
+///    - `nick_name`       
+///         - **Optional** - `String` : Searches for any matches to the given string. Not case sensitive.
+///    - `profile_number`  
+///         - **Optional** - `String` : Returns scores only from a specific profile (steam) id.
+///    - `chamber`         
+///         - **Optional** - `i32` : Filters for only a specfic `map_id`.
+///    - `sp`              
+///         - **Optional** - `bool` : Determines if sp maps should be returned.
+///    - `coop`            
+///         - **Optional** - `bool` : Determines if coop maps should be returned.
+///    - `wr_gain`         
+///         - **Optional** - `bool` : If true, will only return scores that were originally World Records
+///    - `has_demo`        
+///         - **Optional** - `bool` : Filter for only scores with demos
+///    - `yt`              
+///         - **Optional** - `bool` : Filter for onlny scores with youtube links
+///    - `first`           
+///         - **Optional** - `i64` : Will only return scores with an ID higher than the given amount
+///    - `last`            
+///         - **Optional** - `i64` : Will only return scores with an ID lower than the given amount
 /// ## Example endpoints:
 ///  - **Default**           
 ///     - `/api/v1/admin/changelog`
@@ -115,9 +114,9 @@ pub async fn admin_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
 
 /// **GET** method that returns lists of admins
 ///
-/// **Optional Parameters**:
-///    - **admin_level**           
-///         - The level of admin the user has
+/// ## Parameters:
+/// - `admin_level`           
+///     - **Optional** - `i32` : The level of admin the user has
 ///
 /// ### Usage:
 /// - `admin_level` = 0     
