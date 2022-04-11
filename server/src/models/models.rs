@@ -480,8 +480,10 @@ pub struct MapScoreDate {
 /// Oldest and newest `MapScoreDate` for a profile.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileData {
-    pub oldest: MapScoreDate,
-    pub newest: MapScoreDate,
+    pub oldest_sp: MapScoreDate,
+    pub newest_sp: MapScoreDate,
+    pub oldest_coop: MapScoreDate,
+    pub newest_coop: MapScoreDate,
 }
 
 /// Wrapper for a profile page, includes the ID associated with the points and the poits themselves.
