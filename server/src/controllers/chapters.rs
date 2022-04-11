@@ -11,8 +11,7 @@ impl Chapters {
             .map(|row: PgRow| row.get(0))
             .fetch_all(pool)
             .await?;
-        Ok(Some(res)) //We're not going to handle error cases I'm tired
-                      // TODO: Do this better
+        Ok(Some(res))
     }
     // /// Searches for all chapters that match a given search pattern.
     // pub async fn get_chapter_by_name(

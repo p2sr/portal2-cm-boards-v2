@@ -1,6 +1,6 @@
 use crate::controllers::changelog::build_filtered_changelog;
 use crate::models::models::*;
-use anyhow::{bail, Result};
+use anyhow::Result;
 use sqlx::PgPool;
 
 impl Admin {
@@ -12,23 +12,13 @@ impl Admin {
         params: ChangelogQueryParams,
     ) -> Result<Option<Vec<ChangelogPage>>> {
         let mut additional_filters: Vec<String> =
-            vec!["cl.banned = 'true' OR cl.verified = 'false' OR u.banned = 'true'".to_string()];
+            vec!["(cl.banned = 'true' OR cl.verified = 'false' OR u.banned = 'true')".to_string()];
         let query_string =
-            match build_filtered_changelog(pool, params, Some(&mut additional_filters)).await {
-                Ok(s) => s,
-                Err(e) => bail!(e),
-            };
+            build_filtered_changelog(pool, params, Some(&mut additional_filters)).await?;
         let res = sqlx::query_as::<_, ChangelogPage>(&query_string)
             .fetch_all(pool)
-            .await;
-        match res {
-            Ok(changelog_filtered) => Ok(Some(changelog_filtered)),
-            Err(e) => {
-                eprintln!("{}", query_string);
-                eprintln!("{}", e);
-                Err(anyhow::Error::new(e).context("Error with SP Maps"))
-            }
-        }
+            .await?;
+        Ok(Some(res))
     }
     /// Returns a [crate::models::models::BannedTimeDetails] to display information on specific users and their problematic scores.
     pub async fn get_user_banned_time_stats(
