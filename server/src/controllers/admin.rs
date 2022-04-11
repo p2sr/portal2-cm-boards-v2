@@ -15,10 +15,11 @@ impl Admin {
             vec!["(cl.banned = 'true' OR cl.verified = 'false' OR u.banned = 'true')".to_string()];
         let query_string =
             build_filtered_changelog(pool, params, Some(&mut additional_filters)).await?;
-        let res = sqlx::query_as::<_, ChangelogPage>(&query_string)
-            .fetch_all(pool)
-            .await?;
-        Ok(Some(res))
+        Ok(Some(
+            sqlx::query_as::<_, ChangelogPage>(&query_string)
+                .fetch_all(pool)
+                .await?,
+        ))
     }
     /// Returns a [crate::models::models::BannedTimeDetails] to display information on specific users and their problematic scores.
     pub async fn get_user_banned_time_stats(
@@ -63,8 +64,7 @@ impl Admin {
             OR d.banned_runs IS NOT NULL
           ORDER BY d.total_runs DESC;"#)
             .fetch_all(pool)
-            .await
-            .unwrap();
+            .await?;
 
         Ok(Some(res))
     }

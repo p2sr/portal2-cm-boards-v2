@@ -66,14 +66,12 @@ use sqlx::PgPool;
 ///         "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/79/79d3fe5839617eb83a9661071ed021dd56ac8a5b_full.jpg"
 ///     },...]
 /// ```
-// TODO: Fix filtering
 #[get("/admin/changelog")]
 pub async fn admin_changelog(
     pool: web::Data<PgPool>,
     query_params: web::Query<ChangelogQueryParams>,
 ) -> impl Responder {
-    let res = Admin::get_admin_page(pool.get_ref(), query_params.into_inner()).await;
-    match res {
+    match Admin::get_admin_page(pool.get_ref(), query_params.into_inner()).await {
         Ok(changelog_entries) => HttpResponse::Ok().json(changelog_entries),
         _ => HttpResponse::NotFound().body("No changelog entries found."),
     }

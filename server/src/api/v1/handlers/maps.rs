@@ -57,8 +57,7 @@ async fn maps(pool: web::Data<PgPool>, query: web::Query<GameID>) -> impl Respon
 /// ```
 #[get("/default_category/{map}")]
 async fn default_category(params: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {
-    let res = Maps::get_default_cat(pool.get_ref(), params.to_string()).await;
-    match res {
+    match Maps::get_default_cat(pool.get_ref(), params.to_string()).await {
         Ok(id) => HttpResponse::Ok().json(id),
         _ => HttpResponse::NotFound().body("Error finding deafult cat_id"),
     }

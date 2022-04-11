@@ -77,8 +77,7 @@ async fn changelog(
     pool: web::Data<PgPool>,
     query_params: web::Query<ChangelogQueryParams>,
 ) -> impl Responder {
-    let res = ChangelogPage::get_changelog_page(pool.get_ref(), query_params.into_inner()).await;
-    match res {
+    match ChangelogPage::get_changelog_page(pool.get_ref(), query_params.into_inner()).await {
         Ok(changelog_entries) => HttpResponse::Ok().json(changelog_entries),
         _ => HttpResponse::NotFound().body("No changelog entries found."),
     }

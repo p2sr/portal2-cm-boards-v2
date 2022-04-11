@@ -8,20 +8,18 @@ use crate::models::models::*;
 // Implementations of associated functions for Changelog
 impl Changelog {
     pub async fn get_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<Changelog>> {
-        let res = sqlx::query_as::<_, Changelog>(r#"SELECT * FROM "p2boards".changelog WHERE id = $1"#)
+        Ok(Some(sqlx::query_as::<_, Changelog>(r#"SELECT * FROM "p2boards".changelog WHERE id = $1"#)
             .bind(cl_id)
             .fetch_one(pool)
-            .await?;
-        Ok(Some(res))
+            .await?))
     }
     #[allow(dead_code)]
     pub async fn get_demo_id_from_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<i64>> {
-        let res = sqlx::query(r#"SELECT demo_id FROM "p2boards".changelog WHERE id = $1"#)
+        Ok(Some(sqlx::query(r#"SELECT demo_id FROM "p2boards".changelog WHERE id = $1"#)
             .bind(cl_id)
             .map(|row: PgRow| {row.get(0)})
             .fetch_one(pool)
-            .await?;
-        Ok(Some(res))
+            .await?))
     }
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
@@ -49,7 +47,7 @@ impl Changelog {
     }
     /// Returns a vec of changelog for a user's PB history on a given SP map.
     pub async fn get_sp_pb_history(pool: &PgPool, profile_number: &str, map_id: &str, cat_id: i32) -> Result<Vec<Changelog>> {
-        let res = sqlx::query_as::<_, Changelog>(r#" 
+        Ok(sqlx::query_as::<_, Changelog>(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
                 WHERE changelog.profile_number = $1
@@ -60,11 +58,8 @@ impl Changelog {
             .bind(map_id)
             .bind(cat_id)
             .fetch_all(pool)
-            .await;
-        match res{
-            Ok(pb_history) => Ok(pb_history),
-            Err(e) => Err(anyhow::Error::new(e).context("Could not find SP PB History")),
-        }
+            .await?)
+
     }
     /// Deletes all references to a demo_id in `changelog`
     pub async fn delete_references_to_demo(pool: &PgPool, demo_id: i64) -> Result<Vec<i64>> {
@@ -73,7 +68,6 @@ impl Changelog {
             .map(|row: PgRow| {row.get(0)})
             .fetch_all(pool)
             .await?;
-        // eprintln!("{:#?}", res);
         Ok(res)
     }
     /// Deletes all references to a coop_id in `changelog`
@@ -89,8 +83,7 @@ impl Changelog {
     /// Insert a new changelog entry.
     pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64> {
         // TODO: https://stackoverflow.com/questions/4448340/postgresql-duplicate-key-violates-unique-constraint
-        let mut res: i64 = 0; 
-        let _ = sqlx::query(r#"
+        let res: i64 = sqlx::query(r#"
                 INSERT INTO "p2boards".changelog 
                 (timestamp, profile_number, score, map_id, demo_id, banned, 
                 youtube_id, coop_id, post_rank, pre_rank, submission, note,
@@ -101,7 +94,7 @@ impl Changelog {
             .bind(cl.demo_id).bind(cl.banned).bind(cl.youtube_id).bind(cl.coop_id).bind(cl.post_rank)
             .bind(cl.pre_rank).bind(cl.submission).bind(cl.note).bind(cl.category_id)
             .bind(cl.score_delta).bind(cl.verified).bind(cl.admin_note)
-            .map(|row: PgRow|{res = row.get(0)})
+            .map(|row: PgRow|{row.get(0)})
             .fetch_one(pool)
             .await?;
         Ok(res)
@@ -274,7 +267,6 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
         // TODO: Update to use the correct
         query_string = format!("{} LIMIT 500\n", query_string);
     }
-    eprintln!("{}", query_string);
     Ok(query_string)
 }
 

@@ -6,12 +6,13 @@ use sqlx::{PgPool, Row};
 impl Chapters {
     /// Returns the maps for a given chapter.
     pub async fn get_map_ids(pool: &PgPool, chapter_id: i32) -> Result<Option<Vec<String>>> {
-        let res = sqlx::query(r#"SELECT maps.steam_id FROM p2boards.maps WHERE chapter_id=$1"#)
-            .bind(chapter_id)
-            .map(|row: PgRow| row.get(0))
-            .fetch_all(pool)
-            .await?;
-        Ok(Some(res))
+        Ok(Some(
+            sqlx::query(r#"SELECT maps.steam_id FROM p2boards.maps WHERE chapter_id=$1"#)
+                .bind(chapter_id)
+                .map(|row: PgRow| row.get(0))
+                .fetch_all(pool)
+                .await?,
+        ))
     }
     // /// Searches for all chapters that match a given search pattern.
     // pub async fn get_chapter_by_name(
@@ -31,12 +32,12 @@ impl Chapters {
     /// Returns a chapter's data by the ID given.
     #[allow(dead_code)]
     pub async fn get_chapter_by_id(pool: &PgPool, chapter_id: i32) -> Result<Option<Chapters>> {
-        let res =
+        Ok(Some(
             sqlx::query_as::<_, Chapters>(r#"SELECT * FROM "p2boards".chapters WHERE id=$1;"#)
                 .bind(chapter_id)
                 .fetch_one(pool)
-                .await?;
-        Ok(Some(res))
+                .await?,
+        ))
     }
     /// Returns true if the map is multiplayer, false if the map is singleplayer
     #[allow(dead_code)]
@@ -44,12 +45,13 @@ impl Chapters {
         pool: &PgPool,
         chapter_id: i32,
     ) -> Result<Option<bool>> {
-        let res = sqlx::query(r#"SELECT is_multiplayer FROM "p2boards".chapters WHERE id=$1"#)
-            .bind(chapter_id)
-            .map(|row: PgRow| row.get(0))
-            .fetch_one(pool)
-            .await?;
-        Ok(Some(res))
+        Ok(Some(
+            sqlx::query(r#"SELECT is_multiplayer FROM "p2boards".chapters WHERE id=$1"#)
+                .bind(chapter_id)
+                .map(|row: PgRow| row.get(0))
+                .fetch_one(pool)
+                .await?,
+        ))
     }
     #[allow(dead_code)]
     pub async fn get_chapter_game(pool: &PgPool, chapter_id: i32) -> Result<Option<Games>> {
@@ -105,6 +107,5 @@ pub async fn build_filtered_chapter(params: ChapterQueryParams) -> Result<String
             _ => query_string = format!("{} AND {}", query_string, entry),
         }
     }
-    println!("{:#?}", query_string);
     Ok(query_string)
 }

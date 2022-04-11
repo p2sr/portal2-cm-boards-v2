@@ -25,8 +25,7 @@ use sqlx::PgPool;
 /// ```
 #[get("/chapter/{chapter_id}/maps")]
 async fn maps_from_chapter(chapter_id: web::Path<i32>, pool: web::Data<PgPool>) -> impl Responder {
-    let res = Chapters::get_map_ids(pool.get_ref(), chapter_id.into_inner()).await;
-    match res {
+    match Chapters::get_map_ids(pool.get_ref(), chapter_id.into_inner()).await {
         Ok(Some(s)) => HttpResponse::Ok().json(s),
         _ => HttpResponse::NotFound().body("No maps found for given chapter_id."),
     }

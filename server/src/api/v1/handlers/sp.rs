@@ -44,8 +44,7 @@ async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Respo
     let state_data = &mut cache.current_state.lock().await;
     let is_cached = state_data.get_mut("sp_previews").unwrap();
     if !*is_cached {
-        let res = SpPreviews::get_sp_previews(pool.get_ref()).await;
-        match res {
+        match SpPreviews::get_sp_previews(pool.get_ref()).await {
             Ok(sp_previews) => {
                 if write_to_file("sp_previews", &sp_previews).await.is_ok() {
                     *is_cached = true;
@@ -58,8 +57,7 @@ async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Respo
             _ => HttpResponse::NotFound().body("Error fetching previews"),
         }
     } else {
-        let res = read_from_file::<Vec<SpPreviews>>("sp_previews").await;
-        match res {
+        match read_from_file::<Vec<SpPreviews>>("sp_previews").await {
             Ok(sp_previews) => HttpResponse::Ok().json(sp_previews),
             _ => HttpResponse::NotFound().body("Error fetching sp previews from cache"),
         }
@@ -111,7 +109,7 @@ pub async fn sp_map(
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     let map_id = map_id.into_inner();
-    let res = SpMap::get_sp_map_page(
+    match SpMap::get_sp_map_page(
         pool.get_ref(),
         &map_id,
         config.proof.results,
@@ -119,8 +117,8 @@ pub async fn sp_map(
             .cat_id
             .unwrap_or(cache.into_inner().default_cat_ids[&map_id]),
     )
-    .await;
-    match res {
+    .await
+    {
         Ok(sp_map) => {
             // Check cache
             let mut ranked_vec = Vec::with_capacity(config.proof.results as usize);
@@ -161,8 +159,7 @@ pub async fn sp_map(
 /// ```
 #[get("/sp/all_banned/{map_id}")]
 async fn sp_all_banned(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {
-    let res = SpBanned::get_sp_banned(pool.get_ref(), map_id.to_string()).await;
-    match res {
+    match SpBanned::get_sp_banned(pool.get_ref(), map_id.to_string()).await {
         Ok(banned_entries) => HttpResponse::Ok().json(banned_entries),
         _ => HttpResponse::NotFound().body("Error fetching SP Banned Player info."),
     }
@@ -195,7 +192,7 @@ async fn sp_banned(
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
-    let res = Changelog::check_banned_scores(
+    match Changelog::check_banned_scores(
         pool.get_ref(),
         map_id.clone(),
         params.score,
@@ -204,8 +201,8 @@ async fn sp_banned(
             .cat_id
             .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
     )
-    .await;
-    match res {
+    .await
+    {
         Ok(banned_bool) => HttpResponse::Ok().json(banned_bool),
         _ => HttpResponse::NotFound().body("Error fetching SP Banned Player info."),
     }
@@ -280,8 +277,7 @@ async fn sp_history(
     let query = query.into_inner();
     let user_data: UsersPage;
     // Get information for the player (user_name and avatar).
-    let res = Users::get_user_data(pool.get_ref(), &query.profile_number).await;
-    match res {
+    match Users::get_user_data(pool.get_ref(), &query.profile_number).await {
         Ok(Some(res)) => user_data = res,
         Ok(None) => {
             return HttpResponse::Ok().json(SpPbHistory {
@@ -293,7 +289,7 @@ async fn sp_history(
         _ => return HttpResponse::NotFound().body("Error fetching User Data on given user."),
     }
     // Get Changelog data for all previous times.
-    let res = Changelog::get_sp_pb_history(
+    match Changelog::get_sp_pb_history(
         pool.get_ref(),
         &query.profile_number,
         &query.map_id,
@@ -301,8 +297,8 @@ async fn sp_history(
             .cat_id
             .unwrap_or(cache.into_inner().default_cat_ids[&query.map_id]),
     )
-    .await;
-    match res {
+    .await
+    {
         Ok(changelog_data) => HttpResponse::Ok().json(SpPbHistory {
             user_name: Some(user_data.user_name),
             avatar: Some(user_data.avatar),
@@ -401,8 +397,7 @@ async fn sp_history(
 #[put("/sp/update")]
 async fn sp_update(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> impl Responder {
     // TODO: Handle demo uploads.
-    let res = Changelog::update_changelog(pool.get_ref(), params.0).await;
-    match res {
+    match Changelog::update_changelog(pool.get_ref(), params.0).await {
         Ok(changelog_entry) => HttpResponse::Ok().json(changelog_entry),
         _ => HttpResponse::NotFound().body("Error updating score."),
     }
@@ -448,7 +443,7 @@ pub async fn sp_validate(
     cache: web::Data<CacheState>,
     config: web::Data<Config>,
 ) -> impl Responder {
-    let res = check_for_valid_score(
+    match check_for_valid_score(
         pool.get_ref(),
         data.profile_number.clone(),
         data.score,
@@ -457,8 +452,8 @@ pub async fn sp_validate(
         data.cat_id
             .unwrap_or(cache.into_inner().default_cat_ids[&data.map_id]),
     )
-    .await;
-    match res {
+    .await
+    {
         Ok(details) => HttpResponse::Ok().json(details),
         Err(e) => {
             eprintln!("Error finding newscore details -> {:#?}", e);

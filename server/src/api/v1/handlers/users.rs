@@ -291,13 +291,13 @@ async fn wall_of_shame(pool: web::Data<PgPool>) -> impl Responder {
 ///        }
 ///    }
 /// ```
-// TODO : Scores on drop down are queried individually by the frontend
 #[get("/profile/{profile_number}")]
 async fn profile(
     pool: web::Data<PgPool>,
     profile_number: web::Path<String>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
+    // TODO : Scores on drop down are queried individually by the frontend
     let profile_number = profile_number.into_inner();
     match Users::get_profile(pool.get_ref(), &profile_number).await {
         Ok(Some(data)) => match profile_from_cache(cache, &profile_number).await {

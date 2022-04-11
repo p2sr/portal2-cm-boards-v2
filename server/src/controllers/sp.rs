@@ -9,7 +9,7 @@ impl SpMap {
         limit: i32,
         cat_id: i32,
     ) -> Result<Vec<SpMap>> {
-        let res = sqlx::query_as::<_, SpMap>(
+        match sqlx::query_as::<_, SpMap>(
             r#" 
                 SELECT t.timestamp,
                     t.CL_profile_number,
@@ -46,24 +46,21 @@ impl SpMap {
         .bind(cat_id)
         .bind(limit)
         .fetch_all(pool)
-        .await;
-        match res {
+        .await
+        {
             Ok(res) => Ok(res),
             Err(e) => {
                 eprintln!("{}", e);
                 Err(anyhow::Error::new(e).context("Error with SP Maps"))
             }
         }
-        //Ok(res)
     }
 }
 
 impl SpPreview {
     /// Gets preview information for top 7 on an SP Map.
     pub async fn get_sp_preview(pool: &PgPool, map_id: String) -> Result<Vec<SpPreview>> {
-        // use std::time::Instant;
-        // let now = Instant::now();
-        let res = sqlx::query_as::<_, SpPreview>(
+        Ok(sqlx::query_as::<_, SpPreview>(
             r#"
                 SELECT t.CL_profile_number, t.score, t.youtube_id, t.category_id,
                 CASE
@@ -88,16 +85,7 @@ impl SpPreview {
         )
         .bind(map_id.clone())
         .fetch_all(pool)
-        .await;
-        // let elapsed = now.elapsed();
-        // println!("Elapsed: {:.2?}", elapsed);
-        match res {
-            Ok(sp_previews) => Ok(sp_previews),
-            Err(e) => {
-                eprintln!("{}", e);
-                Err(anyhow::Error::new(e).context("Error with SP Previews"))
-            }
-        }
+        .await?)
     }
 }
 
@@ -120,7 +108,7 @@ impl SpPreviews {
 impl SpBanned {
     // Returns all profile_numbers and scores associated with banned times on a given map
     pub async fn get_sp_banned(pool: &PgPool, map_id: String) -> Result<Vec<SpBanned>> {
-        let res = sqlx::query_as::<_, SpBanned>(
+        Ok(sqlx::query_as::<_, SpBanned>(
             r#"
                 SELECT changelog.profile_number, changelog.score 
                     FROM "p2boards".changelog
@@ -131,13 +119,6 @@ impl SpBanned {
         )
         .bind(map_id)
         .fetch_all(pool)
-        .await;
-        match res {
-            Ok(sp_banned) => Ok(sp_banned),
-            Err(e) => {
-                eprintln!("{}", e);
-                Err(anyhow::Error::new(e).context("Error with SP Banned."))
-            }
-        }
+        .await?)
     }
 }

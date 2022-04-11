@@ -42,8 +42,7 @@ async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Res
     let state_data = &mut cache.current_state.lock().await;
     let is_cached = state_data.get_mut("coop_previews").unwrap();
     if !*is_cached {
-        let res = CoopPreviews::get_coop_previews(pool.get_ref()).await;
-        match res {
+        match CoopPreviews::get_coop_previews(pool.get_ref()).await {
             Ok(previews) => {
                 if write_to_file("coop_previews", &previews).await.is_ok() {
                     *is_cached = true;
@@ -56,8 +55,7 @@ async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Res
             _ => HttpResponse::NotFound().body("Error fetching coop map previews."),
         }
     } else {
-        let res = read_from_file::<Vec<CoopPreviews>>("coop_previews").await;
-        match res {
+        match read_from_file::<Vec<CoopPreviews>>("coop_previews").await {
             Ok(previews) => HttpResponse::Ok().json(previews),
             _ => HttpResponse::NotFound().body("Error fetching coop previews from cache"),
         }
@@ -167,15 +165,15 @@ async fn coop_banned_all(
     cache: web::Data<CacheState>,
     params: web::Query<OptCatID>,
 ) -> impl Responder {
-    let res = CoopBanned::get_coop_banned(
+    match CoopBanned::get_coop_banned(
         pool.get_ref(),
         map_id.clone(),
         params
             .cat_id
             .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id.into_inner()]),
     )
-    .await;
-    match res {
+    .await
+    {
         Ok(banned_entries) => HttpResponse::Ok().json(banned_entries),
         _ => HttpResponse::NotFound().body("Error fetching Coop banned information"),
     }
@@ -213,7 +211,7 @@ async fn coop_banned(
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
-    let res = Changelog::check_banned_scores(
+    match Changelog::check_banned_scores(
         pool.get_ref(),
         map_id.clone(),
         params.score,
@@ -222,8 +220,8 @@ async fn coop_banned(
             .cat_id
             .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id.into_inner()]),
     )
-    .await;
-    match res {
+    .await
+    {
         Ok(banned_bool) => HttpResponse::Ok().json(banned_bool),
         Err(_) => HttpResponse::NotFound().body("Error checking ban information."),
     }
@@ -270,8 +268,7 @@ async fn coop_add(
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
-    let res = CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await;
-    match res {
+    match CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await {
         Ok(id) => {
             // Invalidate cache if this new score impacts the top 7 preview times.
             let state_data = &mut cache.current_state.lock().await;

@@ -6,8 +6,7 @@ use std::collections::HashMap;
 
 impl CoopBundled {
     pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64> {
-        let mut res: i64 = 0;
-        let _ = sqlx::query(
+        Ok(sqlx::query(
             r#"
                 INSERT INTO "p2boards".coop_bundled 
                 (p_id1, p_id2, p1_is_host, cl_id1, cl_id2) VALUES 
@@ -19,10 +18,9 @@ impl CoopBundled {
         .bind(cl.p1_is_host)
         .bind(cl.cl_id1)
         .bind(cl.cl_id2)
-        .map(|row: PgRow| res = row.get(0))
+        .map(|row: PgRow| row.get(0))
         .fetch_one(pool)
-        .await?;
-        Ok(res)
+        .await?)
     }
 }
 
@@ -33,7 +31,7 @@ impl CoopMap {
         limit: i32,
         cat_id: i32,
     ) -> Result<Vec<CoopMap>> {
-        let res = sqlx::query_as::<_, CoopMap>(
+        match sqlx::query_as::<_, CoopMap>(
             r#"
                 SELECT  c1.timestamp, 
                     c1.score, cb.p1_is_host, c1.note AS note1, c2.note AS note2,
@@ -78,8 +76,8 @@ impl CoopMap {
         .bind(map_id)
         .bind(cat_id)
         .fetch_all(pool)
-        .await;
-        match res {
+        .await
+        {
             Ok(mut res) => {
                 res.truncate(limit as usize);
                 Ok(res)
@@ -97,7 +95,7 @@ impl CoopPreview {
     pub async fn get_coop_preview(pool: &PgPool, map_id: String) -> Result<Vec<CoopPreview>> {
         // TODO: Open to PRs to contain all this functionality in the SQL statement.
         // TODO: Filter by default cat_id
-        let query = sqlx::query_as::<_, CoopPreview>(
+        let res = sqlx::query_as::<_, CoopPreview>(
             r#"
                 SELECT
                     c1.profile_number AS profile_number1, c2.profile_number AS profile_number2,
@@ -138,19 +136,13 @@ impl CoopPreview {
         )
         .bind(map_id.clone())
         .fetch_all(pool)
-        .await;
-        match query {
-            Ok(_) => (),
-            Err(e) => {
-                eprintln!("{}", e);
-                return Err(anyhow::Error::new(e).context("Error with SP Previews"));
-            }
-        }
+        .await?;
         // TODO: Maybe remove unwrap(), it assumes that the profile_number2 will not be None.
         let mut vec_final = Vec::new();
+        let default = "N/A".to_string();
         let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(80);
-        remove_dups.insert("N/A".to_string(), 1);
-        for entry in query.unwrap() {
+        remove_dups.insert(default.clone(), 1);
+        for entry in res {
             match remove_dups.insert(entry.profile_number1.clone(), 1) {
                 Some(_) => match remove_dups.insert(entry.profile_number2.clone().unwrap(), 1) {
                     Some(_) => (),
@@ -192,7 +184,7 @@ impl CoopBanned {
     ) -> Result<Vec<CoopBanned>> {
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
         // TODO: How to handle one player in coop not-being banned/unverified but the other is.
-        let res = sqlx::query_as::<_, CoopBanned>(r#"
+        Ok(sqlx::query_as::<_, CoopBanned>(r#"
                 SELECT c1.score, c1.profile_number AS profile_number1, c2.profile_number AS profile_number2
                 FROM (SELECT * FROM 
                     "p2boards".coop_bundled 
@@ -210,7 +202,6 @@ impl CoopBanned {
             .bind(map_id)
             .bind(cat_id)
             .fetch_all(pool)
-            .await?;
-        Ok(res)
+            .await?)
     }
 }

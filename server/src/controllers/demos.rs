@@ -6,21 +6,23 @@ use sqlx::{PgPool, Row};
 impl Demos {
     /// Gets Demo information for a given demo_id
     pub async fn get_demo(pool: &PgPool, demo_id: i64) -> Result<Option<Demos>> {
-        let res = sqlx::query_as::<_, Demos>(r#"SELECT * FROM "p2boards".demos WHERE id = $1"#)
-            .bind(demo_id)
-            .fetch_one(pool)
-            .await?;
-        Ok(Some(res))
+        Ok(Some(
+            sqlx::query_as::<_, Demos>(r#"SELECT * FROM "p2boards".demos WHERE id = $1"#)
+                .bind(demo_id)
+                .fetch_one(pool)
+                .await?,
+        ))
     }
     /// Returns a file id that can be used to download the demo
     #[allow(dead_code)]
     pub async fn get_demo_file_id(pool: &PgPool, demo_id: i64) -> Result<Option<String>> {
-        let res = sqlx::query(r#"SELECT file_id FROM "p2boards".demos WHERE id = $1"#)
-            .bind(demo_id)
-            .map(|row: PgRow| row.get(0))
-            .fetch_one(pool)
-            .await?;
-        Ok(Some(res))
+        Ok(Some(
+            sqlx::query(r#"SELECT file_id FROM "p2boards".demos WHERE id = $1"#)
+                .bind(demo_id)
+                .map(|row: PgRow| row.get(0))
+                .fetch_one(pool)
+                .await?,
+        ))
     }
     /// Returns the partner's name
     #[allow(dead_code)]
@@ -97,14 +99,14 @@ impl Demos {
     }
     /// Deletes a demo
     pub async fn delete_demo(pool: &PgPool, demo_id: i64) -> Result<bool> {
-        let res = sqlx::query_as::<_, Demos>(
+        match sqlx::query_as::<_, Demos>(
             r#"DELETE FROM "p2boards".demos 
                 WHERE id = $1 RETURNING *"#,
         )
         .bind(demo_id)
         .fetch_one(pool)
-        .await;
-        match res {
+        .await
+        {
             Ok(_) => Ok(true),
             Err(e) => {
                 eprintln!("Error deleting demo -> {}", e);

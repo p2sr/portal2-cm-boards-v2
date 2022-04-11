@@ -1,4 +1,4 @@
-use crate::models::models::{Points, PointsReadWrapper, PointsReceiveWrapper, PointsWriteWrapper};
+use crate::models::models::{PointsReadWrapper, PointsReceiveWrapper, PointsWriteWrapper};
 use crate::tools::cache::{write_to_file, CacheState};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use anyhow::{Error, Result};
@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-// TODO: Truncate results on points if the user has 0. Do on the backend. 
+// TODO: Truncate results on points if the user has 0. Do on the backend.
 
 /// ***POST** method to upload aggregated Single Player Points.
 ///
