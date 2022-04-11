@@ -167,6 +167,7 @@ impl Users {
         .await?;
         Ok(Some(res))
     }
+    // TODO: Get SP & Coop
     pub async fn get_profile(
         pool: &PgPool,
         profile_number: &String,

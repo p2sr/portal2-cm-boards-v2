@@ -359,7 +359,9 @@ pub fn update_image(profile_number: String) -> String {
         }
     }
 }
-
+// TODO:
+// 620 - Portal 2.
+// http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=7BF774815E73419743538CB74F40ED9D&steamid=76561198823602829&format=json
 #[allow(dead_code)]
 pub fn add_user(profile_number: String) -> Result<Users, reqwest::Error> {
     // http://steamcommunity.com/profiles/{}/?xml=1

@@ -125,6 +125,7 @@ pub async fn sp_map(
             // Check cache
             let mut ranked_vec = Vec::with_capacity(config.proof.results as usize);
             for (i, entry) in sp_map.into_iter().enumerate() {
+                // TODO: Fix tied ranks.
                 ranked_vec.push(SpRanked {
                     map_data: entry,
                     rank: i as i32 + 1,

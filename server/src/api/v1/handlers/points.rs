@@ -6,6 +6,8 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+// TODO: Truncate results on points if the user has 0. Do on the backend. 
+
 /// ***POST** method to upload aggregated Single Player Points.
 ///
 /// Expects JSON string that deserializes into [PointsReceiveWrapper].

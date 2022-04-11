@@ -66,6 +66,7 @@ use sqlx::PgPool;
 ///         "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/79/79d3fe5839617eb83a9661071ed021dd56ac8a5b_full.jpg"
 ///     },...]
 /// ```
+// TODO: Fix filtering
 #[get("/admin/changelog")]
 pub async fn admin_changelog(
     pool: web::Data<PgPool>,

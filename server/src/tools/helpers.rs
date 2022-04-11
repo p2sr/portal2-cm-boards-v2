@@ -5,6 +5,7 @@ use sqlx::PgPool;
 use std::collections::HashMap;
 
 /// Calcultes the score using the pre-existing iVerb point formula.
+#[inline(always)]
 pub fn score(i: i32) -> f32 {
     if i > 200 {
         0.0

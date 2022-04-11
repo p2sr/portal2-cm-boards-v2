@@ -291,6 +291,7 @@ async fn wall_of_shame(pool: web::Data<PgPool>) -> impl Responder {
 ///        }
 ///    }
 /// ```
+// TODO : Scores on drop down are queried individually by the frontend
 #[get("/profile/{profile_number}")]
 async fn profile(
     pool: web::Data<PgPool>,

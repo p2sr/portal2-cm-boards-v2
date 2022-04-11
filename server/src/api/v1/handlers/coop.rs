@@ -124,7 +124,7 @@ async fn coop_map(
         config.proof.results,
         cat_id
             .cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&map_id]),
+            .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id]),
     )
     .await
     {
@@ -172,7 +172,7 @@ async fn coop_banned_all(
         map_id.clone(),
         params
             .cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
+            .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id.into_inner()]),
     )
     .await;
     match res {
@@ -220,7 +220,7 @@ async fn coop_banned(
         params.profile_number.clone(),
         params
             .cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
+            .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id.into_inner()]),
     )
     .await;
     match res {
@@ -228,7 +228,42 @@ async fn coop_banned(
         Err(_) => HttpResponse::NotFound().body("Error checking ban information."),
     }
 }
-
+// pub p_id1: String,
+// pub p_id2: Option<String>,
+// pub p1_is_host: Option<bool>,
+// pub cl_id1: i64,
+// pub cl_id2: Option<i64>,
+/// **POST** method that accepts a new coop score.
+///
+/// Makes the assumption that there are two existing changelog entries that will be used to create a new coop score.
+///
+/// ## Parameters:
+/// - `p_id1`
+///     - **Required** - `String` : The required profile_number for one of the users in a coop time.
+/// - `p_id2`
+///     - **Optional** - `String` : This is optional for backwards compatability, but for new times this should **not** be optional.
+/// - `p1_is_host`
+///     - **Optional** - `bool` : If `p_id1` was the host for the run.
+/// - `cl_id1`
+///     - **Required** - `i64` : The `changelog_id` for player 1's run.
+/// - `cl_id2`
+///     - **Optional** - `i64` : Same as `p_id2`, this should only be optional for backwards compatability, required for new scores.
+///
+/// ## Example Endpoints
+/// - `/api/v1/coop/post_score`
+///
+/// Makes a call to the underlying [CoopBundled::insert_coop_bundled]
+///
+/// ## Example JSON string
+/// ```json
+/// {
+///     "p_id1" : "76561197997838862",
+///     "p_id2" : "76561198181126266",
+///     "p1_is_host" : true,
+///     "cl_id1" : 157752,
+///     "cl_id2" : 157753
+/// }
+/// ```
 #[post("/coop/post_score")]
 async fn coop_add(
     params: web::Json<CoopBundledInsert>,

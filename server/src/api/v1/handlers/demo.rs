@@ -36,7 +36,7 @@ use std::str;
 pub async fn demos(pool: web::Data<PgPool>, query: web::Query<DemoOptions>) -> impl Responder {
     let query = query.into_inner();
     let res_str = "Could not find demo.";
-    if query.demo_id.is_none() & !query.cl_id.is_none() {
+    if query.demo_id.is_none() & query.cl_id.is_some() {
         match Demos::get_demo(pool.get_ref(), query.demo_id.unwrap()).await {
             Ok(Some(demo)) => HttpResponse::Ok().json(demo),
             Err(e) => {
@@ -45,7 +45,7 @@ pub async fn demos(pool: web::Data<PgPool>, query: web::Query<DemoOptions>) -> i
             }
             _ => HttpResponse::NotFound().body(res_str),
         }
-    } else if !query.demo_id.is_none() & query.cl_id.is_none() {
+    } else if query.demo_id.is_some() & query.cl_id.is_none() {
         match Changelog::get_demo_id_from_changelog(pool.get_ref(), query.cl_id.unwrap()).await {
             Ok(Some(demo)) => HttpResponse::Ok().json(demo),
             Err(e) => {
@@ -191,13 +191,12 @@ pub async fn demos_delete(
             Ok(_) => HttpResponse::Ok().body("Demo file and entry succesfully removed."),
             Err(e) => {
                 eprintln!("{}", e);
-                return HttpResponse::InternalServerError()
-                    .body("Error deleting demo entry from database");
+                HttpResponse::InternalServerError().body("Error deleting demo entry from database")
             }
         },
         Err(e) => {
             eprintln!("{}", e);
-            return HttpResponse::InternalServerError().body("Error deleting file from backblaze.");
+            HttpResponse::InternalServerError().body("Error deleting file from backblaze.")
         }
     }
 }
@@ -217,7 +216,7 @@ async fn add_to_database(
     demo_insert.cl_id = cl_id;
     // TODO: How do we want demo files named?
     let file_id = if !debug {
-        upload_demo(config, &file_name).await?
+        upload_demo(config, file_name).await?
     } else {
         Some(format!("{}.dem", file_name))
     };
@@ -276,7 +275,7 @@ async fn b2_client_and_auth(config: &Config) -> Result<(reqwest::Client, B2Auth)
 /// Handles uploading the demo file.
 async fn upload_demo(config: &Config, file_name: &str) -> Result<Option<String>> {
     // Ref: https://docs.rs/raze/0.4.1/raze/api/fn.b2_authorize_account.html
-    let (client, auth) = b2_client_and_auth(&config).await.unwrap();
+    let (client, auth) = b2_client_and_auth(config).await.unwrap();
 
     let upload_auth = b2_get_upload_url(&client, &auth, config.backblaze.bucket.clone())
         .await
@@ -323,7 +322,7 @@ async fn get_changelog_and_demo_id(query: DemoOptions, pool: &PgPool) -> Result<
         let changelog = Changelog::get_changelog(pool, cl_id).await?;
         if let Some(cl) = changelog {
             match cl.demo_id {
-                Some(demo_id) => return Ok((cl, demo_id)),
+                Some(demo_id) => Ok((cl, demo_id)),
                 None => bail!("Changelog does not have a demo_id"),
             }
         } else {
@@ -334,7 +333,7 @@ async fn get_changelog_and_demo_id(query: DemoOptions, pool: &PgPool) -> Result<
         if let Some(d) = d {
             let changelog = Changelog::get_changelog(pool, d.cl_id).await?;
             if let Some(cl) = changelog {
-                return Ok((cl, d_id));
+                Ok((cl, d_id))
             } else {
                 bail!("Changelog entry referenced by demo does not exist")
             }
@@ -353,7 +352,7 @@ async fn delete_demo_file(
     cl: Changelog,
     demo_id: i64,
 ) -> Result<()> {
-    let (client, auth) = b2_client_and_auth(&config).await.unwrap();
+    let (client, auth) = b2_client_and_auth(config).await.unwrap();
     let d = Demos::get_demo(pool, demo_id).await.unwrap().unwrap();
     let file_name = generate_file_name(pool, cl).await?;
     match b2_delete_file_version(&client, &auth, file_name, d.file_id).await {
@@ -370,7 +369,7 @@ async fn delete_demo_db(pool: &PgPool, demo_id: i64) -> Result<bool> {
     // Delete references to the demo_id in the changelog table.
     Changelog::delete_references_to_demo(pool, demo_id).await?;
     // Delete the demo entry.
-    Ok(Demos::delete_demo(pool, demo_id).await?)
+    Demos::delete_demo(pool, demo_id).await
 }
 
 /// Create file_name
