@@ -54,6 +54,7 @@ impl Points {
     }
 }
 
+#[allow(dead_code)]
 pub fn score_calc(score: i32) -> (i32, i32, i32) {
     let ms = (score % 100) * 10;
     let seconds = (score / 100) % 60;
@@ -88,6 +89,7 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
         // TODO: This allocation is really annoying, would *love* to fix it. Maybe compute this on the webserver??
         let hm_vec_clone = hm_vec.clone();
         let mut send_vec: Vec<SendWrapper> = Vec::with_capacity(16);
+        // TODO: Remove scores of 0.
         for (i, chapter) in hm_vec_clone.into_iter().enumerate() {
             let mut sorted: Vec<_> = chapter.points.into_iter().collect();
             sorted.sort_by(|a, b| b.1.points.partial_cmp(&a.1.points).unwrap());

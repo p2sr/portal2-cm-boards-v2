@@ -172,7 +172,7 @@ async fn points_overall_add(
                 points_cache.insert(k, v);
             }
             write_to_file(&id, &points_cache).await.unwrap();
-            println!("{:#?}", points_cache);
+            // println!("{:#?}", points_cache);
             HttpResponse::Ok().body("Success")
         }
         _ => HttpResponse::NotFound().body("Error updaing score entries for overall"),
