@@ -3,10 +3,10 @@ use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
 
-//use text_diff::print_diff;
-
 pub fn cache_leaderboard(id: i32, text: String) -> bool {
-    let path_str = format!("./cache/{}.cache", id.to_string());
+    use std::fs;
+    fs::create_dir_all("./cache").unwrap();
+    let path_str = format!("./cache/{}.cache", id);
     let path = Path::new(&path_str);
     if let Err(_e) = File::open(path) {
         // Cache does not exist, create it.

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use super::exporting::*;
 use super::uploading::*;
 use crate::models::datamodels::{
@@ -10,7 +11,6 @@ use chrono::prelude::*;
 use log::{debug, error, trace};
 use serde_xml_rs::from_reader;
 use std::collections::HashMap;
-
 /// Grabs the map at the current ID from valve's API and caches times.
 pub fn fetch_entries(
     id: i32,
@@ -38,7 +38,7 @@ pub fn fetch_entries(
     let leaderboard: Leaderboards = from_reader(text.as_bytes()).expect("XML Error in parsing");
     // Get banned players list.
     let banned_users: Vec<String> =
-        reqwest::blocking::get("http://localhost:8080/api/v1/banned_users")
+        reqwest::blocking::get("http://localhost:8080/api/v1/banned_users_all")
             .expect("Error in query to our local API (Make sure the webserver is running")
             .json()
             .expect("Error in converting our API values to JSON");
@@ -85,13 +85,12 @@ pub fn validate_entries(
                         entry.steam_id.value,
                         id
                     ); // Add to leaderboards.
-                    current_rank.insert(entry.steam_id.value.clone(), rank.clone());
-                    match check_cheated(&entry.steam_id.value, &banned_users) {
-                        false => not_cheated.push(SpBanned {
+                    current_rank.insert(entry.steam_id.value.clone(), *rank);
+                    if !check_cheated(&entry.steam_id.value, &banned_users) {
+                        not_cheated.push(SpBanned {
                             profile_number: entry.steam_id.value.clone(),
                             score: entry.score.value,
-                        }),
-                        _ => (),
+                        })
                     }
                 }
             }
@@ -103,12 +102,11 @@ pub fn validate_entries(
                         entry.steam_id.value,
                         id
                     );
-                    match check_cheated(&entry.steam_id.value, &banned_users) {
-                        false => not_cheated.push(SpBanned {
+                    if !check_cheated(&entry.steam_id.value, &banned_users) {
+                        not_cheated.push(SpBanned {
                             profile_number: entry.steam_id.value.clone(),
                             score: entry.score.value,
-                        }),
-                        _ => (),
+                        })
                     }
                 }
             }
@@ -214,7 +212,7 @@ pub fn filter_entries_coop(
     let mut existing_hash: HashMap<String, (i32, i32)> =
         HashMap::with_capacity(((end / LIMIT_MULT_COOP) * 2) as usize);
     let worst_score = map_json[map_json.len() - 1].map_data.score;
-    let wr = map_json[0].map_data.score;
+    // let wr = map_json[0].map_data.score;
     // We attempt to insert both players into the hashmap. This way we get all players with a top X score in coop.
     for rank in map_json.iter() {
         existing_hash.insert(
@@ -303,7 +301,6 @@ pub fn filter_entries_coop(
             entry.profile_number1.clone(),
             entry.profile_number2.clone(),
             entry.score,
-            wr,
             id,
             timestamp,
             &current_rank,
@@ -315,7 +312,7 @@ pub fn filter_entries_coop(
     }
 }
 
-pub fn check_cheated(id: &String, banned_users: &Vec<String>) -> bool {
+pub fn check_cheated(id: &String, banned_users: &[String]) -> bool {
     for entry in banned_users.iter() {
         if entry == id {
             return true;

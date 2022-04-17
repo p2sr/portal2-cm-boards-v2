@@ -3,8 +3,10 @@ use crate::models::datamodels::{
 };
 use chrono::prelude::*;
 use log::{debug, error, trace};
+use std::cmp::Ordering;
 use std::collections::HashMap;
 
+#[allow(dead_code)]
 /// Upload sp PB to the database
 pub fn post_sp_pb(
     profile_number: String,
@@ -13,7 +15,7 @@ pub fn post_sp_pb(
     id: i32,
     timestamp: NaiveDateTime,
     current_rank: &HashMap<String, i32>,
-    map_json: &Vec<SpRanked>,
+    map_json: &[SpRanked],
 ) -> bool {
     // Grab the PB history.
     let url = format!(
@@ -41,7 +43,7 @@ pub fn post_sp_pb(
     let mut past_score: Option<i32> = None;
     match pb_vec {
         Some(pb_vec) => {
-            let current_pb = pb_vec.into_iter().nth(0);
+            let current_pb = pb_vec.into_iter().next();
             if let Some(s) = current_pb {
                 let current_pb = s;
                 previous_id = Some(current_pb.id as i32);
@@ -56,16 +58,15 @@ pub fn post_sp_pb(
 
     let mut post_rank: Option<i32> = None;
     for entry in map_json.iter() {
-        if entry.map_data.score == score {
-            // They have the same rank
-            post_rank = Some(entry.rank)
-        } else if entry.map_data.score > score {
-            // They will temporarily have the same rank, as when the board re-calculates, the values for the other maps will change. But this value only tracks the inital rank at time of update.
-            post_rank = Some(entry.rank)
+        match entry.map_data.score.cmp(&score) {
+            Ordering::Equal => post_rank = Some(entry.rank),
+            Ordering::Greater => post_rank = Some(entry.rank),
+            _ => (),
         }
     }
+    #[allow(clippy::manual_map)]
     let prerank: Option<i32> = match current_rank.get(&profile_number) {
-        Some(rank) => Some(rank.clone()),
+        Some(rank) => Some(*rank),
         None => None,
     };
     let mut score_delta: Option<i32> = None;
@@ -85,20 +86,20 @@ pub fn post_sp_pb(
     }
     let new_score = ChangelogInsert {
         timestamp: Some(timestamp),
-        profile_number: profile_number,
-        score: score,
+        profile_number,
+        score,
         map_id: id.to_string(),
         demo_id: None,
         banned: false,
         youtube_id: None,
-        previous_id: previous_id, // id of last PB
+        previous_id, // id of last PB
         coop_id: None,
-        post_rank: post_rank, // New rank as of this score update
-        pre_rank: prerank,    // Rank prior to this score update
+        post_rank,         // New rank as of this score update
+        pre_rank: prerank, // Rank prior to this score update
         submission: false,
         note: None,
         category_id: cat_id,
-        score_delta: score_delta,
+        score_delta,
         verified: None,
         admin_note: None,
     };
@@ -121,17 +122,16 @@ pub fn post_sp_pb(
     }
     true
 }
-
+#[allow(dead_code)] // This code isn't dead, the linter is bad lol.
 /// Upload coop PB to database
 pub fn post_coop_pb(
     profile_number1: String,
     profile_number2: Option<String>,
     score: i32,
-    _wr: i32,
     id: i32,
     timestamp: NaiveDateTime,
     current_rank: &HashMap<String, i32>,
-    map_json: &Vec<CoopRanked>,
+    map_json: &[CoopRanked],
 ) -> bool {
     // Handle there being a partner
     if let Some(profile_number2) = profile_number2 {
@@ -158,7 +158,7 @@ pub fn post_coop_pb(
         let mut past_score1: Option<i32> = None;
         match pb_vec {
             Some(pb_vec) => {
-                let current_pb = pb_vec.into_iter().nth(0);
+                let current_pb = pb_vec.into_iter().next();
                 if let Some(s) = current_pb {
                     let current_pb = s;
                     previous_id1 = Some(current_pb.id as i32);
@@ -175,7 +175,7 @@ pub fn post_coop_pb(
         let mut past_score2: Option<i32> = None;
         match pb_vec {
             Some(pb_vec) => {
-                let current_pb = pb_vec.into_iter().nth(0);
+                let current_pb = pb_vec.into_iter().next();
                 if let Some(s) = current_pb {
                     let current_pb = s;
                     previous_id2 = Some(current_pb.id as i32);
@@ -190,23 +190,23 @@ pub fn post_coop_pb(
 
         let mut post_rank: Option<i32> = None;
         for entry in map_json.iter() {
-            if entry.map_data.score == score {
-                // They have the same rank
-                post_rank = Some(entry.rank)
-            } else if entry.map_data.score > score {
-                // They will temporarily have the same rank, as when the board re-calculates, the values for the other maps will change. But this value only tracks the inital rank at time of update.
-                post_rank = Some(entry.rank)
+            match entry.map_data.score.cmp(&score) {
+                Ordering::Equal => post_rank = Some(entry.rank),
+                Ordering::Greater => post_rank = Some(entry.rank),
+                _ => (),
             }
         }
-
+        #[allow(clippy::manual_map)]
         let prerank1: Option<i32> = match current_rank.get(&profile_number1) {
-            Some(rank) => Some(rank.clone()),
+            Some(rank) => Some(*rank),
             None => None,
         };
+        #[allow(clippy::manual_map)]
         let prerank2: Option<i32> = match current_rank.get(&profile_number2) {
-            Some(rank) => Some(rank.clone()),
+            Some(rank) => Some(*rank),
             None => None,
         };
+
         let mut score_delta1: Option<i32> = None;
         if let Some(i) = past_score1 {
             score_delta1 = Some(score - i);
@@ -232,15 +232,15 @@ pub fn post_coop_pb(
         let score1 = ChangelogInsert {
             timestamp: Some(timestamp),
             profile_number: profile_number1.clone(),
-            score: score,
+            score,
             map_id: id.to_string(),
             demo_id: None,
             banned: false,
             youtube_id: None,
             previous_id: previous_id1, // id of last PB
             coop_id: None,
-            post_rank: post_rank, // New rank as of this score update
-            pre_rank: prerank1,   // Rank prior to this score update
+            post_rank,          // New rank as of this score update
+            pre_rank: prerank1, // Rank prior to this score update
             submission: false,
             note: None,
             category_id: cat_id,
@@ -252,15 +252,15 @@ pub fn post_coop_pb(
         let score2 = ChangelogInsert {
             timestamp: Some(timestamp),
             profile_number: profile_number2.clone(),
-            score: score,
+            score,
             map_id: id.to_string(),
             demo_id: None,
             banned: false,
             youtube_id: None,
             previous_id: previous_id2, // id of last PB
             coop_id: None,
-            post_rank: post_rank, // New rank as of this score update
-            pre_rank: prerank2,   // Rank prior to this score update
+            post_rank,          // New rank as of this score update
+            pre_rank: prerank2, // Rank prior to this score update
             submission: false,
             note: None,
             category_id: cat_id,

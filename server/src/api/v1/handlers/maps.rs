@@ -62,3 +62,37 @@ async fn default_category(params: web::Path<u64>, pool: web::Data<PgPool>) -> im
         _ => HttpResponse::NotFound().body("Error finding deafult cat_id"),
     }
 }
+
+#[derive(Deserialize, Debug)]
+pub struct IsCoop {
+    pub is_coop: bool,
+    pub game_id: Option<i32>,
+}
+
+// TODO: Have this take an option<bool>? Somewhat more ergonomic in some places.
+/// **GET** method to return the all steam_ids for a given game. Filters by if the map is coop or not.
+///
+/// ## Example endpoints:
+///  - **With Parameters**
+///     - `/api/v1/map_ids?is_coop=true`
+///  - **Specific Game**
+///     - `/api/v1/map_ids?is_coop=true&game_id=1`
+///
+/// Makes a call to the underlying [Maps::get_steam_ids]
+///
+/// ## Example JSON ouput
+///
+/// ```json
+// [
+//     "47741",
+//     "47825",
+//     "47828",
+//     "47829",...]
+/// ```
+#[get("/map_ids")]
+async fn map_ids(pool: web::Data<PgPool>, query: web::Query<IsCoop>) -> impl Responder {
+    match Maps::get_steam_ids(pool.get_ref(), query.into_inner().is_coop).await {
+        Ok(ids) => HttpResponse::Ok().json(ids),
+        _ => HttpResponse::NotFound().body("Could not get steam_ids for maps"),
+    }
+}

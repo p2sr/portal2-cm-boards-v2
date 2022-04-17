@@ -33,6 +33,7 @@ impl Maps {
         .await?;
         Ok(res)
     }
+    #[allow(dead_code)]
     pub async fn get_steam_ids_by_game(pool: &PgPool, game: i32) -> Result<Vec<String>> {
         let res = sqlx::query(
             r#"
