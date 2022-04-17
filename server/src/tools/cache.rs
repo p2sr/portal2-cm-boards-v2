@@ -181,7 +181,7 @@ impl CacheState {
         let mut current_ranks = HashMap::with_capacity(1000);
         for map in sp {
             let res =
-                SpMap::get_sp_map_page(pool, &map, config.proof.results, default_cat_ids[&map])
+                SpMap::get_sp_map_page(pool, &map, config.proof.results, default_cat_ids[&map], 1)
                     .await?;
             for (i, entry) in res.into_iter().enumerate() {
                 let user = current_ranks
@@ -191,9 +191,14 @@ impl CacheState {
             }
         }
         for map in coop {
-            let res =
-                CoopMap::get_coop_map_page(pool, &map, config.proof.results, default_cat_ids[&map])
-                    .await?;
+            let res = CoopMap::get_coop_map_page(
+                pool,
+                &map,
+                config.proof.results,
+                default_cat_ids[&map],
+                1,
+            )
+            .await?;
             for (i, entry) in res.into_iter().enumerate() {
                 let user = current_ranks
                     .entry(entry.profile_number1)
@@ -230,6 +235,7 @@ impl CacheState {
                 map_id,
                 config.proof.results,
                 self.default_cat_ids[map_id],
+                1,
             )
             .await
             .unwrap();
@@ -266,6 +272,7 @@ impl CacheState {
                 map_id,
                 config.proof.results,
                 self.default_cat_ids[map_id],
+                1,
             )
             .await
             .unwrap();

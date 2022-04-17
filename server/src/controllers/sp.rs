@@ -8,6 +8,7 @@ impl SpMap {
         map_id: &String,
         limit: i32,
         cat_id: i32,
+        game_id: i32,
     ) -> Result<Vec<SpMap>> {
         match sqlx::query_as::<_, SpMap>(
             r#" 
@@ -32,11 +33,14 @@ impl SpMap {
                         users.profile_number as U_profile_number, *
                     FROM "p2boards".changelog
                     INNER JOIN "p2boards".users ON (users.profile_number = changelog.profile_number)
+                    INNER JOIN "p2boards".maps ON (changelog.map_id = maps.steam_id)
+                    INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
                         WHERE map_id = $1
                         AND users.banned = False
                         AND changelog.verified = True
                         AND changelog.banned = False
                         AND changelog.category_id = $2
+                        AND chapters.game_id = $3
                     ORDER BY changelog.profile_number, changelog.score ASC
                 ) t
                 ORDER BY score
@@ -44,6 +48,7 @@ impl SpMap {
         )
         .bind(map_id)
         .bind(cat_id)
+        .bind(game_id)
         .bind(limit)
         .fetch_all(pool)
         .await

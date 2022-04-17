@@ -1,5 +1,5 @@
 use crate::models::models::{
-    Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, OptCatID,
+    Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, OptIDs,
     ScoreParams,
 };
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
@@ -69,12 +69,14 @@ async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Res
 /// ## Parameters:
 /// - `cat_id`           
 ///     - **Optional** - `i32` : The ID of the category you want a Cooperative Ranked Page for.
+/// - `cat_id`
+///     - **Optional** - `i32` : The ID of the game, defaults to the base game (id = 1).
 ///
 /// Example Endpoints:
 /// - **Default**
 ///     - `/api/v1/map/coop/47741` - Will assume default category ID
-/// - **Specific Category**
-///     - `/api/v1/map/coop/47741?cat_id=61`
+/// - **Specific IDs**
+///     - `/api/v1/map/coop/47741?cat_id=61&game_id=1`
 ///
 /// Makes a call to the underlying [CoopMap::get_coop_map_page]
 ///
@@ -110,7 +112,7 @@ async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Res
 #[get("/map/coop/{map_id}")]
 async fn coop_map(
     map_id: web::Path<String>,
-    cat_id: web::Query<OptCatID>,
+    ids: web::Query<OptIDs>,
     config: web::Data<Config>,
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
@@ -120,9 +122,9 @@ async fn coop_map(
         pool.get_ref(),
         &map_id,
         config.proof.results,
-        cat_id
-            .cat_id
+        ids.cat_id
             .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id]),
+        ids.game_id.unwrap_or(1),
     )
     .await
     {
@@ -163,7 +165,7 @@ async fn coop_banned_all(
     map_id: web::Path<String>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
-    params: web::Query<OptCatID>,
+    params: web::Query<OptIDs>,
 ) -> impl Responder {
     match CoopBanned::get_coop_banned(
         pool.get_ref(),
@@ -193,12 +195,14 @@ async fn coop_banned_all(
 ///     - **Required** - `i32` : The score (time) associated with the run.
 /// - `cat_id`
 ///     - **Optional** - `i32` : A specific category ID, if left blank will use the default.
+/// - `game_id`
+///     - **Optional** - `i32` : The ID for the game, will default to the basegame (id = 1)
 ///
 /// Example Endpoints:
 /// - **Default**
 ///     - `/api/v1/coop/time_banned/47825?profile_number=76561198823602829&score=1890`
-/// - **Specific Category ID**
-///     - `/api/v1/coop/time_banned/47825?profile_number=76561198823602829&score=1890&cat_id=62`
+/// - **Specific IDs**
+///     - `/api/v1/coop/time_banned/47825?profile_number=76561198823602829&score=1890&cat_id=62&game_id=1`
 ///
 /// ## Example JSON output
 /// ```json
@@ -219,6 +223,7 @@ async fn coop_banned(
         params
             .cat_id
             .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id.into_inner()]),
+        params.game_id.unwrap_or(1),
     )
     .await
     {

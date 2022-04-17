@@ -89,6 +89,8 @@ pub async fn demos(pool: web::Data<PgPool>, query: web::Query<DemoOptions>) -> i
 ///     - `String`: Note for the run
 /// - **category_id**   
 ///     - `i32`: ID for the category being played  
+/// - `game_id`
+///     - **Optional** - `i32` : The ID for the game, defaults to the base game (id = 1).
 ///
 /// ## Example endpoints:       
 /// - `/api/v1/demos/changelog?timestamp=2020-08-18%2024:60:60&profile_number=76561198040982247&score=1763&map_id=47763`
@@ -104,6 +106,7 @@ pub async fn demos_changelog(
     // This function heavily utilizes helper functions to make error propagation easier, and reduce the # of match arms
     let mut file_name = String::default();
     let query = query.into_inner();
+    let game_id = query.game_id.unwrap_or(1);
     let mut changelog_insert =
         ChangelogInsert::new_from_submission(query, cache.into_inner().default_cat_ids.clone())
             .await;
@@ -114,6 +117,7 @@ pub async fn demos_changelog(
         changelog_insert.map_id.clone(),
         config.proof.results,
         changelog_insert.category_id,
+        game_id,
     )
     .await;
 

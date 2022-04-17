@@ -1,12 +1,11 @@
 use crate::models::models::{
-    Changelog, HistoryParams, OptCatID, ScoreLookup, ScoreParams, SpBanned, SpMap, SpPbHistory,
+    Changelog, HistoryParams, OptIDs, ScoreLookup, ScoreParams, SpBanned, SpMap, SpPbHistory,
     SpPreviews, SpRanked, Users, UsersPage,
 };
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
 use crate::tools::helpers::check_for_valid_score;
 use crate::tools::{config::Config, helpers::score};
-use actix_web::{get, post, put, web, HttpResponse, Responder};
-use serde::{Deserialize, Serialize};
+use actix_web::{get, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 // TODO: Invalidate cache when a time is banned/verified/when a player is banned.
@@ -64,18 +63,21 @@ async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Respo
     }
 }
 
-// TODO: Add game
 /// **GET** method to generate a single player map page [SpRanked] for a given map_id
 ///
 /// ## Parameters:
-///    - `cat_id`           
-///         - **Optional** - `i32` - The ID of the category you want a Single Player Ranked Page for.
+/// - `cat_id`           
+///     - **Optional** - `i32` - The ID of the category you want a Single Player Ranked Page for.
+/// - `game_id`
+///     - **Optional** - `i32` - The ID of the game you want a Single Player Ranked Page for. Defaults to the base game (1).
 ///
 /// ## Example endpoint
 /// - **Default**
 ///     - `/api/v1/map/sp/47802` - Will assume default category ID
 /// - **Specific Category**                   
 ///     - `/api/v1/map/sp/47802?cat_id=40`
+/// - **Specific Game**
+///     - `/api/v1/map/sp/47802?game_id=1`
 ///
 /// Makes a call to the underlying [SpMap::get_sp_map_page].
 ///
@@ -103,7 +105,7 @@ async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Respo
 #[get("/map/sp/{map_id}")]
 pub async fn sp_map(
     map_id: web::Path<String>,
-    cat_id: web::Query<OptCatID>,
+    ids: web::Query<OptIDs>,
     config: web::Data<Config>,
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
@@ -113,9 +115,9 @@ pub async fn sp_map(
         pool.get_ref(),
         &map_id,
         config.proof.results,
-        cat_id
-            .cat_id
+        ids.cat_id
             .unwrap_or(cache.into_inner().default_cat_ids[&map_id]),
+        ids.game_id.unwrap_or(1),
     )
     .await
     {
@@ -167,16 +169,22 @@ async fn sp_all_banned(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl 
 /// **GET** method to return true or false given a `map_id`, `profile_number` and `score`
 ///
 /// ## Parameters:
-///    - `map_id`
-///         - Required: Part of the endpoint, **not** a part of the query string.
-///    - `profile_number`           
-///         - Required: `String`, ID for the player.
-///    - `score`           
-///         - Required: `i32`, Time for the run.
+/// - `map_id`
+///     - **Required** - `String` : Part of the endpoint, **not** a part of the query string.
+/// - `profile_number`           
+///     - **Required** `String` : ID for the player.
+/// - `score`           
+///     - **Required** `i32` : Time for the run.
+/// - `cat_id`
+///     - **Optional** `i32` : ID for the category, defaults to the map's default.
+/// - `game_id`
+///     - **Optional** - `i32` : ID for the game, defaults to base game, or 1.
 ///
 /// ## Example Endpoins
 /// - **With Parameters**
 ///     - `/api/v1/sp/banned/47458?profile_number=76561198823602829&score=2445`
+/// - **With Optional**
+///     - `/api/v1/sp/banned/47458?profile_number=76561198823602829&score=2445&cat_id=1&game_id=1`
 ///
 /// Makes a call to the underlying [SpBanned::get_sp_banned]
 ///
@@ -200,6 +208,7 @@ async fn sp_banned(
         params
             .cat_id
             .unwrap_or(cache.into_inner().default_cat_ids[&map_id.into_inner()]),
+        params.game_id.unwrap_or(1),
     )
     .await
     {
@@ -213,12 +222,14 @@ async fn sp_banned(
 /// Query parameters represented as [HistoryParams]
 ///
 /// ## Parameters:
-///    - `profile_number`           
-///         - Required: `String`, ID for the player.
-///    - `map_id`           
-///         - Required: `String`, ID for the map.
-///    - `cat_id`           
-///         - Optional: `String`, ID for the category.
+/// - `profile_number`           
+///     - **Required** - `String` : ID for the player.
+/// - `map_id`           
+///     - **Required** - `String` : ID for the map.
+/// - `cat_id`           
+///     - **Optional** `i32` : ID for the category. Defaults to the default category for the map.
+/// - `game_id`
+///     - **Optional**  `i32` : ID for the game. Defaults to the base game, or ID = 1.
 ///
 /// ## Example Endpoints:
 /// - **With Parametes**
@@ -296,6 +307,7 @@ async fn sp_history(
         query
             .cat_id
             .unwrap_or(cache.into_inner().default_cat_ids[&query.map_id]),
+        query.game_id.unwrap_or(1),
     )
     .await
     {
@@ -451,6 +463,7 @@ pub async fn sp_validate(
         config.proof.results,
         data.cat_id
             .unwrap_or(cache.into_inner().default_cat_ids[&data.map_id]),
+        data.game_id.unwrap_or(1),
     )
     .await
     {

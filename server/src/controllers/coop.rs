@@ -30,6 +30,7 @@ impl CoopMap {
         map_id: &String,
         limit: i32,
         cat_id: i32,
+        game_id: i32,
     ) -> Result<Vec<CoopMap>> {
         match sqlx::query_as::<_, CoopMap>(
             r#"
@@ -63,18 +64,22 @@ impl CoopMap {
                 INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
                 INNER JOIN "p2boards".users AS p1 ON (p1.profile_number = cb.p_id1)
                 INNER JOIN "p2boards".users AS p2 ON (p2.profile_number = cb.p_id2)
+                INNER JOIN "p2boards".maps ON (c1.map_id = maps.steam_id)
+                INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
                 WHERE p1.banned=False
-                    AND p2.banned=False
-                    AND c1.banned=False
-                    AND c2.banned=False
-                    AND c1.verified=True
-                    AND c2.verified=True
-                    AND c1.category_id=$2
+                    AND p2.banned = False
+                    AND c1.banned = False
+                    AND c2.banned = False
+                    AND c1.verified = True
+                    AND c2.verified = True
+                    AND c1.category_id = $2
+                    AND chapters.game_id = $3
                 ORDER BY score ASC
                 "#,
         )
         .bind(map_id)
         .bind(cat_id)
+        .bind(game_id)
         .fetch_all(pool)
         .await
         {

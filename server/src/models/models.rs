@@ -365,8 +365,9 @@ pub struct CalcValues {
 // Currently a dumbass work around to issues with deserializing an option natively theough the Query
 /// Generic wrapper around an Option i32 for [actix_web::web::Query]
 #[derive(Debug, Deserialize)]
-pub struct OptCatID {
+pub struct OptIDs {
     pub cat_id: Option<i32>,
+    pub game_id: Option<i32>,
 }
 
 /// Wrapper to send a profile number as a search result
@@ -375,6 +376,7 @@ pub struct ScoreParams {
     pub profile_number: String,
     pub score: i32,
     pub cat_id: Option<i32>,
+    pub game_id: Option<i32>,
 }
 
 /// Wrapper to allow queries to include `map_id`, `profile_number` and optional `cat_id`.
@@ -383,9 +385,10 @@ pub struct HistoryParams {
     pub profile_number: String,
     pub map_id: String,
     pub cat_id: Option<i32>,
+    pub game_id: Option<i32>,
 }
 
-/// All the accepted query parameters for the changelog page.
+/// All the accepted query parameters for the cSubmissionChangeloghangelog page.
 #[derive(Deserialize, Debug)]
 pub struct ChangelogQueryParams {
     pub limit: Option<u32>,
@@ -411,6 +414,7 @@ pub struct SubmissionChangelog {
     pub youtube_id: Option<String>,
     pub note: Option<String>,
     pub category_id: Option<i32>,
+    pub game_id: Option<i32>,
 }
 
 /// Allows us to accept an optional demo_id or cl_id as a set of query parameters for demo endpoints.
@@ -429,6 +433,7 @@ pub struct ScoreLookup {
     pub score: i32,
     pub map_id: String,
     pub cat_id: Option<i32>,
+    pub game_id: Option<i32>,
 }
 
 // Points

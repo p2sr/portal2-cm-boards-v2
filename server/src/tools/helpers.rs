@@ -78,6 +78,7 @@ pub async fn check_for_valid_score(
     map_id: String,
     limit: i32,
     cat_id: i32,
+    game_id: i32,
 ) -> Result<CalcValues> {
     let mut values = CalcValues::default();
     match Users::check_banned(pool, profile_number.clone()).await {
@@ -94,7 +95,7 @@ pub async fn check_for_valid_score(
             bail!("User does not exist");
         }
     }
-    let cl = Changelog::get_sp_pb_history(pool, &profile_number, &map_id, cat_id).await;
+    let cl = Changelog::get_sp_pb_history(pool, &profile_number, &map_id, cat_id, game_id).await;
     let cl = match cl {
         Ok(x) => x,
         Err(e) => {
@@ -109,7 +110,7 @@ pub async fn check_for_valid_score(
     values.score_delta = Some(cl[0].score - score);
     values.previous_id = Some(cl[0].id);
     // Assuming there is a PB History, there must be other scores, this should return a valid list of ranked maps.
-    let cl_ranked = SpMap::get_sp_map_page(pool, &map_id, limit, cat_id)
+    let cl_ranked = SpMap::get_sp_map_page(pool, &map_id, limit, cat_id, game_id)
         .await
         .unwrap();
     for (i, entry) in cl_ranked.iter().enumerate() {

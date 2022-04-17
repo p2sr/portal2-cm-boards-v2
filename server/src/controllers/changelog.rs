@@ -23,21 +23,25 @@ impl Changelog {
     }
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
-    pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String, cat_id: i32) -> Result<bool> {
+    pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String, cat_id: i32, game_id: i32) -> Result<bool> {
         // We don't care about the result, we only care if there is a result.
         let res = sqlx::query(r#" 
                 SELECT * 
                 FROM "p2boards".changelog
+                    INNER JOIN "p2boards".maps ON (maps.steam_id = changelog.map_id)
+                    INNER JOIN "p2boards".chapters ON (chapters.id = maps.chapter_id)
                 WHERE changelog.score = $1
-                AND changelog.map_id = $2
-                AND changelog.profile_number = $3
-                AND changelog.banned = $4
-                AND changelog.category_id = $5"#)
+                    AND changelog.map_id = $2
+                    AND changelog.profile_number = $3
+                    AND changelog.banned = $4
+                    AND changelog.category_id = $5
+                    AND chapters.game_id = $6"#)
             .bind(score)
             .bind(map_id)
             .bind(profile_number)
             .bind(true)
             .bind(cat_id)
+            .bind(game_id)
             .fetch_optional(pool)
             .await?;
         match res {
@@ -46,20 +50,23 @@ impl Changelog {
         }
     }
     /// Returns a vec of changelog for a user's PB history on a given SP map.
-    pub async fn get_sp_pb_history(pool: &PgPool, profile_number: &str, map_id: &str, cat_id: i32) -> Result<Vec<Changelog>> {
+    pub async fn get_sp_pb_history(pool: &PgPool, profile_number: &str, map_id: &str, cat_id: i32, game_id: i32) -> Result<Vec<Changelog>> {
         Ok(sqlx::query_as::<_, Changelog>(r#" 
-                SELECT * 
+                SELECT changelog.* 
                 FROM "p2boards".changelog
+                    INNER JOIN "p2boards".maps ON (maps.steam_id = changelog.map_id)
+                    INNER JOIN "p2boards".chapters ON (chapters.id = maps.chapter_id)
                 WHERE changelog.profile_number = $1
-                AND changelog.map_id = $2
-                AND changelog.category_id = $3
+                    AND changelog.map_id = $2
+                    AND changelog.category_id = $3
+                    AND chapters.game_id = $4
                 ORDER BY changelog.timestamp DESC NULLS LAST"#)
             .bind(profile_number)
             .bind(map_id)
             .bind(cat_id)
+            .bind(game_id)
             .fetch_all(pool)
             .await?)
-
     }
     /// Deletes all references to a demo_id in `changelog`
     pub async fn delete_references_to_demo(pool: &PgPool, demo_id: i64) -> Result<Vec<i64>> {

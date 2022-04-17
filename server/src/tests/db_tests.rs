@@ -275,9 +275,9 @@ async fn test_db_changelog() {
         admin_note: None,
     };
 
-    let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string(), 19).await.unwrap();
+    let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string(), 19, 1).await.unwrap();
     assert!(!banned_scores);
-    let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247", "47763", 19).await.unwrap();
+    let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247", "47763", 19, 1).await.unwrap();
     assert_ne!(0, pb_history.len());
     let new_cl_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
     let mut new_cl = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
@@ -349,9 +349,9 @@ async fn test_db_pages() {
 
     let sp_map_id = "47763".to_string();
     let coop_map_id = "52642".to_string();
-    let smp = SpMap::get_sp_map_page(&pool, &sp_map_id, DEFAULT_PAGE_SIZE as i32, 19).await.unwrap();
+    let smp = SpMap::get_sp_map_page(&pool, &sp_map_id, DEFAULT_PAGE_SIZE as i32, 19, 1).await.unwrap();
     assert_ne!(smp.len(), 0);
-    let cmp = CoopMap::get_coop_map_page(&pool, &coop_map_id, DEFAULT_PAGE_SIZE as i32, 81).await.unwrap();
+    let cmp = CoopMap::get_coop_map_page(&pool, &coop_map_id, DEFAULT_PAGE_SIZE as i32, 81, 1).await.unwrap();
     assert_ne!(cmp.len(), 0);
     let coop_entries_filtered = filter_coop_entries(cmp, config.proof.results as usize).await;
     // Ensure we didn't mess up the ranking/points algorithm.

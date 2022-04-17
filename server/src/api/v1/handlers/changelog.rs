@@ -85,7 +85,7 @@ async fn changelog(
 
 /// **POST** method for submitting a new changelog entry.
 ///
-/// Accepts field values for a new [ChangelogInsert]
+/// Accepts field values for a new [SubmissionChangelog]
 ///
 /// ## Parameters (expects valid JSON Object):
 /// - `timestamp`    
@@ -102,6 +102,8 @@ async fn changelog(
 ///     - **Optional** - `String` : Note for the run
 /// - `category_id`   
 ///     - **Optional** - `i32` : ID for the category being submitted, will use default for the map if not supplied,
+/// - `game_id`
+///     - **Optional** - `i32` : ID for the game, will default to base game (id = 1).
 ///
 /// ## Example endpoints:       
 /// - `/api/v1/changelog`
@@ -116,6 +118,7 @@ async fn changelog(
 ///     "youtube_id" : null,
 ///     "note" : null,
 ///     "category_id" : 19,
+///     "game_id" : 1
 /// }
 /// ```
 #[post("/changelog")]
@@ -126,9 +129,10 @@ async fn changelog_add(
     params: web::Json<SubmissionChangelog>,
 ) -> impl Responder {
     let cache = cache.into_inner();
+    let params = params.into_inner();
+    let game_id = params.game_id.unwrap_or(1);
     let mut cl_insert =
-        ChangelogInsert::new_from_submission(params.into_inner(), cache.default_cat_ids.clone())
-            .await;
+        ChangelogInsert::new_from_submission(params, cache.default_cat_ids.clone()).await;
     let map_id = cl_insert.map_id.clone();
     match check_for_valid_score(
         pool.get_ref(),
@@ -137,6 +141,7 @@ async fn changelog_add(
         cl_insert.map_id.clone(),
         config.proof.results,
         cl_insert.category_id,
+        game_id,
     )
     .await
     {
