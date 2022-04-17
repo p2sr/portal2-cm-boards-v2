@@ -311,7 +311,7 @@ impl ChangelogInsert {
             map_id: params.map_id.clone(),
             youtube_id: params.youtube_id,
             note: params.note,
-            category_id: params.category_id.unwrap_or(cache[&params.map_id]),
+            category_id: params.category_id.unwrap_or_else(|| cache[&params.map_id]),
             submission: true,
             ..Default::default()
         }

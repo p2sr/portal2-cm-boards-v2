@@ -232,7 +232,6 @@ pub fn calc_points(maps_altered: Option<Vec<i32>>) {
     } else {
         // Go through all of the maps altered, and refresh points for just those maps.
         // Point calculation certainly doesn't really support being broken up rn.
-        ()
     }
 }
 

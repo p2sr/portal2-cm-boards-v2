@@ -73,7 +73,7 @@ async fn points_sp_add(
             for (k, v) in data.into_inner().hm_points.into_iter() {
                 points_cache.insert(k, v);
             }
-            write_to_file(&id, &points_cache).await.unwrap();
+            write_to_file(id, &points_cache).await.unwrap();
             // println!("Updated cache.");
             HttpResponse::Ok().body("Success")
         }
@@ -106,7 +106,7 @@ async fn points_coop_add(
             for (k, v) in data.into_inner().hm_points.into_iter() {
                 points_cache.insert(k, v);
             }
-            write_to_file(&id, &points_cache).await.unwrap();
+            write_to_file(id, &points_cache).await.unwrap();
             // println!("Updated cache.");
             HttpResponse::Ok().body("Success")
         }
@@ -171,7 +171,7 @@ async fn points_overall_add(
             for (k, v) in data.into_inner().hm_points.into_iter() {
                 points_cache.insert(k, v);
             }
-            write_to_file(&id, &points_cache).await.unwrap();
+            write_to_file(id, &points_cache).await.unwrap();
             // println!("{:#?}", points_cache);
             HttpResponse::Ok().body("Success")
         }

@@ -57,41 +57,41 @@ pub fn example<T: for<'de> serde::Deserialize<'de>>(id: &str) -> Vec<T> {
 
 /// Constructs mock examples to use to test our validate_entries function works as intended.
 pub fn sp_entries() -> Vec<Entry> {
-    let mut entries = Vec::with_capacity(5);
-    // Xinera worse time (assume there's a manual submission)
-    entries.push(Entry {
-        steam_id: XmlTag {
-            value: "76561198054297641".to_string(),
+    vec![
+        // Xinera worse time (assume there's a manual submission)
+        Entry {
+            steam_id: XmlTag {
+                value: "76561198054297641".to_string(),
+            },
+            score: XmlTag { value: 1858 },
         },
-        score: XmlTag { value: 1858 },
-    });
-    // Daniel, same time
-    entries.push(Entry {
-        steam_id: XmlTag {
-            value: "76561198040982247".to_string(),
+        // Daniel, same time
+        Entry {
+            steam_id: XmlTag {
+                value: "76561198040982247".to_string(),
+            },
+            score: XmlTag { value: 1816 },
         },
-        score: XmlTag { value: 1816 },
-    });
-    // Better score for Zypeh (beat wr)
-    entries.push(Entry {
-        steam_id: XmlTag {
-            value: "76561198039230536".to_string(),
+        // Better score for Zypeh (beat wr)
+        Entry {
+            steam_id: XmlTag {
+                value: "76561198039230536".to_string(),
+            },
+            score: XmlTag { value: 1720 },
         },
-        score: XmlTag { value: 1720 },
-    });
-    // Better score for BreweryJake
-    entries.push(Entry {
-        steam_id: XmlTag {
-            value: "76561198029488151".to_string(),
+        // Better score for BreweryJake
+        Entry {
+            steam_id: XmlTag {
+                value: "76561198029488151".to_string(),
+            },
+            score: XmlTag { value: 2100 },
         },
-        score: XmlTag { value: 2100 },
-    });
-    // Same score for Mel
-    entries.push(Entry {
-        steam_id: XmlTag {
-            value: "76561198135023038".to_string(),
+        // Same score for Mel
+        Entry {
+            steam_id: XmlTag {
+                value: "76561198135023038".to_string(),
+            },
+            score: XmlTag { value: 2206 },
         },
-        score: XmlTag { value: 2206 },
-    });
-    entries
+    ]
 }

@@ -1,7 +1,7 @@
 #[cfg(test)]
 #[test]
 /// Tests to make sure data can be pulled from the steam API.
-fn test_steam_api() -> () {
+fn test_steam_api() {
     use crate::stages::fetching::*;
 
     let image: String = update_image("76561198040982247".to_string());
@@ -13,7 +13,7 @@ fn test_steam_api() -> () {
 #[should_panic] // Should panic, we're uploading a duplicate user.
 /// Check the uploading endpoint.
 /// REQUIRES THAT THE LOCAL WEB SERVER AND DB ARE UP.
-fn add_user_steam_api() -> () {
+fn add_user_steam_api() {
     use crate::stages::fetching::*;
 
     match add_user("76561198040982247".to_string()) {
@@ -28,7 +28,7 @@ fn add_user_steam_api() -> () {
 #[test]
 /// Ensure we get the correct response when checking to make sure a user exists.
 /// REQUIRES THAT THE LOCAL WBE SERVER AND DB ARE UP. `
-fn check_user() -> () {
+fn check_user() {
     use crate::stages::fetching::*;
     assert!(check_user("76561198040982247"));
 }

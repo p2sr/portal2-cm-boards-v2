@@ -141,7 +141,7 @@ async fn test_db_users() {
 
     // Donations
     let donators = Users::get_donators(&pool).await.unwrap().unwrap();
-    assert!(donators.len() != 0);
+    assert!(!donators.is_empty());
 }
 
 #[actix_web::test]
@@ -397,5 +397,5 @@ async fn test_db_admins() {
     assert!(ban_page.len() == 5);
 
     let ban_stats = Admin::get_user_banned_time_stats(&pool).await.unwrap().unwrap();
-    assert!(ban_stats.len() != 0);
+    assert!(!ban_stats.is_empty());
 }
