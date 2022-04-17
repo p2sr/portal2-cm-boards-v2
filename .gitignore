@@ -78,7 +78,7 @@ typings/
 .secret
 
 # parcel-bundler cache (https://parceljs.org/)
-backend/cache/*cache
+backend/src/cache/*.cache
 server/points/*
 server/cache/*.json
 
