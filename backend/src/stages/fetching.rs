@@ -17,6 +17,7 @@ pub fn fetch_entries(
     start: i32,
     end: i32,
     timestamp: NaiveDateTime,
+    banned_users: Vec<String>,
     is_coop: bool,
 ) -> Leaderboards {
     let url = format!(
@@ -31,18 +32,17 @@ pub fn fetch_entries(
         .text()
         .expect("Error in writing the result from Valve's API to text");
     // Print to cache
+
+    let leaderboard: Leaderboards = from_reader(text.as_bytes()).expect("XML Error in parsing");
+
     match cache_leaderboard(id, text.clone()) {
         true => debug!("The cache is updated for map {}", id),
-        false => trace!("The cache is unchanged for map {}", id),
+        false => {
+            trace!("The cache is unchanged for map {}", id);
+            println!("{:#?}", leaderboard);
+            return leaderboard;
+        }
     }
-    let leaderboard: Leaderboards = from_reader(text.as_bytes()).expect("XML Error in parsing");
-    // Get banned players list.
-    let banned_users: Vec<String> =
-        reqwest::blocking::get("http://localhost:8080/api/v1/banned_users_all")
-            .expect("Error in query to our local API (Make sure the webserver is running")
-            .json()
-            .expect("Error in converting our API values to JSON");
-
     match is_coop {
         false => filter_entries_sp(
             id,
@@ -62,6 +62,7 @@ pub fn fetch_entries(
         ),
     }
     leaderboard
+    // TODO: Compare this leaderboard to the boards on the API? One longer operation vs dozens of shorter ones.
 }
 
 /// Breaking apart the modules that filted out the list to times that aren't banned/cheated.

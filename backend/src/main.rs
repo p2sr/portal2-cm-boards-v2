@@ -9,7 +9,7 @@
 extern crate serde_derive;
 
 use actix_cors::Cors;
-use actix_web::{get, middleware::Logger, web, App, HttpResponse, HttpServer};
+use actix_web::{get, middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
 use anyhow::Result;
 use chrono::prelude::*;
 use dotenv::dotenv;
@@ -75,13 +75,8 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-#[get("/test")]
-pub async fn test() -> HttpResponse {
-    HttpResponse::Ok().body("hello world")
-}
-
 #[get("/recalculate_points/{id}")]
-pub async fn rcp(id: web::Path<i32>) -> HttpResponse {
+pub async fn rcp(id: web::Path<i32>) -> impl Responder {
     // Assume that a negative `id` means that the user wants to recalculate all points.
     web::block(move || {
         let id = id.into_inner();
@@ -94,50 +89,85 @@ pub async fn rcp(id: web::Path<i32>) -> HttpResponse {
     })
     .await
     .unwrap();
-    HttpResponse::Ok().body("Success.")
+    "Points calculation successful."
 }
 
 // TODO: It might be much faster to just grab all the data from the web server at the start.
 // Given how long it takes to go through and query for each of the like, thousands of potential times.
 #[get("/fetch_all")]
-pub async fn fetch_all(limit: web::Data<i32>) -> HttpResponse {
+pub async fn fetch_all(limit: web::Data<i32>) -> impl Responder {
     web::block(move || {
+        let banned_users: Vec<String> =
+            reqwest::blocking::get("http://localhost:8080/api/v1/banned_users_all")
+                .expect("Error in query to our local API (Make sure the webserver is running")
+                .json()
+                .expect("Error in converting our API values to JSON");
         let limit = limit.into_inner();
         let utc = Utc::now().naive_utc();
         let _res_sp: Vec<_> = OFFICIAL_SP
             .into_par_iter()
-            .map(|map_id| fetch_entries(map_id, 0, *limit * LIMIT_MULT_SP, utc, false))
+            .map(|map_id| {
+                fetch_entries(
+                    map_id,
+                    0,
+                    *limit * LIMIT_MULT_SP,
+                    utc,
+                    banned_users.clone(),
+                    false,
+                )
+            })
             .collect();
         let _res_cp: Vec<_> = OFFICIAL_COOP
             .into_par_iter()
-            .map(|map_id| fetch_entries(map_id, 0, *limit * LIMIT_MULT_COOP, utc, true))
+            .map(|map_id| {
+                fetch_entries(
+                    map_id,
+                    0,
+                    *limit * LIMIT_MULT_COOP,
+                    utc,
+                    banned_users.clone(),
+                    true,
+                )
+            })
             .collect();
     })
     .await
     .unwrap();
-    HttpResponse::Ok().body("Success.")
+    "Success fetching all scores."
 }
 
 // TODO: It looks like currently, there is a conflict between the async thread pool, and the threadpool for rayon, as this is now VERY slow.
 // TODO: Seems to currenty upload without caring about new user? Post new user information to `/user`.
 #[get("/fetch_sp/{map_id}")]
-pub async fn fetch_sp(map_id: web::Path<i32>, limit: web::Data<i32>) -> HttpResponse {
+pub async fn fetch_sp(map_id: web::Path<i32>, limit: web::Data<i32>) -> impl Responder {
+    let banned_users: Vec<String> =
+        reqwest::blocking::get("http://localhost:8080/api/v1/banned_users_all")
+            .expect("Error in query to our local API (Make sure the webserver is running")
+            .json()
+            .expect("Error in converting our API values to JSON");
     web::block(move || {
         let limit = limit.into_inner();
         let utc = Utc::now().naive_utc();
-        fetch_entries(map_id.into_inner(), 0, *limit * LIMIT_MULT_SP, utc, false);
+        fetch_entries(
+            map_id.into_inner(),
+            0,
+            *limit * LIMIT_MULT_SP,
+            utc,
+            banned_users,
+            false,
+        );
     })
     .await
     .unwrap();
-    HttpResponse::Ok().body("Success.")
+    "Success fetching sp map."
 }
 
 pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/backend/v1")
-            .service(test)
             .service(rcp)
-            .service(fetch_sp),
+            .service(fetch_sp)
+            .service(fetch_all),
     );
 }
 

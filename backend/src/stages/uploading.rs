@@ -103,23 +103,23 @@ pub fn post_sp_pb(
         verified: None,
         admin_note: None,
     };
-    let client = reqwest::blocking::Client::new();
-    let post_url = "http://localhost:8080/api/v1/sp/post_score".to_string();
-    let res = client
-        .post(&post_url)
-        .json(&new_score)
-        .send()
-        .expect("Error querying our local API")
-        .json::<i64>();
-    match res {
-        Ok(s) => {
-            trace!("{}", s)
-        }
-        Err(e) => {
-            error!("{}", e);
-            return false;
-        }
-    }
+    // let client = reqwest::blocking::Client::new();
+    // let post_url = "http://localhost:8080/api/v1/sp/post_score".to_string();
+    // let res = client
+    //     .post(&post_url)
+    //     .json(&new_score)
+    //     .send()
+    //     .expect("Error querying our local API")
+    //     .json::<i64>();
+    // match res {
+    //     Ok(s) => {
+    //         trace!("{}", s)
+    //     }
+    //     Err(e) => {
+    //         error!("{}", e);
+    //         return false;
+    //     }
+    // }
     true
 }
 #[allow(dead_code)] // This code isn't dead, the linter is bad lol.

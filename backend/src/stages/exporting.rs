@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
+// use text_diff::diff;
 
 pub fn cache_leaderboard(id: i32, text: String) -> bool {
     use std::fs;
@@ -27,11 +28,12 @@ pub fn cache_leaderboard(id: i32, text: String) -> bool {
     let split = text.split("totalLeaderboardEntries").collect::<Vec<&str>>();
     // Reformat the string so that we can compare properly.
     let format_text = format!("{}-{}", split[0], split[2]);
-    //print_diff(&cache_contents, &text,"<");
+    // let (dist, changeset) = diff(&cache_contents, &format_text, "<");
+    // println!("{} {:#?}", dist, changeset);
     if format_text.eq(&cache_contents) {
-        //println!("Content not updated for map {}", id);
         false
     } else {
+        println!("{:?} != {:?}", format_text, cache_contents);
         let mut ofp = File::create(path).expect("Error creating file to write to for cache");
         ofp.write_all(format_text.as_bytes())
             .expect("Error writing to cache files");
