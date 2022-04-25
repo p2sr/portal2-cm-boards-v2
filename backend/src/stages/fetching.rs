@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use super::super::FetchingData;
 use super::exporting::*;
 use super::uploading::*;
 use crate::models::datamodels::{
@@ -7,6 +8,7 @@ use crate::models::datamodels::{
 };
 use crate::LIMIT_MULT_COOP;
 use crate::LIMIT_MULT_SP;
+use anyhow::Result;
 use chrono::prelude::*;
 use log::{debug, error, trace};
 use rayon::prelude::*;
@@ -14,59 +16,24 @@ use serde_xml_rs::from_reader;
 use std::collections::HashMap;
 
 /// Grabs the map at the current ID from valve's API and caches times.
-pub fn fetch_entries(
-    id: i32,
-    start: i32,
-    end: i32,
-    timestamp: NaiveDateTime,
-    banned_users: Vec<String>,
-    is_coop: bool,
-    cat_id: i32,
-) -> Leaderboards {
+pub fn fetch_entries(data: FetchingData) -> Result<Leaderboards> {
     let url = format!(
-        "https://steamcommunity.com/stats/{game}/leaderboards/{id}?xml=1&start={start}&end={end}",
-        game = "Portal2",
-        id = id,
-        start = start,
-        end = end
+        "https://steamcommunity.com/stats/Portal2/leaderboards/{}?xml=1&start={}&end={}",
+        data.id, data.start, data.end
     );
-    let text = reqwest::blocking::get(&url)
-        .expect("Error in request to valve API")
-        .text()
-        .expect("Error in writing the result from Valve's API to text");
-    // Print to cache
-
+    let text = reqwest::blocking::get(&url)?.text()?;
     let leaderboard: Leaderboards = from_reader(text.as_bytes()).expect("XML Error in parsing");
 
-    match cache_leaderboard(id, text.clone()) {
-        true => debug!("The cache is updated for map {}", id),
-        false => {
-            trace!("The cache is unchanged for map {}", id);
-            // println!("{:#?}", leaderboard);
-        }
+    // Print to cache
+    if !cache_leaderboard(data.id, text) {
+        trace!("The cache is unchanged for map {}", data.id);
+        return Ok(leaderboard); // Return early, our cache is unchanged.
     }
-    match is_coop {
-        false => filter_entries_sp(
-            id,
-            start,
-            end,
-            timestamp,
-            banned_users,
-            &leaderboard.entries,
-            cat_id,
-        ),
-        true => filter_entries_coop(
-            id,
-            start,
-            end,
-            timestamp,
-            banned_users,
-            &leaderboard.entries,
-            cat_id,
-        ),
+    match data.is_coop {
+        false => filter_entries_sp(data, &leaderboard.entries),
+        true => filter_entries_coop(data, &leaderboard.entries),
     }
-    leaderboard
-    // TODO: Compare this leaderboard to the boards on the API? One longer operation vs dozens of shorter ones.
+    Ok(leaderboard)
 }
 
 /// Breaking apart the modules that filted out the list to times that aren't banned/cheated.
@@ -85,10 +52,9 @@ pub fn validate_entries(
             Some((score, rank)) => {
                 // The user has a time in top X scores currently
                 if score > &entry.score.value {
-                    trace!(
+                    debug!(
                         "New better time for user {} on map_id {}",
-                        entry.steam_id.value,
-                        id
+                        entry.steam_id.value, id
                     ); // Add to leaderboards.
                     current_rank.insert(entry.steam_id.value.clone(), *rank);
                     if !check_cheated(&entry.steam_id.value, &banned_users) {
@@ -121,23 +87,15 @@ pub fn validate_entries(
 }
 
 /// Handles comparison with the current leaderboards to see if any user has a new best time
-pub fn filter_entries_sp(
-    id: i32,
-    _start: i32,
-    end: i32,
-    timestamp: NaiveDateTime,
-    banned_users: Vec<String>,
-    data: &XmlTag<Vec<Entry>>,
-    cat_id: i32,
-) {
-    let url = format!("http://localhost:8080/api/v1/map/sp/{id}", id = id);
+pub fn filter_entries_sp(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
+    let url = format!("http://localhost:8080/api/v1/map/sp/{id}", id = data.id);
     let map_json: Vec<SpRanked> = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json()
         .expect("Error in converting our API values to JSON");
 
     let mut existing_hash: HashMap<String, (i32, i32)> =
-        HashMap::with_capacity((end / LIMIT_MULT_SP) as usize);
+        HashMap::with_capacity((data.end / LIMIT_MULT_SP) as usize);
 
     let worst_score = map_json[map_json.len() - 1].map_data.score;
     let wr = map_json[0].map_data.score;
@@ -151,10 +109,14 @@ pub fn filter_entries_sp(
 
     // TODO: Implement a per-map threshold???
     let (current_rank, not_cheated) =
-        validate_entries(data, existing_hash, banned_users, id, worst_score);
+        validate_entries(lb, existing_hash, data.banned_users, data.id, worst_score);
     // We grab the list of banned times from our API.
     // Filter out any times that are banned from the list of potential runs.
     // The list of new scores is probably relatively low, it would be easier to just send the score information to an endpoint and have it check.
+    // Working around the borrow checker because these values are all Copy.
+    let id = data.id;
+    let timestamp = data.timestamp;
+    let cat_id = data.cat_id;
     let _: Vec<()> = not_cheated
         .into_par_iter()
         .map(|entry| test(id, entry, wr, timestamp, &current_rank, &map_json, cat_id))
@@ -215,23 +177,15 @@ pub fn test(
 }
 
 /// Version of `filter_entries` for coop, using different logic.
-pub fn filter_entries_coop(
-    id: i32,
-    _start: i32,
-    end: i32,
-    timestamp: NaiveDateTime,
-    banned_users: Vec<String>,
-    data: &XmlTag<Vec<Entry>>,
-    cat_id: i32,
-) {
-    let url = format!("http://localhost:8080/api/v1/map/coop/{id}", id = id);
+pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
+    let url = format!("http://localhost:8080/api/v1/map/coop/{id}", id = data.id);
     let map_json: Vec<CoopRanked> = reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
         .json()
         .expect("Error in converting our API values to JSON");
 
     let mut existing_hash: HashMap<String, (i32, i32)> =
-        HashMap::with_capacity(((end / LIMIT_MULT_COOP) * 2) as usize);
+        HashMap::with_capacity(((data.end / LIMIT_MULT_COOP) * 2) as usize);
     let worst_score = map_json[map_json.len() - 1].map_data.score;
     // let wr = map_json[0].map_data.score;
     // We attempt to insert both players into the hashmap. This way we get all players with a top X score in coop.
@@ -247,7 +201,7 @@ pub fn filter_entries_coop(
     }
 
     let (current_rank, not_banned_players) =
-        validate_entries(data, existing_hash, banned_users, id, worst_score);
+        validate_entries(lb, existing_hash, data.banned_users, data.id, worst_score);
 
     // Check to see if any of the times are banned on our leaderboards
     // Do an SP style check here first, as we want to ensure none of the times are old and banned.
@@ -258,7 +212,7 @@ pub fn filter_entries_coop(
     for entry in not_banned_players.iter() {
         let ban_url = format!(
             "http://localhost:8080/api/v1/coop/banned/{}?profile_number={}&score={}",
-            id, entry.profile_number, entry.score
+            data.id, entry.profile_number, entry.score
         );
         let res: bool = reqwest::blocking::get(&ban_url)
             .expect("Error in query to our local API (Make sure the webserver is running")
@@ -322,11 +276,11 @@ pub fn filter_entries_coop(
             entry.profile_number1.clone(),
             entry.profile_number2.clone(),
             entry.score,
-            id,
-            timestamp,
+            data.id,
+            data.timestamp,
             &current_rank,
             &map_json,
-            cat_id,
+            data.cat_id,
         ) {
             true => (),
             false => (),

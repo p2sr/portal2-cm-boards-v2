@@ -1,8 +1,3 @@
-// #![allow(clippy::all)]
-// #![allow(dead_code)]
-// #![allow(unused_imports)]
-// #![allow(unused_variables)]
-// #![allow(unused_assignments)]
 #![allow(mutable_borrow_reservation_conflict)]
 
 #[macro_use]
@@ -10,7 +5,7 @@ extern crate serde_derive;
 
 use actix_cors::Cors;
 use actix_web::rt::task::spawn_blocking;
-use actix_web::{get, middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, middleware::Logger, web, App, HttpServer, Responder};
 use anyhow::Result;
 use chrono::prelude::*;
 use dotenv::dotenv;
@@ -19,7 +14,6 @@ use points::*;
 use rayon::prelude::*;
 use stages::fetching::*;
 use std::collections::HashMap;
-// use time::PreciseTime;
 
 mod models;
 mod points;
@@ -42,6 +36,17 @@ const OFFICIAL_COOP: [i32; 48] = [
 
 const LIMIT_MULT_SP: i32 = 2;
 const LIMIT_MULT_COOP: i32 = 3;
+
+#[derive(Debug, Clone)]
+pub struct FetchingData {
+    pub id: i32,
+    pub start: i32,
+    pub end: i32,
+    pub timestamp: NaiveDateTime,
+    pub banned_users: Vec<String>,
+    pub is_coop: bool,
+    pub cat_id: i32,
+}
 
 /// Driver code to start and mount all compontents to the webserver we create.
 #[actix_web::main]
@@ -117,33 +122,33 @@ pub async fn fetch_all(
                 .json()
                 .expect("Error in converting our API values to JSON");
         let limit = limit.into_inner();
-        let utc = Utc::now().naive_utc();
+        let timestamp = Utc::now().naive_utc();
         let _res_sp: Vec<_> = OFFICIAL_SP
             .into_par_iter()
             .map(|map_id| {
-                fetch_entries(
-                    map_id,
-                    0,
-                    *limit * LIMIT_MULT_SP,
-                    utc,
-                    banned_users.clone(),
-                    false,
-                    cat_ids[&map_id.to_string()],
-                )
+                fetch_entries(FetchingData {
+                    id: map_id,
+                    start: 0,
+                    end: *limit * LIMIT_MULT_SP,
+                    timestamp,
+                    banned_users: banned_users.clone(),
+                    is_coop: false,
+                    cat_id: cat_ids[&map_id.to_string()],
+                })
             })
             .collect();
         let _res_cp: Vec<_> = OFFICIAL_COOP
             .into_par_iter()
             .map(|map_id| {
-                fetch_entries(
-                    map_id,
-                    0,
-                    *limit * LIMIT_MULT_COOP,
-                    utc,
-                    banned_users.clone(),
-                    true,
-                    cat_ids[&map_id.to_string()],
-                )
+                fetch_entries(FetchingData {
+                    id: map_id,
+                    start: 0,
+                    end: *limit * LIMIT_MULT_COOP,
+                    timestamp,
+                    banned_users: banned_users.clone(),
+                    is_coop: true,
+                    cat_id: cat_ids[&map_id.to_string()],
+                })
             })
             .collect();
     })
@@ -168,17 +173,17 @@ pub async fn fetch_sp(
         .expect("Error in converting our API values to JSON");
     web::block(move || {
         let limit = limit.into_inner();
-        let utc = Utc::now().naive_utc();
+        let timestamp = Utc::now().naive_utc();
         let map_id = map_id.into_inner();
-        fetch_entries(
-            map_id,
-            0,
-            *limit * LIMIT_MULT_SP,
-            utc,
+        fetch_entries(FetchingData {
+            id: map_id,
+            start: 0,
+            end: *limit * LIMIT_MULT_SP,
+            timestamp,
             banned_users,
-            false,
-            cat_ids[&map_id.to_string()],
-        );
+            is_coop: false,
+            cat_id: cat_ids[&map_id.to_string()],
+        });
     })
     .await
     .unwrap();
