@@ -16,6 +16,7 @@ pub fn post_sp_pb(
     timestamp: NaiveDateTime,
     current_rank: &HashMap<String, i32>,
     map_json: &[SpRanked],
+    cat_id: i32,
 ) -> bool {
     // Grab the PB history.
     let url = format!(
@@ -73,17 +74,6 @@ pub fn post_sp_pb(
     if let Some(i) = past_score {
         score_delta = Some(score - i);
     }
-    let mut cat_id = 0;
-    let url = format!("http://localhost:8080/api/v1/default_category/{}", id);
-    let res = reqwest::blocking::get(&url)
-        .expect("Error in query to our local API (Make sure the webserver is running")
-        .json::<i32>();
-    match res {
-        Ok(s) => cat_id = s,
-        Err(e) => {
-            trace!("{}", e);
-        }
-    }
     let new_score = ChangelogInsert {
         timestamp: Some(timestamp),
         profile_number,
@@ -103,23 +93,23 @@ pub fn post_sp_pb(
         verified: None,
         admin_note: None,
     };
-    // let client = reqwest::blocking::Client::new();
-    // let post_url = "http://localhost:8080/api/v1/sp/post_score".to_string();
-    // let res = client
-    //     .post(&post_url)
-    //     .json(&new_score)
-    //     .send()
-    //     .expect("Error querying our local API")
-    //     .json::<i64>();
-    // match res {
-    //     Ok(s) => {
-    //         trace!("{}", s)
-    //     }
-    //     Err(e) => {
-    //         error!("{}", e);
-    //         return false;
-    //     }
-    // }
+    let client = reqwest::blocking::Client::new();
+    let post_url = "http://localhost:8080/api/v1/sp/post_score".to_string();
+    let res = client
+        .post(&post_url)
+        .json(&new_score)
+        .send()
+        .expect("Error querying our local API")
+        .json::<i64>();
+    match res {
+        Ok(s) => {
+            trace!("{}", s)
+        }
+        Err(e) => {
+            error!("{}", e);
+            return false;
+        }
+    }
     true
 }
 #[allow(dead_code)] // This code isn't dead, the linter is bad lol.
@@ -132,6 +122,7 @@ pub fn post_coop_pb(
     timestamp: NaiveDateTime,
     current_rank: &HashMap<String, i32>,
     map_json: &[CoopRanked],
+    cat_id: i32,
 ) -> bool {
     // Handle there being a partner
     if let Some(profile_number2) = profile_number2 {
@@ -214,17 +205,6 @@ pub fn post_coop_pb(
         let mut score_delta2: Option<i32> = None;
         if let Some(i) = past_score2 {
             score_delta2 = Some(score - i);
-        }
-        let mut cat_id = 0;
-        let url = format!("http://localhost:8080/api/v1/default_category/{}", id);
-        let res = reqwest::blocking::get(&url)
-            .expect("Error in query to our local API (Make sure the webserver is running")
-            .json::<i32>();
-        match res {
-            Ok(s) => cat_id = s,
-            Err(e) => {
-                trace!("{}", e);
-            }
         }
         //println!("{}", cat_id);
 

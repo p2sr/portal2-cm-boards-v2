@@ -33,7 +33,7 @@ pub fn cache_leaderboard(id: i32, text: String) -> bool {
     if format_text.eq(&cache_contents) {
         false
     } else {
-        println!("{:?} != {:?}", format_text, cache_contents);
+        // println!("{:?} != {:?}", format_text, cache_contents);
         let mut ofp = File::create(path).expect("Error creating file to write to for cache");
         ofp.write_all(format_text.as_bytes())
             .expect("Error writing to cache files");

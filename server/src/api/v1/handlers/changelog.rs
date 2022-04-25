@@ -175,3 +175,20 @@ async fn changelog_add(
         }
     }
 }
+
+/// **GET** method for getting a hashmap of all default categories.
+///
+/// ## Example Endpoint:       
+/// - `/api/v1/default_categories_all`
+///
+/// ## Example JSON Input String
+/// ```json
+/// {
+///     "47813": 45,
+///     "52738": 98,
+///     "48287": 108,...}
+/// ```
+#[get("/default_categories_all")]
+pub async fn default_categories_all(pool: web::Data<PgPool>) -> impl Responder {
+    web::Json(crate::tools::helpers::get_default_cat_ids(pool.get_ref()).await)
+}

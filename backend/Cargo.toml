@@ -10,7 +10,7 @@ edition = "2018"
 dotenv = "0.15.0"
 
 chrono = { version = "0.4.19", features = ["serde", "rustc-serialize"] }
-reqwest = { version = "0.10", features = ["blocking", "json"] }
+reqwest = { version = "0.11.10", features = ["blocking", "json", "stream"] }
 clap = { version = "3.0.10", features = ["derive"] }
 
 serde = "1.0.123"

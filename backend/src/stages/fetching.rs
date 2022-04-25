@@ -9,8 +9,10 @@ use crate::LIMIT_MULT_COOP;
 use crate::LIMIT_MULT_SP;
 use chrono::prelude::*;
 use log::{debug, error, trace};
+use rayon::prelude::*;
 use serde_xml_rs::from_reader;
 use std::collections::HashMap;
+
 /// Grabs the map at the current ID from valve's API and caches times.
 pub fn fetch_entries(
     id: i32,
@@ -19,6 +21,7 @@ pub fn fetch_entries(
     timestamp: NaiveDateTime,
     banned_users: Vec<String>,
     is_coop: bool,
+    cat_id: i32,
 ) -> Leaderboards {
     let url = format!(
         "https://steamcommunity.com/stats/{game}/leaderboards/{id}?xml=1&start={start}&end={end}",
@@ -39,8 +42,7 @@ pub fn fetch_entries(
         true => debug!("The cache is updated for map {}", id),
         false => {
             trace!("The cache is unchanged for map {}", id);
-            println!("{:#?}", leaderboard);
-            return leaderboard;
+            // println!("{:#?}", leaderboard);
         }
     }
     match is_coop {
@@ -51,6 +53,7 @@ pub fn fetch_entries(
             timestamp,
             banned_users,
             &leaderboard.entries,
+            cat_id,
         ),
         true => filter_entries_coop(
             id,
@@ -59,6 +62,7 @@ pub fn fetch_entries(
             timestamp,
             banned_users,
             &leaderboard.entries,
+            cat_id,
         ),
     }
     leaderboard
@@ -124,6 +128,7 @@ pub fn filter_entries_sp(
     timestamp: NaiveDateTime,
     banned_users: Vec<String>,
     data: &XmlTag<Vec<Entry>>,
+    cat_id: i32,
 ) {
     let url = format!("http://localhost:8080/api/v1/map/sp/{id}", id = id);
     let map_json: Vec<SpRanked> = reqwest::blocking::get(&url)
@@ -150,47 +155,61 @@ pub fn filter_entries_sp(
     // We grab the list of banned times from our API.
     // Filter out any times that are banned from the list of potential runs.
     // The list of new scores is probably relatively low, it would be easier to just send the score information to an endpoint and have it check.
-    for entry in not_cheated.iter() {
-        let ban_url = format!(
-            "http://localhost:8080/api/v1/sp/banned/{}?profile_number={}&score={}",
-            id, entry.profile_number, entry.score
-        );
-        let res: bool = reqwest::blocking::get(&ban_url)
-            .expect("Error in query to our local API (Make sure the webserver is running")
-            .json()
-            .expect("Error in converting our API values to JSON");
+    let _: Vec<()> = not_cheated
+        .into_par_iter()
+        .map(|entry| test(id, entry, wr, timestamp, &current_rank, &map_json, cat_id))
+        .collect();
+}
 
-        match res {
-            true => {
-                trace!(
-                    "Time {} by {} found, so time is banned. Ignore",
-                    entry.score,
-                    entry.profile_number
-                )
-            }
-            false => {
-                trace!(
-                    "Time {} by {} not found, so assumed to be unbanned.",
-                    entry.score,
-                    entry.profile_number
-                );
-                // We have now checked that the user is not banned, that the time is top X score worthy, that the score doesn't exist in the db, but is banned.
-                match post_sp_pb(
-                    entry.profile_number.clone(),
-                    entry.score,
-                    wr,
-                    id,
-                    timestamp,
-                    &current_rank,
-                    &map_json,
-                ) {
-                    true => (),
-                    false => error!(
-                        "Time {} by {} failed to submit",
-                        entry.profile_number, entry.score
-                    ),
-                };
-            }
+pub fn test(
+    id: i32,
+    entry: SpBanned,
+    wr: i32,
+    timestamp: NaiveDateTime,
+    current_rank: &HashMap<String, i32>,
+    map_json: &[SpRanked],
+    cat_id: i32,
+) {
+    let ban_url = format!(
+        "http://localhost:8080/api/v1/sp/banned/{}?profile_number={}&score={}",
+        id, entry.profile_number, entry.score
+    );
+    let res: bool = reqwest::blocking::get(&ban_url)
+        .expect("Error in query to our local API (Make sure the webserver is running")
+        .json()
+        .expect("Error in converting our API values to JSON");
+
+    match res {
+        true => {
+            trace!(
+                "Time {} by {} found, so time is banned. Ignore",
+                entry.score,
+                entry.profile_number
+            )
+        }
+        false => {
+            trace!(
+                "Time {} by {} not found, so assumed to be unbanned.",
+                entry.score,
+                entry.profile_number
+            );
+            // We have now checked that the user is not banned, that the time is top X score worthy, that the score doesn't exist in the db, but is banned.
+            match post_sp_pb(
+                entry.profile_number.clone(),
+                entry.score,
+                wr,
+                id,
+                timestamp,
+                &current_rank,
+                &map_json,
+                cat_id,
+            ) {
+                true => (),
+                false => error!(
+                    "Time {} by {} failed to submit",
+                    entry.profile_number, entry.score
+                ),
+            };
         }
     }
 }
@@ -203,6 +222,7 @@ pub fn filter_entries_coop(
     timestamp: NaiveDateTime,
     banned_users: Vec<String>,
     data: &XmlTag<Vec<Entry>>,
+    cat_id: i32,
 ) {
     let url = format!("http://localhost:8080/api/v1/map/coop/{id}", id = id);
     let map_json: Vec<CoopRanked> = reqwest::blocking::get(&url)
@@ -306,6 +326,7 @@ pub fn filter_entries_coop(
             timestamp,
             &current_rank,
             &map_json,
+            cat_id,
         ) {
             true => (),
             false => (),
