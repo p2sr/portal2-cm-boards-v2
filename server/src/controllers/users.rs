@@ -259,7 +259,7 @@ impl Users {
         // (board_name should only be changed by the backend, admin should only be updated by admin etc)
         let _ = sqlx::query(
             r#"
-                UPDATE "p2boards".Users
+                UPDATE "p2boards".users
                 SET board_name = $1, steam_name = $2, banned = $3, registered = $4, 
                 avatar = $5, twitch = $6, youtube = $7, title = $8, admin = $9,
                 donation_amount = $10, discord_id = $11
@@ -280,6 +280,21 @@ impl Users {
         .fetch_optional(pool)
         .await?;
         Ok(true)
+    }
+    pub async fn update_avatar(
+        pool: &PgPool,
+        profile_number: &str,
+        avatar: &str,
+    ) -> Result<String> {
+        Ok(sqlx::query(
+            r#"UPDATE "p2boards".users SET avatar = $1 
+                WHERE profile_number = $2 RETURNING avatar"#,
+        )
+        .bind(avatar)
+        .bind(profile_number)
+        .map(|row: PgRow| row.get(0))
+        .fetch_one(pool)
+        .await?)
     }
     #[allow(dead_code)]
     pub async fn delete_user(pool: &PgPool, profile_number: String) -> Result<bool> {

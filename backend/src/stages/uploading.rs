@@ -1,8 +1,11 @@
 use crate::models::datamodels::{
     ChangelogInsert, CoopBundledInsert, CoopRanked, SpPbHistory, SpRanked,
 };
+use crate::update_image;
+use anyhow::Result;
 use chrono::prelude::*;
 use log::{debug, error, trace};
+use serde_json::json;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
@@ -309,4 +312,20 @@ pub fn post_coop_pb(
     }
 
     true
+}
+
+pub fn upload_new_pfp(profile_number: &str) -> Result<String> {
+    let new_avatar = update_image(profile_number);
+    let post_url = format!(
+        "http://localhost:8080/api/v1/user/avatar/{}",
+        profile_number
+    );
+    let post_img = json!({ "avatar": new_avatar });
+    let res = reqwest::blocking::Client::new()
+        .post(&post_url)
+        .json(&post_img)
+        .send()?
+        .json::<String>()?;
+    assert_eq!(new_avatar, res);
+    Ok(res)
 }

@@ -1,6 +1,6 @@
 use crate::models::models::{PointsProfileWrapper, ProfilePage, Users};
 use crate::tools::cache::CacheState;
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{get, post, put, web, HttpResponse, Responder};
 use anyhow::Result;
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -162,6 +162,28 @@ async fn user_add(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> impl R
                 new_user.0, e
             );
             HttpResponse::InternalServerError().body("Could not add user to database.")
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct AvatarInsert {
+    pub avatar: String,
+}
+
+#[put("/user/avatar/{profile_number}")]
+async fn avatar_update(
+    pool: web::Data<PgPool>,
+    data: web::Json<AvatarInsert>,
+    profile_number: web::Path<String>,
+) -> impl Responder {
+    let avatar = data.into_inner().avatar;
+    let profile_number = profile_number.into_inner();
+    match Users::update_avatar(pool.get_ref(), &profile_number, &avatar).await {
+        Ok(a) => HttpResponse::Ok().json(a),
+        Err(e) => {
+            eprintln!("Error updating avatar for user {} -> {}", profile_number, e);
+            HttpResponse::NotModified().body("Failure at updating avatar.")
         }
     }
 }

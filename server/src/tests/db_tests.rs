@@ -136,6 +136,8 @@ async fn test_db_users() {
     assert_eq!(insert_user.avatar, Some(insert_user_data.avatar));
     insert_user.board_name = Some("BigDaniel11AtlasPog".to_string());
     assert!(Users::update_existing_user(&pool, insert_user.clone()).await.unwrap());
+    let new_avi = Users::update_avatar(&pool, &user.profile_number, user.avatar.as_ref().unwrap()).await.unwrap();
+    assert_eq!(new_avi, user.avatar.unwrap());
     assert!(Users::delete_user(&pool, insert_user.profile_number.clone()).await.unwrap());
     let _res = Users::get_user_data(&pool, &insert_user.profile_number).await;
 

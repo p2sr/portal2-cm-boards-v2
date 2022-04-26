@@ -4,7 +4,7 @@
 fn test_steam_api() {
     use crate::stages::fetching::*;
 
-    let image: String = update_image("76561198040982247".to_string());
+    let image: String = update_image("76561198040982247");
     // println!("{}", image);
     assert_eq!(image, "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/92/921d9d7402a6e766759bcc0b2ac7b91f1dcf0ad2_full.jpg".to_string());
 }

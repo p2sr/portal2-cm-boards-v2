@@ -39,7 +39,7 @@ pub fn fetch_entries(data: FetchingData) -> Result<Leaderboards> {
 /// Breaking apart the modules that filted out the list to times that aren't banned/cheated.
 pub fn validate_entries(
     data: &XmlTag<Vec<Entry>>,
-    existing_hash: HashMap<String, (i32, i32)>,
+    existing_hash: HashMap<&str, (i32, i32)>,
     banned_users: Vec<String>,
     id: i32,
     worst_score: i32,
@@ -48,7 +48,7 @@ pub fn validate_entries(
     let mut not_cheated: Vec<SpBanned> = Vec::new();
     // TODO: Potentially turn this into a macro? This basic shape is reused.
     for entry in data.value.iter() {
-        match existing_hash.get(&entry.steam_id.value) {
+        match existing_hash.get(&entry.steam_id.value as &str) {
             Some((score, rank)) => {
                 // The user has a time in top X scores currently
                 if score > &entry.score.value {
@@ -94,7 +94,7 @@ pub fn filter_entries_sp(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
         .json()
         .expect("Error in converting our API values to JSON");
 
-    let mut existing_hash: HashMap<String, (i32, i32)> =
+    let mut existing_hash: HashMap<&str, (i32, i32)> =
         HashMap::with_capacity((data.end / LIMIT_MULT_SP) as usize);
 
     let worst_score = map_json[map_json.len() - 1].map_data.score;
@@ -102,7 +102,7 @@ pub fn filter_entries_sp(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
 
     for rank in map_json.iter() {
         existing_hash.insert(
-            rank.map_data.profile_number.clone(),
+            &rank.map_data.profile_number,
             (rank.map_data.score, rank.rank),
         );
     }
@@ -184,18 +184,18 @@ pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
         .json()
         .expect("Error in converting our API values to JSON");
 
-    let mut existing_hash: HashMap<String, (i32, i32)> =
+    let mut existing_hash: HashMap<&str, (i32, i32)> =
         HashMap::with_capacity(((data.end / LIMIT_MULT_COOP) * 2) as usize);
     let worst_score = map_json[map_json.len() - 1].map_data.score;
     // let wr = map_json[0].map_data.score;
     // We attempt to insert both players into the hashmap. This way we get all players with a top X score in coop.
     for rank in map_json.iter() {
         existing_hash.insert(
-            rank.map_data.profile_number1.clone(),
+            &rank.map_data.profile_number1,
             (rank.map_data.score, rank.rank),
         );
         existing_hash.insert(
-            rank.map_data.profile_number2.clone(),
+            &rank.map_data.profile_number2,
             (rank.map_data.score, rank.rank),
         );
     }
@@ -313,7 +313,7 @@ pub fn check_user(profile_number: &str) -> bool {
 }
 
 #[allow(dead_code)]
-pub fn update_image(profile_number: String) -> String {
+pub fn update_image(profile_number: &str) -> String {
     let api_key = dotenv::var("STEAM_API_KEY").expect("Cannot find STEAM_API_KEY in ./.env");
 
     let steam_api_url = format!(
@@ -360,7 +360,7 @@ pub fn add_user(profile_number: String) -> Result<Users, reqwest::Error> {
         ..Default::default()
     };
 
-    let url = String::from("http://localhost:8080/api/v1/users");
+    let url = String::from("http://localhost:8080/api/v1/user");
     let client = reqwest::blocking::Client::new();
     match client
         .post(&url)

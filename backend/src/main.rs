@@ -5,7 +5,7 @@ extern crate serde_derive;
 
 use actix_cors::Cors;
 use actix_web::rt::task::spawn_blocking;
-use actix_web::{get, middleware::Logger, web, App, HttpServer, Responder};
+use actix_web::{get, middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
 use anyhow::Result;
 use chrono::prelude::*;
 use dotenv::dotenv;
@@ -13,6 +13,7 @@ use env_logger::Env;
 use points::*;
 use rayon::prelude::*;
 use stages::fetching::*;
+use stages::uploading::upload_new_pfp;
 use std::collections::HashMap;
 
 mod models;
@@ -175,7 +176,7 @@ pub async fn fetch_sp(
         let limit = limit.into_inner();
         let timestamp = Utc::now().naive_utc();
         let map_id = map_id.into_inner();
-        fetch_entries(FetchingData {
+        let _ = fetch_entries(FetchingData {
             id: map_id,
             start: 0,
             end: *limit * LIMIT_MULT_SP,
@@ -188,6 +189,18 @@ pub async fn fetch_sp(
     .await
     .unwrap();
     "Success fetching sp map."
+}
+
+#[get("/fetch_pfp/{profile_number}")]
+pub async fn fetch_pfp(profile_number: web::Path<String>) -> impl Responder {
+    let profile_number = profile_number.into_inner();
+    match upload_new_pfp(&profile_number) {
+        Ok(res) => HttpResponse::Ok().json(res),
+        Err(e) => {
+            eprintln!("Error updating for use {} -> {}", profile_number, e);
+            HttpResponse::NotModified().body("Could not update avatar.")
+        }
+    }
 }
 
 pub fn init(cfg: &mut web::ServiceConfig) {
