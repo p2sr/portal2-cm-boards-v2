@@ -314,18 +314,21 @@ pub fn post_coop_pb(
     true
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct AvatarInsert<'a> {
+    pub avatar: &'a str,
+}
+
 pub fn upload_new_pfp(profile_number: &str) -> Result<String> {
-    let new_avatar = update_image(profile_number);
+    let avatar = update_image(profile_number);
     let post_url = format!(
         "http://localhost:8080/api/v1/user/avatar/{}",
         profile_number
     );
-    let post_img = json!({ "avatar": new_avatar });
     let res = reqwest::blocking::Client::new()
-        .post(&post_url)
-        .json(&post_img)
+        .put(&post_url)
+        .json(&AvatarInsert { avatar: &avatar })
         .send()?
         .json::<String>()?;
-    assert_eq!(new_avatar, res);
     Ok(res)
 }

@@ -287,8 +287,11 @@ impl Users {
         avatar: &str,
     ) -> Result<String> {
         Ok(sqlx::query(
-            r#"UPDATE "p2boards".users SET avatar = $1 
-                WHERE profile_number = $2 RETURNING avatar"#,
+            r#"WITH old AS (
+                SELECT avatar FROM "p2boards".users WHERE profile_number = $2
+            )
+            UPDATE "p2boards".users SET avatar = $1 
+                WHERE profile_number = $2 RETURNING (SELECT avatar FROM old)"#,
         )
         .bind(avatar)
         .bind(profile_number)

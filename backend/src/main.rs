@@ -194,10 +194,13 @@ pub async fn fetch_sp(
 #[get("/fetch_pfp/{profile_number}")]
 pub async fn fetch_pfp(profile_number: web::Path<String>) -> impl Responder {
     let profile_number = profile_number.into_inner();
-    match upload_new_pfp(&profile_number) {
+    let upload = web::block(move || upload_new_pfp(&profile_number))
+        .await
+        .unwrap();
+    match upload {
         Ok(res) => HttpResponse::Ok().json(res),
         Err(e) => {
-            eprintln!("Error updating for use {} -> {}", profile_number, e);
+            eprintln!("Error updating avatar -> {}", e);
             HttpResponse::NotModified().body("Could not update avatar.")
         }
     }
@@ -208,6 +211,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
         web::scope("/backend/v1")
             .service(rcp)
             .service(fetch_sp)
-            .service(fetch_all),
+            .service(fetch_all)
+            .service(fetch_pfp),
     );
 }

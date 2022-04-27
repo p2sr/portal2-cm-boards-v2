@@ -1,4 +1,4 @@
-use crate::models::models::{PointsProfileWrapper, ProfilePage, Users};
+use crate::models::models::{AvatarInsert, PointsProfileWrapper, ProfilePage, Users};
 use crate::tools::cache::CacheState;
 use actix_web::{get, post, put, web, HttpResponse, Responder};
 use anyhow::Result;
@@ -166,16 +166,34 @@ async fn user_add(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> impl R
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct AvatarInsert {
-    pub avatar: String,
-}
-
+/// **PUT** method to update the avatar for a user in the database.
+///
+/// ## Example endpoints:
+///  - **Default**
+///     - `/api/v1/user/avatar/76561198081168311`
+///
+/// Makes a call to the underlying [Users::update_avatar]
+///
+/// Should return the *previous* avatar for the user.
+///
+/// ## Example JSON string
+///
+/// ```json
+/// {
+///     "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/39/3948dd3ae4d21772c845d4b3416bc7110b5aafb1_full.jpg"
+/// }
+/// ```
+///
+/// ## Example JSON output
+///
+/// ```json
+/// "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/39/3948dd3ae4d21772c845d4b3416bc7110b5aafb1_full.jpg"
+/// ```
 #[put("/user/avatar/{profile_number}")]
 async fn avatar_update(
     pool: web::Data<PgPool>,
-    data: web::Json<AvatarInsert>,
     profile_number: web::Path<String>,
+    data: web::Json<AvatarInsert>,
 ) -> impl Responder {
     let avatar = data.into_inner().avatar;
     let profile_number = profile_number.into_inner();

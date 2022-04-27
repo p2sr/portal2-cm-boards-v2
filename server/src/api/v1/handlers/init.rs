@@ -38,6 +38,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(maps_from_chapter)
             .service(user)
             .service(user_add)
+            .service(avatar_update)
             .service(banned_users_all)
             .service(banned_user)
             .service(donators)

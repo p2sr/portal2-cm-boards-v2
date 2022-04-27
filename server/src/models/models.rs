@@ -436,6 +436,12 @@ pub struct ScoreLookup {
     pub game_id: Option<i32>,
 }
 
+/// An avatar being added to the db.
+#[derive(Clone, Debug, Deserialize)]
+pub struct AvatarInsert {
+    pub avatar: String,
+}
+
 // Points
 
 /// Wrapper for us receiving points from the backend
