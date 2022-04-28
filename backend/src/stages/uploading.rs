@@ -1,35 +1,23 @@
 use crate::models::datamodels::{
-    ChangelogInsert, CoopBundledInsert, CoopRanked, SpPbHistory, SpRanked,
+    ChangelogInsert, CoopBundledInsert, CoopRanked, PostSP, SpPbHistory, SpRanked,
 };
 use crate::update_image;
 use anyhow::Result;
 use chrono::prelude::*;
 use log::{debug, error, trace};
-use serde_json::json;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-#[allow(dead_code)]
-/// Upload sp PB to the database
-pub fn post_sp_pb(
-    profile_number: String,
-    score: i32,
-    _wr: i32,
-    id: i32,
-    timestamp: NaiveDateTime,
-    current_rank: &HashMap<String, i32>,
-    map_json: &[SpRanked],
-    cat_id: i32,
-) -> bool {
+pub fn construct_sp_score(params: PostSP) -> ChangelogInsert {
     // Grab the PB history.
     let url = format!(
         "http://localhost:8080/api/v1/sp/history?map_id={}&profile_number={}",
-        id, profile_number
+        params.id, params.profile_number
     );
-    let res = reqwest::blocking::get(&url)
+    let pb_history = match reqwest::blocking::get(&url)
         .expect("Error in query to our local API (Make sure the webserver is running")
-        .json::<SpPbHistory>();
-    let pb_history = match res {
+        .json::<SpPbHistory>()
+    {
         // TODO: Handle this with new user creation.
         Ok(s) => s,
         Err(e) => {
@@ -42,9 +30,9 @@ pub fn post_sp_pb(
         }
     };
 
-    let mut previous_id = None;
+    let previous_id: Option<i32>;
+    let past_score: Option<i32>;
     let pb_vec = pb_history.pb_history;
-    let mut past_score: Option<i32> = None;
     match pb_vec {
         Some(pb_vec) => {
             let current_pb = pb_vec.into_iter().next();
@@ -57,31 +45,34 @@ pub fn post_sp_pb(
                 past_score = None;
             }
         }
-        None => (),
+        None => {
+            past_score = None;
+            previous_id = None;
+        }
     }
 
     let mut post_rank: Option<i32> = None;
-    for entry in map_json.iter() {
-        match entry.map_data.score.cmp(&score) {
+    for entry in params.map_json.iter() {
+        match entry.map_data.score.cmp(&params.score) {
             Ordering::Equal => post_rank = Some(entry.rank),
             Ordering::Greater => post_rank = Some(entry.rank),
             _ => (),
         }
     }
     #[allow(clippy::manual_map)]
-    let prerank: Option<i32> = match current_rank.get(&profile_number) {
+    let prerank: Option<i32> = match params.current_rank.get(&params.profile_number) {
         Some(rank) => Some(*rank),
         None => None,
     };
     let mut score_delta: Option<i32> = None;
     if let Some(i) = past_score {
-        score_delta = Some(score - i);
+        score_delta = Some(params.score - i);
     }
-    let new_score = ChangelogInsert {
-        timestamp: Some(timestamp),
-        profile_number,
-        score,
-        map_id: id.to_string(),
+    ChangelogInsert {
+        timestamp: Some(params.timestamp),
+        profile_number: params.profile_number.to_string(),
+        score: params.score,
+        map_id: params.id.to_string(),
         demo_id: None,
         banned: false,
         youtube_id: None,
@@ -91,11 +82,16 @@ pub fn post_sp_pb(
         pre_rank: prerank, // Rank prior to this score update
         submission: false,
         note: None,
-        category_id: cat_id,
+        category_id: params.cat_id,
         score_delta,
         verified: None,
         admin_note: None,
-    };
+    }
+}
+
+/// Upload sp PB to the database
+pub fn post_sp_pb(params: PostSP) -> bool {
+    let new_score = construct_sp_score(params);
     let client = reqwest::blocking::Client::new();
     let post_url = "http://localhost:8080/api/v1/sp/post_score".to_string();
     let res = client
@@ -105,9 +101,7 @@ pub fn post_sp_pb(
         .expect("Error querying our local API")
         .json::<i64>();
     match res {
-        Ok(s) => {
-            trace!("{}", s)
-        }
+        Ok(s) => trace!("{}", s),
         Err(e) => {
             error!("{}", e);
             return false;

@@ -3,8 +3,8 @@ use super::super::FetchingData;
 use super::exporting::*;
 use super::uploading::*;
 use crate::models::datamodels::{
-    CoopDataUtil, CoopRanked, Entry, GetPlayerSummariesWrapper, Leaderboards, SpBanned, SpRanked,
-    Users, XmlTag,
+    CoopDataUtil, CoopRanked, Entry, GetPlayerSummariesWrapper, Leaderboards, PostSP, SpBanned,
+    SpRanked, Users, XmlTag,
 };
 use crate::LIMIT_MULT_COOP;
 use crate::LIMIT_MULT_SP;
@@ -119,14 +119,13 @@ pub fn filter_entries_sp(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
     let cat_id = data.cat_id;
     let _: Vec<()> = not_cheated
         .into_par_iter()
-        .map(|entry| test(id, entry, wr, timestamp, &current_rank, &map_json, cat_id))
+        .map(|entry| check_existing_banned(id, entry, timestamp, &current_rank, &map_json, cat_id))
         .collect();
 }
 
-pub fn test(
+pub fn check_existing_banned(
     id: i32,
     entry: SpBanned,
-    wr: i32,
     timestamp: NaiveDateTime,
     current_rank: &HashMap<String, i32>,
     map_json: &[SpRanked],
@@ -156,16 +155,15 @@ pub fn test(
                 entry.profile_number
             );
             // We have now checked that the user is not banned, that the time is top X score worthy, that the score doesn't exist in the db, but is banned.
-            match post_sp_pb(
-                entry.profile_number.clone(),
-                entry.score,
-                wr,
+            match post_sp_pb(PostSP {
+                profile_number: entry.profile_number.clone(),
+                score: entry.score,
                 id,
                 timestamp,
-                &current_rank,
-                &map_json,
+                current_rank: &current_rank,
+                map_json: &map_json,
                 cat_id,
-            ) {
+            }) {
                 true => (),
                 false => error!(
                     "Time {} by {} failed to submit",

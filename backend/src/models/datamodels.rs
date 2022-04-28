@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize)]
 pub struct XmlTag<T> {
@@ -195,4 +196,15 @@ pub struct GetPlayerSummaries {
     pub avatar: String,
     pub avatarmedium: String,
     pub avatarfull: String,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct PostSP<'a> {
+    pub profile_number: String,
+    pub score: i32,
+    pub id: i32,
+    pub timestamp: NaiveDateTime,
+    pub current_rank: &'a HashMap<String, i32>,
+    pub map_json: &'a [SpRanked],
+    pub cat_id: i32,
 }
