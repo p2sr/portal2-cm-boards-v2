@@ -4,7 +4,7 @@
 fn test_steam_api() {
     use crate::stages::fetching::*;
 
-    let image: String = update_image("76561198040982247");
+    let image: String = update_image("76561198040982247").unwrap();
     // println!("{}", image);
     assert_eq!(image, "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/92/921d9d7402a6e766759bcc0b2ac7b91f1dcf0ad2_full.jpg".to_string());
 }
@@ -30,5 +30,5 @@ fn add_user_steam_api() {
 /// REQUIRES THAT THE LOCAL WBE SERVER AND DB ARE UP. `
 fn check_user() {
     use crate::stages::fetching::*;
-    assert!(check_user("76561198040982247"));
+    assert!(check_user("76561198040982247").is_ok());
 }

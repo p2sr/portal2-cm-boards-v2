@@ -1,16 +1,17 @@
 #![allow(dead_code)]
 use super::super::FetchingData;
 use super::exporting::*;
-use super::uploading::*;
+use super::uploading_coop::*;
+use super::uploading_sp::*;
 use crate::models::datamodels::{
-    CoopDataUtil, CoopRanked, Entry, GetPlayerSummariesWrapper, Leaderboards, PostSP, SpBanned,
-    SpRanked, Users, XmlTag,
+    CoopDataUtil, CoopRanked, Entry, GetPlayerSummariesWrapper, Leaderboards, PostCoop, PostSP,
+    SpBanned, SpRanked, Users, XmlTag,
 };
 use crate::LIMIT_MULT_COOP;
 use crate::LIMIT_MULT_SP;
 use anyhow::Result;
 use chrono::prelude::*;
-use log::{debug, error, trace};
+use log::{debug, trace};
 use rayon::prelude::*;
 use serde_xml_rs::from_reader;
 use std::collections::HashMap;
@@ -30,8 +31,8 @@ pub fn fetch_entries(data: FetchingData) -> Result<Leaderboards> {
         return Ok(leaderboard); // Return early, our cache is unchanged.
     }
     match data.is_coop {
-        false => filter_entries_sp(data, &leaderboard.entries),
-        true => filter_entries_coop(data, &leaderboard.entries),
+        false => filter_entries_sp(data, &leaderboard.entries)?,
+        true => filter_entries_coop(data, &leaderboard.entries)?,
     }
     Ok(leaderboard)
 }
@@ -57,7 +58,7 @@ pub fn validate_entries(
                         entry.steam_id.value, id
                     ); // Add to leaderboards.
                     current_rank.insert(entry.steam_id.value.clone(), *rank);
-                    if !check_cheated(&entry.steam_id.value, &banned_users) {
+                    if !banned_users.contains(&entry.steam_id.value) {
                         not_cheated.push(SpBanned {
                             profile_number: entry.steam_id.value.clone(),
                             score: entry.score.value,
@@ -73,7 +74,7 @@ pub fn validate_entries(
                         entry.steam_id.value,
                         id
                     );
-                    if !check_cheated(&entry.steam_id.value, &banned_users) {
+                    if !banned_users.contains(&entry.steam_id.value) {
                         not_cheated.push(SpBanned {
                             profile_number: entry.steam_id.value.clone(),
                             score: entry.score.value,
@@ -87,13 +88,9 @@ pub fn validate_entries(
 }
 
 /// Handles comparison with the current leaderboards to see if any user has a new best time
-pub fn filter_entries_sp(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
+pub fn filter_entries_sp(data: FetchingData, lb: &XmlTag<Vec<Entry>>) -> Result<()> {
     let url = format!("http://localhost:8080/api/v1/map/sp/{id}", id = data.id);
-    let map_json: Vec<SpRanked> = reqwest::blocking::get(&url)
-        .expect("Error in query to our local API (Make sure the webserver is running")
-        .json()
-        .expect("Error in converting our API values to JSON");
-
+    let map_json: Vec<SpRanked> = reqwest::blocking::get(&url)?.json()?;
     let mut existing_hash: HashMap<&str, (i32, i32)> =
         HashMap::with_capacity((data.end / LIMIT_MULT_SP) as usize);
 
@@ -119,8 +116,12 @@ pub fn filter_entries_sp(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
     let cat_id = data.cat_id;
     let _: Vec<()> = not_cheated
         .into_par_iter()
-        .map(|entry| check_existing_banned(id, entry, timestamp, &current_rank, &map_json, cat_id))
+        .map(|entry| {
+            // TODO: Remove this unwrap
+            check_existing_banned(id, entry, timestamp, &current_rank, &map_json, cat_id).unwrap()
+        })
         .collect();
+    Ok(())
 }
 
 pub fn check_existing_banned(
@@ -130,17 +131,12 @@ pub fn check_existing_banned(
     current_rank: &HashMap<String, i32>,
     map_json: &[SpRanked],
     cat_id: i32,
-) {
+) -> Result<()> {
     let ban_url = format!(
         "http://localhost:8080/api/v1/sp/banned/{}?profile_number={}&score={}",
         id, entry.profile_number, entry.score
     );
-    let res: bool = reqwest::blocking::get(&ban_url)
-        .expect("Error in query to our local API (Make sure the webserver is running")
-        .json()
-        .expect("Error in converting our API values to JSON");
-
-    match res {
+    match reqwest::blocking::get(&ban_url)?.json()? {
         true => {
             trace!(
                 "Time {} by {} found, so time is banned. Ignore",
@@ -155,7 +151,7 @@ pub fn check_existing_banned(
                 entry.profile_number
             );
             // We have now checked that the user is not banned, that the time is top X score worthy, that the score doesn't exist in the db, but is banned.
-            match post_sp_pb(PostSP {
+            post_sp_pb(PostSP {
                 profile_number: entry.profile_number.clone(),
                 score: entry.score,
                 id,
@@ -163,25 +159,16 @@ pub fn check_existing_banned(
                 current_rank: &current_rank,
                 map_json: &map_json,
                 cat_id,
-            }) {
-                true => (),
-                false => error!(
-                    "Time {} by {} failed to submit",
-                    entry.profile_number, entry.score
-                ),
-            };
+            })?;
         }
     }
+    Ok(())
 }
 
 /// Version of `filter_entries` for coop, using different logic.
-pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
+pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) -> Result<()> {
     let url = format!("http://localhost:8080/api/v1/map/coop/{id}", id = data.id);
-    let map_json: Vec<CoopRanked> = reqwest::blocking::get(&url)
-        .expect("Error in query to our local API (Make sure the webserver is running")
-        .json()
-        .expect("Error in converting our API values to JSON");
-
+    let map_json: Vec<CoopRanked> = reqwest::blocking::get(&url)?.json()?;
     let mut existing_hash: HashMap<&str, (i32, i32)> =
         HashMap::with_capacity(((data.end / LIMIT_MULT_COOP) * 2) as usize);
     let worst_score = map_json[map_json.len() - 1].map_data.score;
@@ -207,19 +194,14 @@ pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
     // to see that they're old, banned times on the leaderboard, our assumption about all scores being new and together
     // falls apart.
     let mut not_cheated = Vec::new(); // Becomes the vector of times that are not from banned players, and do not exist in the changelog.
-    for entry in not_banned_players.iter() {
+    for entry in not_banned_players.into_iter() {
         let ban_url = format!(
             "http://localhost:8080/api/v1/coop/banned/{}?profile_number={}&score={}",
             data.id, entry.profile_number, entry.score
         );
-        let res: bool = reqwest::blocking::get(&ban_url)
-            .expect("Error in query to our local API (Make sure the webserver is running")
-            .json()
-            .expect("Error in converting our API values to JSON");
-
-        match res {
+        match reqwest::blocking::get(&ban_url)?.json::<bool>()? {
             true => debug!("The time was found, so the time is banned. Ignore"),
-            false => not_cheated.push(entry.clone()),
+            false => not_cheated.push(entry),
         }
     }
 
@@ -228,6 +210,7 @@ pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
     // it's fair to assume the times were gotten together between two people
     let mut already_bundled: HashMap<String, i32> = HashMap::new();
     // Contains the bundled entries (if profile_number2 is None, there is no mathcing time)
+    // TODO: Can we hold references here? Or do lifetimes bite us too hard.
     let mut bundled_entries = Vec::new();
     for entry in not_cheated.iter() {
         for entry2 in not_cheated.iter() {
@@ -266,75 +249,50 @@ pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) {
         }
     }
     // Create individual changelog entries, and create a bundled coop time to represent the new times
-
     // Push to the database.
     for entry in bundled_entries.iter() {
         // TODO: Handle failture to insert.
-        match post_coop_pb(
-            entry.profile_number1.clone(),
-            entry.profile_number2.clone(),
-            entry.score,
-            data.id,
-            data.timestamp,
-            &current_rank,
-            &map_json,
-            data.cat_id,
-        ) {
-            true => (),
-            false => (),
-        };
+        post_coop_pb(PostCoop {
+            profile_number1: entry.profile_number1.clone(),
+            profile_number2: entry.profile_number2.clone(),
+            score: entry.score,
+            id: data.id,
+            timestamp: data.timestamp,
+            current_rank: &current_rank,
+            map_json: &map_json,
+            cat_id: data.cat_id,
+        })?;
     }
+    Ok(())
 }
 
-pub fn check_cheated(id: &String, banned_users: &[String]) -> bool {
-    for entry in banned_users.iter() {
-        if entry == id {
-            return true;
-        }
-    }
-    false
-}
-
-#[allow(dead_code)]
-pub fn check_user(profile_number: &str) -> bool {
+pub fn check_user(profile_number: &str) -> Result<Users> {
     let url = format!("http://localhost:8080/api/v1/user/{}", profile_number);
-    let user = reqwest::blocking::get(&url)
-        .expect("Error in query to our local API (Make sure the webserver is running")
-        .json::<Users>();
-    match user {
-        Ok(_user) => true,
-        Err(e) => {
-            debug!("{}", e);
-            false
-        }
-    }
+    Ok(reqwest::blocking::get(&url)?.json::<Users>()?)
 }
 
 #[allow(dead_code)]
-pub fn update_image(profile_number: &str) -> String {
+pub fn update_image(profile_number: &str) -> Result<String> {
     let api_key = dotenv::var("STEAM_API_KEY").expect("Cannot find STEAM_API_KEY in ./.env");
 
     let steam_api_url = format!(
         "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={}&steamids={}",
         api_key, profile_number
     );
-    let user = reqwest::blocking::get(&steam_api_url)
-        .expect("Cannot connect to Steam API")
-        .json::<GetPlayerSummariesWrapper>();
-    match user {
-        Ok(user) => user.response.players[0].avatarfull.clone(),
+    match reqwest::blocking::get(&steam_api_url)?.json::<GetPlayerSummariesWrapper>() {
+        Ok(user) => Ok(user.response.players[0].avatarfull.clone()),
         Err(e) => {
             eprintln!("Error getting response from steam API -> {}", e);
             // Default image
-            "http://media.steampowered.com/steamcommunity/public/images/avatars/f9/f91787b7fb6d4a2cb8dee079ab457839b33a8845_full.jpg".to_string()
+            Ok("http://media.steampowered.com/steamcommunity/public/images/avatars/f9/f91787b7fb6d4a2cb8dee079ab457839b33a8845_full.jpg".to_string())
         }
     }
 }
 // TODO:
 // 620 - Portal 2.
-// http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key=7BF774815E73419743538CB74F40ED9D&steamid=76561198823602829&format=json
+// http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&steamid={}}&format=json
 #[allow(dead_code)]
-pub fn add_user(profile_number: String) -> Result<Users, reqwest::Error> {
+pub fn add_user(profile_number: String) -> Result<Users> {
     // http://steamcommunity.com/profiles/{}/?xml=1
     // GET https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/
     let api_key = dotenv::var("STEAM_API_KEY").expect("Cannot find STEAM_API_KEY in ./.env");
@@ -343,10 +301,7 @@ pub fn add_user(profile_number: String) -> Result<Users, reqwest::Error> {
         "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={}&steamids={}",
         api_key, profile_number
     );
-    let user = reqwest::blocking::get(&steam_api_url)
-        .expect("Cannot connect to Steam API")
-        .json::<GetPlayerSummariesWrapper>()
-        .unwrap();
+    let user = reqwest::blocking::get(&steam_api_url)?.json::<GetPlayerSummariesWrapper>()?;
 
     let new_user = Users {
         profile_number,
@@ -360,17 +315,5 @@ pub fn add_user(profile_number: String) -> Result<Users, reqwest::Error> {
 
     let url = String::from("http://localhost:8080/api/v1/user");
     let client = reqwest::blocking::Client::new();
-    match client
-        .post(&url)
-        .json(&new_user)
-        .send()
-        .expect("Could not post user to our internal API")
-        .json::<Users>()
-    {
-        Ok(c) => Ok(c),
-        Err(e) => {
-            eprintln!("-> {}", e);
-            Err(e)
-        }
-    }
+    Ok(client.post(&url).json(&new_user).send()?.json::<Users>()?)
 }

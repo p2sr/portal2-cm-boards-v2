@@ -208,3 +208,20 @@ pub struct PostSP<'a> {
     pub map_json: &'a [SpRanked],
     pub cat_id: i32,
 }
+
+#[derive(Serialize, Debug, Clone)]
+pub struct PostCoop<'a> {
+    pub profile_number1: String,
+    pub profile_number2: Option<String>,
+    pub score: i32,
+    pub id: i32,
+    pub timestamp: NaiveDateTime,
+    pub current_rank: &'a HashMap<String, i32>,
+    pub map_json: &'a [CoopRanked],
+    pub cat_id: i32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AvatarInsert<'a> {
+    pub avatar: &'a str,
+}
