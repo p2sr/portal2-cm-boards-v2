@@ -1,9 +1,8 @@
 use super::fetching::validate_entries;
 use super::uploading_coop::post_coop_pb;
-use crate::models::{CoopDataUtil, CoopRanked, Entry, FetchingData, PostCoop, XmlTag};
+use crate::models::{CoopDataUtil, CoopRanked, Entry, FetchingData, PostCoop, SpBanned, XmlTag};
 use crate::LIMIT_MULT_COOP;
 use anyhow::Result;
-use log::debug;
 use rayon::prelude::*;
 use std::collections::HashMap;
 
@@ -28,25 +27,27 @@ pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) -> Resul
     }
 
     let (current_rank, not_banned_players) =
-        validate_entries(lb, existing_hash, data.banned_users, data.id, worst_score);
+        validate_entries(lb, existing_hash, &data.banned_users, data.id, worst_score);
 
     // Check to see if any of the times are banned on our leaderboards
     // Do an SP style check here first, as we want to ensure none of the times are old and banned.
     // The issue with doing this step pre-bundled would be if long-standing, banned times are bundled before checking
     // to see that they're old, banned times on the leaderboard, our assumption about all scores being new and together
     // falls apart.
-    let mut not_cheated = Vec::new(); // Becomes the vector of times that are not from banned players, and do not exist in the changelog.
-    for entry in not_banned_players.into_iter() {
-        let ban_url = format!(
-            "http://localhost:8080/api/v1/coop/banned/{}?profile_number={}&score={}",
-            data.id, entry.profile_number, entry.score
-        );
-        match reqwest::blocking::get(&ban_url)?.json::<bool>()? {
-            true => debug!("The time was found, so the time is banned. Ignore"),
-            false => not_cheated.push(entry),
-        }
-    }
-
+    // TODO: This option work-around feels so damn stupid.
+    let not_cheated: Vec<Result<Option<SpBanned>>> = not_banned_players
+        .into_par_iter()
+        .map(|entry| {
+            let ban_url = format!(
+                "http://localhost:8080/api/v1/sp/banned/{}?profile_number={}&score={}",
+                data.id, entry.profile_number, entry.score
+            );
+            match reqwest::blocking::get(&ban_url)?.json::<bool>()? {
+                true => Ok(None),
+                false => Ok(Some(entry)),
+            }
+        })
+        .collect();
     // The times that aren't banned should be parsed to see if there are matching times
     // If the times are matching, all old times are filtered, and no banned times are taken into consideration,
     // it's fair to assume the times were gotten together between two people
@@ -54,8 +55,8 @@ pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) -> Resul
     // Contains the bundled entries (if profile_number2 is None, there is no mathcing time)
     // TODO: Can we hold references here? Or do lifetimes bite us too hard.
     let mut bundled_entries = Vec::new();
-    for entry in not_cheated.iter() {
-        for entry2 in not_cheated.iter() {
+    for entry in not_cheated.iter().flatten().flatten() {
+        for entry2 in not_cheated.iter().flatten().flatten() {
             if (entry.profile_number != entry2.profile_number) & (entry.score == entry2.score) {
                 // Scores are assumed to be gotten together.
                 match already_bundled.get(&entry.profile_number) {
@@ -92,18 +93,22 @@ pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) -> Resul
     }
     // Create individual changelog entries, and create a bundled coop time to represent the new times
     // Push to the database.
-    for entry in bundled_entries.iter() {
-        // TODO: Handle failture to insert.
-        post_coop_pb(PostCoop {
-            profile_number1: entry.profile_number1.clone(),
-            profile_number2: entry.profile_number2.clone(),
-            score: entry.score,
-            id: data.id,
-            timestamp: data.timestamp,
-            current_rank: &current_rank,
-            map_json: &map_json,
-            cat_id: data.cat_id,
-        })?;
-    }
+    let _: Vec<()> = bundled_entries
+        .into_par_iter()
+        .map(|entry| {
+            // TODO: Better error handling for a failure to insert new coop score.
+            post_coop_pb(PostCoop {
+                profile_number1: entry.profile_number1.clone(),
+                profile_number2: entry.profile_number2.clone(),
+                score: entry.score,
+                id: data.id,
+                timestamp: data.timestamp,
+                current_rank: &current_rank,
+                map_json: &map_json,
+                cat_id: data.cat_id,
+            })
+            .unwrap();
+        })
+        .collect();
     Ok(())
 }

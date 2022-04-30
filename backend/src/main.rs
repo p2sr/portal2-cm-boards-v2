@@ -181,6 +181,37 @@ pub async fn fetch_sp(
     "Success fetching sp map."
 }
 
+#[get("/fetch_coop/{map_id}")]
+pub async fn fetch_coop(
+    map_id: web::Path<i32>,
+    limit: web::Data<i32>,
+    cat_ids: web::Data<HashMap<String, i32>>,
+) -> impl Responder {
+    let banned_users: Vec<String> = reqwest::get("http://localhost:8080/api/v1/banned_users_all")
+        .await
+        .expect("Error in query to our local API (Make sure the webserver is running")
+        .json()
+        .await
+        .expect("Error in converting our API values to JSON");
+    web::block(move || {
+        let limit = limit.into_inner();
+        let timestamp = Utc::now().naive_utc();
+        let map_id = map_id.into_inner();
+        let _ = fetch_entries(FetchingData {
+            id: map_id,
+            start: 0,
+            end: *limit * LIMIT_MULT_COOP,
+            timestamp,
+            banned_users,
+            is_coop: true,
+            cat_id: cat_ids[&map_id.to_string()],
+        });
+    })
+    .await
+    .unwrap();
+    "Success fetching coop map."
+}
+
 #[get("/fetch_pfp/{profile_number}")]
 pub async fn fetch_pfp(profile_number: web::Path<String>) -> impl Responder {
     let profile_number = profile_number.into_inner();
@@ -202,6 +233,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(rcp)
             .service(fetch_sp)
             .service(fetch_all)
-            .service(fetch_pfp),
+            .service(fetch_pfp)
+            .service(fetch_coop),
     );
 }

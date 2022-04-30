@@ -284,3 +284,14 @@ async fn coop_add(
         _ => HttpResponse::NotFound().body("Error adding new score to database."),
     }
 }
+
+#[get("/coop/temp/{map_id}")]
+async fn coop_temp(pool: web::Data<PgPool>, map_id: web::Path<String>) -> impl Responder {
+    match CoopBundled::get_temp_coop_changelog(pool.get_ref(), &map_id).await {
+        Ok(res) => HttpResponse::Ok().json(res),
+        Err(e) => {
+            eprintln!("Error finding temp score -> {}", e);
+            HttpResponse::NotFound().body("Cannot find temp score on given map.")
+        }
+    }
+}

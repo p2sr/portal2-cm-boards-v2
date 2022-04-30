@@ -36,7 +36,7 @@ pub fn fetch_entries(data: FetchingData) -> Result<Leaderboards> {
 pub fn validate_entries(
     data: &XmlTag<Vec<Entry>>,
     existing_hash: HashMap<&str, (i32, i32)>,
-    banned_users: Vec<String>,
+    banned_users: &[String],
     id: i32,
     worst_score: i32,
 ) -> (HashMap<String, i32>, Vec<SpBanned>) {

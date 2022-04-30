@@ -30,6 +30,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(coop_banned_all)
             .service(coop_banned)
             .service(coop_add)
+            .service(coop_temp)
             .service(maps)
             .service(default_category)
             .service(map_ids)

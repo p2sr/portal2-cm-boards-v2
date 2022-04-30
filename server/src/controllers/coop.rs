@@ -22,6 +22,12 @@ impl CoopBundled {
         .fetch_one(pool)
         .await?)
     }
+    pub async fn get_temp_coop_changelog(pool: &PgPool, map_id: &str) -> Result<CoopTempUser> {
+        Ok(sqlx::query_as::<_, CoopTempUser>(r#"SELECT id AS cl_id, profile_number FROM "p2boards".changelog WHERE profile_number = 'N/A' AND map_id = $1"#)
+            .bind(map_id)
+            .fetch_one(pool)
+            .await?)
+    }
 }
 
 impl CoopMap {

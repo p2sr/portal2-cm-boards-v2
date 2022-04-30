@@ -26,7 +26,7 @@ pub fn test_validate_entries() {
         );
     }
     let (current_rank, not_cheated) =
-        validate_entries(&data, existing_hash, banned_users, 47802, worst_score);
+        validate_entries(&data, existing_hash, &banned_users, 47802, worst_score);
     assert_eq!(current_rank["76561198029488151"], 65);
     assert_eq!(current_rank["76561198039230536"], 3);
     assert_eq!(

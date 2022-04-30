@@ -27,7 +27,7 @@ pub fn filter_entries_sp(data: FetchingData, lb: &XmlTag<Vec<Entry>>) -> Result<
 
     // TODO: Implement a per-map threshold???
     let (current_rank, not_cheated) =
-        validate_entries(lb, existing_hash, data.banned_users, data.id, worst_score);
+        validate_entries(lb, existing_hash, &data.banned_users, data.id, worst_score);
     // We grab the list of banned times from our API.
     // Filter out any times that are banned from the list of potential runs.
     // The list of new scores is probably relatively low, it would be easier to just send the score information to an endpoint and have it check.

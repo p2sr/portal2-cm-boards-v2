@@ -141,6 +141,12 @@ pub struct CoopBundled {
     pub cl_id2: Option<i64>,
 }
 
+#[derive(Deserialize, Serialize, Debug)]
+pub struct CoopTempUser {
+    pub cl_id: i64,
+    pub profile_number: String,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CoopBundledInsert {
     pub p_id1: String,
