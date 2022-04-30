@@ -1,4 +1,4 @@
-use crate::models::datamodels::{CoopRanked, SpRanked};
+use crate::models::{CoopRanked, SpRanked};
 use rayon::prelude::*;
 use std::collections::HashMap;
 

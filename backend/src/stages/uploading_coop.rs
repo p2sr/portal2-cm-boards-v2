@@ -1,4 +1,4 @@
-use crate::models::datamodels::{ChangelogInsert, CoopBundledInsert, PostCoop, SpPbHistory};
+use crate::models::{ChangelogInsert, CoopBundledInsert, PostCoop, SpPbHistory};
 use anyhow::Result;
 use log::debug;
 use std::cmp::Ordering;

@@ -1,4 +1,4 @@
-use crate::models::datamodels::{ChangelogInsert, PostSP, SpPbHistory};
+use crate::models::{ChangelogInsert, PostSP, SpPbHistory};
 use anyhow::Result;
 use log::trace;
 use std::cmp::Ordering;

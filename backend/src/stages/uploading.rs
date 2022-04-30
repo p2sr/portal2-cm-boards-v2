@@ -1,4 +1,4 @@
-use crate::models::datamodels::AvatarInsert;
+use crate::models::AvatarInsert;
 use crate::update_image;
 use anyhow::Result;
 

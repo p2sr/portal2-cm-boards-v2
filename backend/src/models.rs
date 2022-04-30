@@ -225,3 +225,14 @@ pub struct PostCoop<'a> {
 pub struct AvatarInsert<'a> {
     pub avatar: &'a str,
 }
+
+#[derive(Debug, Clone)]
+pub struct FetchingData {
+    pub id: i32,
+    pub start: i32,
+    pub end: i32,
+    pub timestamp: NaiveDateTime,
+    pub banned_users: Vec<String>,
+    pub is_coop: bool,
+    pub cat_id: i32,
+}

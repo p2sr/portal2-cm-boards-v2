@@ -3,6 +3,7 @@
 #[macro_use]
 extern crate serde_derive;
 
+use crate::models::FetchingData;
 use actix_cors::Cors;
 use actix_web::rt::task::spawn_blocking;
 use actix_web::{get, middleware::Logger, web, App, HttpResponse, HttpServer, Responder};
@@ -37,17 +38,6 @@ const OFFICIAL_COOP: [i32; 48] = [
 
 const LIMIT_MULT_SP: i32 = 2;
 const LIMIT_MULT_COOP: i32 = 3;
-
-#[derive(Debug, Clone)]
-pub struct FetchingData {
-    pub id: i32,
-    pub start: i32,
-    pub end: i32,
-    pub timestamp: NaiveDateTime,
-    pub banned_users: Vec<String>,
-    pub is_coop: bool,
-    pub cat_id: i32,
-}
 
 /// Driver code to start and mount all compontents to the webserver we create.
 #[actix_web::main]

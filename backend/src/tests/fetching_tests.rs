@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::models::datamodels::{Entry, XmlTag};
+use crate::models::{Entry, XmlTag};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -8,7 +8,7 @@ use std::path::Path;
 #[test]
 /// Tests our validate_entries function using consistent mock data.
 pub fn test_validate_entries() {
-    use crate::models::datamodels::SpRanked;
+    use crate::models::SpRanked;
     use crate::stages::fetching::validate_entries;
     use std::collections::HashMap;
 
