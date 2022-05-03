@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize)]
 pub struct XmlTag<T> {
@@ -140,6 +141,12 @@ pub struct CoopBundled {
     pub cl_id2: Option<i64>,
 }
 
+#[derive(Deserialize, Serialize, Debug)]
+pub struct CoopTempUser {
+    pub cl_id: i64,
+    pub profile_number: String,
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CoopBundledInsert {
     pub p_id1: String,
@@ -195,4 +202,43 @@ pub struct GetPlayerSummaries {
     pub avatar: String,
     pub avatarmedium: String,
     pub avatarfull: String,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct PostSP<'a> {
+    pub profile_number: String,
+    pub score: i32,
+    pub id: i32,
+    pub timestamp: NaiveDateTime,
+    pub current_rank: &'a HashMap<String, i32>,
+    pub map_json: &'a [SpRanked],
+    pub cat_id: i32,
+}
+
+#[derive(Serialize, Debug, Clone)]
+pub struct PostCoop<'a> {
+    pub profile_number1: String,
+    pub profile_number2: Option<String>,
+    pub score: i32,
+    pub id: i32,
+    pub timestamp: NaiveDateTime,
+    pub current_rank: &'a HashMap<String, i32>,
+    pub map_json: &'a [CoopRanked],
+    pub cat_id: i32,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AvatarInsert<'a> {
+    pub avatar: &'a str,
+}
+
+#[derive(Debug, Clone)]
+pub struct FetchingData {
+    pub id: i32,
+    pub start: i32,
+    pub end: i32,
+    pub timestamp: NaiveDateTime,
+    pub banned_users: Vec<String>,
+    pub is_coop: bool,
+    pub cat_id: i32,
 }

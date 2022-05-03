@@ -133,6 +133,12 @@ pub struct CoopBundled {
     pub cl_id2: Option<i64>,
 }
 
+#[derive(Deserialize, Serialize, Debug, FromRow)]
+pub struct CoopTempUser {
+    pub cl_id: i64,
+    pub profile_number: String,
+}
+
 /// Insert struct for creating a new `CoopBundled`
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct CoopBundledInsert {
@@ -434,6 +440,12 @@ pub struct ScoreLookup {
     pub map_id: String,
     pub cat_id: Option<i32>,
     pub game_id: Option<i32>,
+}
+
+/// An avatar being added to the db.
+#[derive(Clone, Debug, Deserialize)]
+pub struct AvatarInsert {
+    pub avatar: String,
 }
 
 // Points

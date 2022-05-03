@@ -40,7 +40,7 @@
 //!     let user = ranks
 //!         .current_ranks
 //!         .entry(profile_number)
-//!         .or_insert(HashMap::new());
+//!         .or_insert_with(HashMap::new);
 //!
 //!     HttpResponse::Ok().body("test")
 //! }
@@ -147,7 +147,7 @@ impl CacheState {
     }
     /// Try to load points data from files rather than expecting that the backend must send over the data fresh every time the web server is run.
     async fn load(x: &'static str) -> Result<HashMap<String, Points>> {
-        Ok(read_from_file::<HashMap<String, Points>>(x).await?)
+        read_from_file::<HashMap<String, Points>>(x).await
     }
     /// Create a fresh set of ranks to cache. Takes a good amount of time to go through all 108 maps and populate ranks for all.
     ///
@@ -171,7 +171,6 @@ impl CacheState {
                 }
                 Err(e) => {
                     eprintln!("Error grabbing rank cache from file -> {}", e);
-                    ()
                 }
             }
         }
@@ -186,7 +185,7 @@ impl CacheState {
             for (i, entry) in res.into_iter().enumerate() {
                 let user = current_ranks
                     .entry(entry.profile_number)
-                    .or_insert(HashMap::new());
+                    .or_insert_with(HashMap::new);
                 user.insert(map.clone(), (i + 1) as i32);
             }
         }
@@ -202,13 +201,13 @@ impl CacheState {
             for (i, entry) in res.into_iter().enumerate() {
                 let user = current_ranks
                     .entry(entry.profile_number1)
-                    .or_insert(HashMap::new());
+                    .or_insert_with(HashMap::new);
                 if user.get(&map).is_none() {
                     user.insert(map.clone(), (i + 1) as i32);
                 }
                 let user = current_ranks
                     .entry(entry.profile_number2)
-                    .or_insert(HashMap::new());
+                    .or_insert_with(HashMap::new);
                 if user.get(&map).is_none() {
                     user.insert(map.clone(), (i + 1) as i32);
                 }
@@ -228,7 +227,7 @@ impl CacheState {
         map_id: &String,
         config: &Config,
         is_coop: bool,
-    ) -> () {
+    ) {
         if is_coop {
             let res = CoopMap::get_coop_map_page(
                 pool,
@@ -251,7 +250,7 @@ impl CacheState {
                     let user = r
                         .current_ranks
                         .entry(entry.profile_number1)
-                        .or_insert(HashMap::new());
+                        .or_insert_with(HashMap::new);
                     if user.get(map_id).is_none() {
                         user.insert(map_id.clone(), (i + 1) as i32);
                     }
@@ -260,7 +259,7 @@ impl CacheState {
                     let user = r
                         .current_ranks
                         .entry(entry.profile_number2)
-                        .or_insert(HashMap::new());
+                        .or_insert_with(HashMap::new);
                     if user.get(map_id).is_none() {
                         user.insert(map_id.clone(), (i + 1) as i32);
                     }
@@ -281,7 +280,7 @@ impl CacheState {
                 let user = r
                     .current_ranks
                     .entry(entry.profile_number)
-                    .or_insert(HashMap::new());
+                    .or_insert_with(HashMap::new);
                 user.insert(map_id.clone(), (i + 1) as i32);
             }
         }

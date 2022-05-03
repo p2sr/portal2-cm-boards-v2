@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::models::datamodels::{Entry, XmlTag};
+use crate::models::{Entry, XmlTag};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -8,7 +8,7 @@ use std::path::Path;
 #[test]
 /// Tests our validate_entries function using consistent mock data.
 pub fn test_validate_entries() {
-    use crate::models::datamodels::SpRanked;
+    use crate::models::SpRanked;
     use crate::stages::fetching::validate_entries;
     use std::collections::HashMap;
 
@@ -18,17 +18,15 @@ pub fn test_validate_entries() {
     let data: XmlTag<Vec<Entry>> = XmlTag { value: entries };
     let map_json: Vec<SpRanked> = example("sp_ranked");
     let worst_score = map_json[map_json.len() - 1].map_data.score;
-    let existing_hash: HashMap<String, (i32, i32)> = map_json
-        .into_iter()
-        .map(|rank: SpRanked| {
-            (
-                rank.map_data.profile_number.clone(),
-                (rank.map_data.score, rank.rank),
-            )
-        })
-        .collect();
+    let mut existing_hash: HashMap<&str, (i32, i32)> = HashMap::new();
+    for rank in map_json.iter() {
+        existing_hash.insert(
+            &rank.map_data.profile_number,
+            (rank.map_data.score, rank.rank),
+        );
+    }
     let (current_rank, not_cheated) =
-        validate_entries(&data, existing_hash, banned_users, 47802, worst_score);
+        validate_entries(&data, existing_hash, &banned_users, 47802, worst_score);
     assert_eq!(current_rank["76561198029488151"], 65);
     assert_eq!(current_rank["76561198039230536"], 3);
     assert_eq!(
@@ -57,41 +55,41 @@ pub fn example<T: for<'de> serde::Deserialize<'de>>(id: &str) -> Vec<T> {
 
 /// Constructs mock examples to use to test our validate_entries function works as intended.
 pub fn sp_entries() -> Vec<Entry> {
-    let mut entries = Vec::with_capacity(5);
-    // Xinera worse time (assume there's a manual submission)
-    entries.push(Entry {
-        steam_id: XmlTag {
-            value: "76561198054297641".to_string(),
+    vec![
+        // Xinera worse time (assume there's a manual submission)
+        Entry {
+            steam_id: XmlTag {
+                value: "76561198054297641".to_string(),
+            },
+            score: XmlTag { value: 1858 },
         },
-        score: XmlTag { value: 1858 },
-    });
-    // Daniel, same time
-    entries.push(Entry {
-        steam_id: XmlTag {
-            value: "76561198040982247".to_string(),
+        // Daniel, same time
+        Entry {
+            steam_id: XmlTag {
+                value: "76561198040982247".to_string(),
+            },
+            score: XmlTag { value: 1816 },
         },
-        score: XmlTag { value: 1816 },
-    });
-    // Better score for Zypeh (beat wr)
-    entries.push(Entry {
-        steam_id: XmlTag {
-            value: "76561198039230536".to_string(),
+        // Better score for Zypeh (beat wr)
+        Entry {
+            steam_id: XmlTag {
+                value: "76561198039230536".to_string(),
+            },
+            score: XmlTag { value: 1720 },
         },
-        score: XmlTag { value: 1720 },
-    });
-    // Better score for BreweryJake
-    entries.push(Entry {
-        steam_id: XmlTag {
-            value: "76561198029488151".to_string(),
+        // Better score for BreweryJake
+        Entry {
+            steam_id: XmlTag {
+                value: "76561198029488151".to_string(),
+            },
+            score: XmlTag { value: 2100 },
         },
-        score: XmlTag { value: 2100 },
-    });
-    // Same score for Mel
-    entries.push(Entry {
-        steam_id: XmlTag {
-            value: "76561198135023038".to_string(),
+        // Same score for Mel
+        Entry {
+            steam_id: XmlTag {
+                value: "76561198135023038".to_string(),
+            },
+            score: XmlTag { value: 2206 },
         },
-        score: XmlTag { value: 2206 },
-    });
-    entries
+    ]
 }

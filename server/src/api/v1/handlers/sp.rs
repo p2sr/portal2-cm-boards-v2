@@ -1,11 +1,11 @@
 use crate::models::models::{
-    Changelog, HistoryParams, OptIDs, ScoreLookup, ScoreParams, SpBanned, SpMap, SpPbHistory,
-    SpPreviews, SpRanked, Users, UsersPage,
+    Changelog, ChangelogInsert, HistoryParams, OptIDs, ScoreLookup, ScoreParams, SpBanned, SpMap,
+    SpPbHistory, SpPreviews, SpRanked, Users, UsersPage,
 };
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
 use crate::tools::helpers::check_for_valid_score;
 use crate::tools::{config::Config, helpers::score};
-use actix_web::{get, put, web, HttpResponse, Responder};
+use actix_web::{get, post, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 // TODO: Invalidate cache when a time is banned/verified/when a player is banned.
@@ -327,32 +327,32 @@ async fn sp_history(
     }
 }
 
-// /// Receives a new score to add to the DB.
-// #[allow(unused_variables)]
-// #[post("/sp/post_score")]
-// async fn post_score_sp(
-//     params: web::Json<ChangelogInsert>,
-//     pool: web::Data<PgPool>,
-//     cache: web::Data<CacheState>,
-// ) -> impl Responder {
-//     // TODO: Handle demo uploads.
-//     // TODO: Working with sequence re-sync. Need to implement role-back.
+/// Receives a new score to add to the DB.
+#[allow(unused_variables)]
+#[post("/sp/post_score")]
+async fn sp_post_score(
+    params: web::Json<ChangelogInsert>,
+    pool: web::Data<PgPool>,
+    cache: web::Data<CacheState>,
+) -> impl Responder {
+    // TODO: Handle demo uploads.
+    // TODO: Working with sequence re-sync. Need to implement role-back.
 
-//     let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
-//     match res {
-//         Ok(id) => {
-//             // Invalide our sp_previews cache with the new score.
-//             let state_data = &mut cache.current_state.lock().await;
-//             let is_cached = state_data.get_mut("sp_previews").unwrap();
-//             *is_cached = false;
-//             HttpResponse::Ok().json(id)
-//         }
-//         Err(e) => {
-//             eprintln!("{}", e);
-//             HttpResponse::NotFound().body("Error adding new score to database.")
-//         }
-//     }
-// }
+    let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
+    match res {
+        Ok(id) => {
+            // Invalide our sp_previews cache with the new score.
+            let state_data = &mut cache.current_state.lock().await;
+            let is_cached = state_data.get_mut("sp_previews").unwrap();
+            *is_cached = false;
+            HttpResponse::Ok().json(id)
+        }
+        Err(e) => {
+            eprintln!("{}", e);
+            HttpResponse::NotFound().body("Error adding new score to database.")
+        }
+    }
+}
 
 // TODO: Make this more ergonomic? Don't require all values.
 // TODO: Authentication should impact what a user can update.
