@@ -2,6 +2,74 @@
 
 A re-write of the original Portal 2 Challenge Mode Leaderboards designed to take advantage of modern web technology and allow for the community to take a more active role in developing the leadboards.
 
+## Web-Server
+### Building
+Using sqlx to pass queries to our database. REST API to be documented. Requires the Database to be up and operational. 
+
+**Be sure to copy the `.env.example` file, remove `.example` from the file name, and change the contents of the file to suite your usecase.**
+
+#### Local .env Example
+
+```
+DATABASE_URL=postgresql://username:123@localhost/p2boards
+SERVER.HOST=0.0.0.0
+SERVER.PORT=8080
+PROOF.RESULTS=500
+PROOF.DEMO=200
+PROOF.VIDEO=200
+BACKBLAZE.KEYID=
+BACKBLAZE.KEY=
+BACKBLAZE.BUCKET=
+RUST_LOG=1
+RUST_LOG="actix_web=info"
+```
+
+Assuming the database is up and running, start the server with. `cargo run` in `/server`
+
+#### Features:
+* Endpoints interacting with the data on the boards. Documented [here](https://danielbatesj.github.io/Portal2-Boards-Rust-API-Docs/docs/target/doc/doc/server/index.html).
+* Feature parity with current boards started by [ncla](https://github.com/ncla), updated & maintained by [iVerb](https://github.com/iVerb1) & [Jonese](https://github.com/jonese1234).
+* Support for enhanced admin capabilities.
+* Category support built in.
+* Coupling of cooperative times.
+
+## Backend
+### Building
+The backend now works as a REST API that allows for updating of scores from the official steam leaderboards, as well as point calculations and avatar updating. It handles direct interactions with Valve's API.
+
+The backend does not rely on a database, but does depend on the webserver running to be able to pull information about the current state of the boards.
+
+You're required to have a steam API key, apply for one [here](https://steamcommunity.com/dev/apikey).
+Copy the `.env.example` file in the `/backend` folder, and rename it to `.env`, then fill out the steam_api_key value.
+
+#### .env Example
+
+```
+STEAM_API_KEY=8U0SG8SDG7S0DHISD0FHS0DV7SD
+```
+Assuming the web server is running locally, run with `cargo run` in `/backend`
+
+#### Features
+* Update the web server with scores from the steam leaderboard.
+* Update profile images for users from the steam API.
+* Create new users when their score is added to the leaderboards.
+* Calculate the points to display on the leaderboards.
+
+## Database
+### Building
+* Install `postgres` and setup a user (reference the `DATABASE_URL` bellow).
+* Open psql console, `CREATE DATABASE p2boards;`
+* Load the latest dump from `/db/dbdump` with `psql p2boards < most_recent_dump_file_name.sql`
+
+## Front-end
+### Building
+The front-end build can be done with `npm install` in the `/board-portal-2` folder and once dependancies are installed, the client server can be started with `npm start`
+#### Features
+* Supports querying a running webserver on it's given endpoints for changelog, preview pages, sp maps and coop maps.
+* Light and dark theme support.
+* Prototyped page designs for many auxiliary pages.
+
+
 ## Should I set up this environment with Docker? Or set it up locally?
 
 [@cesarila](https://github.com/cesarila) has contributed a working Docker solution to building the boards. 
@@ -72,64 +140,6 @@ docker compose up
 ```
 If this doesn't work for any reason, one thing to check is that the file copied in db/Dockerfile is the same as the dump in db/dbdump. If these files don't match, make them match, save your changes, and try the above steps again.
 
-## Local Setup & More Information
-
-## Backend
-### Building
-The backend binary is currently being re-worked to work with clap, so we build the binary, then run it with arg flags (to be changed). The backend binary calls our webserver for information needed to fetch/upload new scores and calculate points. It does *not* interact with the database on its own.
-#### Features
-* Pulling Official Single Player Map data from Steam, caching that data to avoid needing to re-parse/compare.
-* Supports multithreading with Rayon.
-* Queries to the API for comparison data.
-* Calculates all point information for the boards
-#### Future Plans
-The purpose of keeping this backend seperate from the web-server is to off-load some more computationally heavy tasks to an entirely different process for modularity (in theory you should be able to run a cluster of backends). None of this design is final.
-
-## Database
-### Building
-* Install `postgres` and setup a user (reference the `DATABASE_URL` bellow).
-* Open psql console, `CREATE DATABASE p2boards;`
-* Load the latest dump from `/db/dbdump` with `psql p2boards < most_recent_dump_file_name.sql`
-
-## Server
-### Building
-Using sqlx to pass queries to our database. REST API to be documented.
-
-**Be sure to copy the `.env.example` file, remove `.example` from the file name, and change the contents of the file to suite your usecase.**
-
-#### Local .env Example
-
-```
-DATABASE_URL=postgresql://danielbatesj:123@localhost/p2boards
-SERVER.HOST=0.0.0.0
-SERVER.PORT=8080
-PROOF.RESULTS=500
-PROOF.DEMO=200
-PROOF.VIDEO=200
-BACKBLAZE.KEYID=
-BACKBLAZE.KEY=
-BACKBLAZE.BUCKET=
-RUST_LOG=1
-RUST_LOG="actix_web=info"
-```
-
-#### Features:
-* Endpoints interacting with the data on the boards.
-* Supports db pool and async for non-blocking, fast response to simultanious queries.
-#### Future Plans
-* Result Caching (redis?).
-* Authentication handling through Steam.
-* Permissions handling for Admin users.
-* Category integration.
-* Player Profiles.
-
-## Front-end
-### Building
-The front-end build can be done with `npm install` in the `/board-portal-2` folder and once dependancies are installed, the client server can be started with `npm start`
-#### Features
-* Supports querying a running webserver on it's given endpoints for changelog, preview pages, sp maps and coop maps.
-* Light and dark theme support.
-* Prototyped page designs for many auxiliary pages.
 
 ## Original Project Team
 This project started as a Senior Capstone Project for the following members.
