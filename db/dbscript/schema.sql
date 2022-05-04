@@ -28,8 +28,23 @@ CREATE TABLE categories (
     id integer NOT NULL,
     name character varying(100) DEFAULT ''::character varying NOT NULL,
     map_id character varying(6) DEFAULT ''::character varying NOT NULL,
-    rules character varying(20000) DEFAULT ''::character varying NOT NULL
+    rules_id integer,
+    updated timestamp(6) without time zone
 );
+
+-- Trigger to update `updated` when a row is updated.
+ 
+CREATE OR REPLACE FUNCTION update_updated_column()
+RETURNS TRIGGER AS $$
+BEGIN
+   NEW.updated = now(); 
+   RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+    CREATE TRIGGER update_categories_updated BEFORE UPDATE
+    ON categories FOR EACH ROW EXECUTE PROCEDURE 
+    update_updated_column();
 
 
 --
@@ -50,6 +65,34 @@ CREATE SEQUENCE categories_id_seq
 --
 
 ALTER SEQUENCE categories_id_seq OWNED BY categories.id;
+
+--
+-- Name: category_rules; Type: TABLE;
+--
+
+CREATE TABLE category_rules (
+    id integer NOT NULL,
+    rules character varying(2000),
+    external_link character varying(200),
+    is_active boolean,
+    updated timestamp(6) without time zone
+);
+
+    CREATE TRIGGER update_category_rules_updated BEFORE UPDATE
+    ON category_rules FOR EACH ROW EXECUTE PROCEDURE 
+    update_updated_column();
+
+--
+-- Name: category_rules_id_seq; Type: SEQUENCE;
+--
+
+CREATE SEQUENCE category_rules_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
 
 --
@@ -78,14 +121,7 @@ CREATE TABLE changelog (
     updated timestamp(6) without time zone
 );
 
--- TESTING: 
-CREATE OR REPLACE FUNCTION update_updated_column()
-RETURNS TRIGGER AS $$
-BEGIN
-   NEW.updated = now(); 
-   RETURN NEW;
-END;
-$$ language 'plpgsql';
+-- Trigger to update `updated` when a row is updated.
 
     CREATE TRIGGER update_changelog_updated BEFORE UPDATE
     ON changelog FOR EACH ROW EXECUTE PROCEDURE 
@@ -152,9 +188,15 @@ CREATE TABLE coop_bundled (
     p_id2 character varying(50),
     p1_is_host boolean,
     cl_id1 bigint NOT NULL,
-    cl_id2 bigint
+    cl_id2 bigint,
+    updated timestamp(6) without time zone
 );
 
+-- Trigger to update `updated` when a row is updated.
+ 
+    CREATE TRIGGER update_coop_bundled_updated BEFORE UPDATE
+    ON coop_bundled FOR EACH ROW EXECUTE PROCEDURE 
+    update_updated_column();
 
 --
 -- Name: coop_bundled_id_seq; Type: SEQUENCE;
@@ -185,9 +227,16 @@ CREATE TABLE demos (
     partner_name character varying(50),
     parsed_successfully boolean DEFAULT false NOT NULL,
     sar_version character varying(50),
-    cl_id bigint NOT NULL
+    cl_id bigint NOT NULL,
+    updated timestamp(6) without time zone
 );
 
+
+-- Trigger to update `updated` when a row is updated.
+ 
+    CREATE TRIGGER update_demos_updated BEFORE UPDATE
+    ON demos FOR EACH ROW EXECUTE PROCEDURE 
+    update_updated_column();
 
 --
 -- Name: demos_id_seq; Type: SEQUENCE;
@@ -274,6 +323,33 @@ ALTER SEQUENCE maps_id_seq OWNED BY maps.id;
 
 
 --
+-- Name: countries; Type: TABLE;
+--
+
+CREATE TABLE countries (
+    id integer NOT NULL,
+    iso character varying(2) NOT NULL,
+    name character varying(80) NOT NULL,
+    nicename character varying(80) NOT NULL,
+    iso3 character varying(3) DEFAULT NULL,
+    numcode integer DEFAULT NULL,
+    phonecode integer NOT NULL
+);
+
+--
+-- Name: countries_id_seq; Type: SEQUENCE;
+--
+
+CREATE SEQUENCE countries_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
 -- Name: users; Type: TABLE;
 --
 
@@ -289,7 +365,8 @@ CREATE TABLE users (
     title character varying(200),
     admin integer DEFAULT 0 NOT NULL,
     donation_amount character varying(11),
-    discord_id character varying(40)
+    discord_id character varying(40),
+    country_id integer
 );
 
 
@@ -298,6 +375,12 @@ CREATE TABLE users (
 --
 
 ALTER TABLE ONLY categories ALTER COLUMN id SET DEFAULT nextval('categories_id_seq'::regclass);
+
+--
+-- Name: category_rules id; Type: DEFAULT;
+--
+
+ALTER TABLE ONLY category_rules ALTER COLUMN id SET DEFAULT nextval('category_rules_id_seq'::regclass);
 
 
 --
@@ -341,6 +424,11 @@ ALTER TABLE ONLY games ALTER COLUMN id SET DEFAULT nextval('games_id_seq'::regcl
 
 ALTER TABLE ONLY maps ALTER COLUMN id SET DEFAULT nextval('maps_id_seq'::regclass);
 
+--
+-- Name: countries id; Type: DEFAULT;
+--
+
+ALTER TABLE ONLY countries ALTER COLUMN id SET DEFAULT nextval('countries_id_seq'::regclass);
 
 
 
@@ -400,6 +488,19 @@ ALTER TABLE ONLY maps ALTER COLUMN id SET DEFAULT nextval('maps_id_seq'::regclas
 ALTER TABLE ONLY categories
     ADD CONSTRAINT pk_categories_id PRIMARY KEY (id);
 
+--
+-- Name: category_rules pk_category_rules_id; Type: CONSTRAINT;
+--
+
+ALTER TABLE ONLY category_rules
+    ADD CONSTRAINT pk_category_rules_id PRIMARY KEY (id);
+
+--
+-- Name: countries pk_countries_id; Type: CONSTRAINT;
+--
+
+ALTER TABLE ONLY countries
+    ADD CONSTRAINT pk_countries_id PRIMARY KEY (id);
 
 --
 -- Name: changelog pk_changelog_id; Type: CONSTRAINT;
@@ -463,6 +564,13 @@ ALTER TABLE ONLY demos
 
 ALTER TABLE ONLY maps
     ADD CONSTRAINT unq_maps_steam_id UNIQUE (steam_id);
+
+--
+-- Name: categories fk_categories_category_rules; Type: FK CONSTRAINT;
+--
+
+ALTER TABLE ONLY categories
+    ADD CONSTRAINT fk_categories_category_rules FOREIGN KEY (rules_id) REFERENCES category_rules(id);
 
 
 --
@@ -551,6 +659,13 @@ ALTER TABLE ONLY coop_bundled
 
 ALTER TABLE ONLY maps
     ADD CONSTRAINT fk_maps_chapters FOREIGN KEY (chapter_id) REFERENCES chapters(id);
+
+--
+-- Name: maps fk_users_ountries; Type: FK CONSTRAINT;
+--
+
+ALTER TABLE ONLY users
+    ADD CONSTRAINT fk_users_countries FOREIGN KEY (country_id) REFERENCES countries(id);
 
 
 --
