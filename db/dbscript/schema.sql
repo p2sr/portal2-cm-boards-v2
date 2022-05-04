@@ -21,6 +21,39 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: evidence_requirements; Type: TABLE;
+--
+
+CREATE TABLE evidence_requirements (
+    id integer NOT NULL,
+    rank integer NOT NULL,
+    demo boolean,
+    video boolean,
+    active boolean,
+    "timestamp" timestamp(6) without time zone,
+    closed_timestamp timestamp(6) without time zone
+);
+
+--
+-- Name: evidence_requirements_id_seq; Type: SEQUENCE;
+--
+
+CREATE SEQUENCE evidence_requirements_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: evidence_requirements_id_seq; Type: SEQUENCE OWNED BY;
+--
+
+ALTER SEQUENCE evidence_requirements_id_seq OWNED BY evidence_requirements.id;
+
+
+--
 -- Name: categories; Type: TABLE;
 --
 
@@ -94,6 +127,11 @@ CREATE SEQUENCE category_rules_id_seq
     NO MAXVALUE
     CACHE 1;
 
+--
+-- Name: category_rules_id_seq; Type: SEQUENCE OWNED BY;
+--
+
+ALTER SEQUENCE category_rules_id_seq OWNED BY category_rules.id;
 
 --
 -- Name: changelog; Type: TABLE;
@@ -322,6 +360,70 @@ CREATE SEQUENCE maps_id_seq
 ALTER SEQUENCE maps_id_seq OWNED BY maps.id;
 
 
+-- MTRIGGERS TEST:
+
+--
+-- Name: mtriggers; Type: TABLE;
+--
+
+CREATE TABLE mtriggers (
+    id integer NOT NULL,
+    map_id character varying(6) NOT NULL,
+    category_id integer NOT NULL,
+    name character varying(64),
+    description character varying(500)
+);
+
+--
+-- Name: mtriggers_id_seq; Type: SEQUENCE;
+--
+
+CREATE SEQUENCE mtriggers_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: mtriggers_id_seq; Type: SEQUENCE OWNED BY;
+--
+
+ALTER SEQUENCE mtriggers_id_seq OWNED BY mtriggers.id;
+
+--
+-- Name: mtriggers; Type: TABLE;
+--
+
+CREATE TABLE mtrigger_entries (
+    id integer NOT NULL,
+    mtrigger_id integer NOT NULL,
+    changelog_id bigint NOT NULL,
+    "time" integer NOT NULL
+);
+
+--
+-- Name: mtrigger_entries_id_seq; Type: SEQUENCE;
+--
+
+CREATE SEQUENCE mtrigger_entries_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: mtrigger_entries_id_seq; Type: SEQUENCE OWNED BY;
+--
+
+ALTER SEQUENCE mtrigger_entries_id_seq OWNED BY mtrigger_entries.id;
+
+
 --
 -- Name: countries; Type: TABLE;
 --
@@ -350,6 +452,13 @@ CREATE SEQUENCE countries_id_seq
 
 
 --
+-- Name: countries_id_seq; Type: SEQUENCE OWNED BY;
+--
+
+ALTER SEQUENCE countries_id_seq OWNED BY countries.id;
+
+
+--
 -- Name: users; Type: TABLE;
 --
 
@@ -369,6 +478,11 @@ CREATE TABLE users (
     country_id integer
 );
 
+--
+-- Name: evidence_requirements id; Type: DEFAULT;
+--
+
+ALTER TABLE ONLY evidence_requirements ALTER COLUMN id SET DEFAULT nextval('evidence_requirements_id_seq'::regclass);
 
 --
 -- Name: categories id; Type: DEFAULT;
@@ -430,6 +544,18 @@ ALTER TABLE ONLY maps ALTER COLUMN id SET DEFAULT nextval('maps_id_seq'::regclas
 
 ALTER TABLE ONLY countries ALTER COLUMN id SET DEFAULT nextval('countries_id_seq'::regclass);
 
+--
+-- Name: mtriggers id; Type: DEFAULT;
+--
+
+ALTER TABLE ONLY mtriggers ALTER COLUMN id SET DEFAULT nextval('mtriggers_id_seq'::regclass);
+
+--
+-- Name: mtrigger_entries id; Type: DEFAULT;
+--
+
+ALTER TABLE ONLY mtrigger_entries ALTER COLUMN id SET DEFAULT nextval('mtrigger_entries_id_seq'::regclass);
+
 
 
 -- --
@@ -480,6 +606,12 @@ ALTER TABLE ONLY countries ALTER COLUMN id SET DEFAULT nextval('countries_id_seq
 
 -- SELECT pg_catalog.setval('maps_id_seq', 109, false);
 
+--
+-- Name: evidence_requirements pk_evidence_requirements_id; Type: CONSTRAINT;
+--
+
+ALTER TABLE ONLY evidence_requirements
+    ADD CONSTRAINT pk_evidence_requirements_id PRIMARY KEY (id);
 
 --
 -- Name: categories pk_categories_id; Type: CONSTRAINT;
@@ -543,6 +675,20 @@ ALTER TABLE ONLY maps
 
 
 --
+-- Name: mtriggers pk_mtriggers_id; Type: CONSTRAINT;
+--
+
+ALTER TABLE ONLY mtriggers
+    ADD CONSTRAINT pk_mtriggers_id PRIMARY KEY (id);
+
+--
+-- Name: mtrigger_entries pk_mtrigger_entries_id; Type: CONSTRAINT;
+--
+
+ALTER TABLE ONLY mtrigger_entries
+    ADD CONSTRAINT pk_mtrigger_entries_id PRIMARY KEY (id);
+
+--
 -- Name: users pk_users_profile_number; Type: CONSTRAINT;
 --
 
@@ -564,6 +710,23 @@ ALTER TABLE ONLY demos
 
 ALTER TABLE ONLY maps
     ADD CONSTRAINT unq_maps_steam_id UNIQUE (steam_id);
+
+
+--
+-- Name: mtriggers unq_mtriggers_id; Type: CONSTRAINT;
+--
+
+ALTER TABLE ONLY mtriggers
+    ADD CONSTRAINT unq_mtriggers_id UNIQUE (id);
+
+
+--
+-- Name: mtrigger_entries unq_mtrigger_entries_id; Type: CONSTRAINT;
+--
+
+ALTER TABLE ONLY mtrigger_entries
+    ADD CONSTRAINT unq_mtrigger_entries_id UNIQUE (id);
+
 
 --
 -- Name: categories fk_categories_category_rules; Type: FK CONSTRAINT;
@@ -661,11 +824,41 @@ ALTER TABLE ONLY maps
     ADD CONSTRAINT fk_maps_chapters FOREIGN KEY (chapter_id) REFERENCES chapters(id);
 
 --
--- Name: maps fk_users_ountries; Type: FK CONSTRAINT;
+-- Name: users fk_users_countries; Type: FK CONSTRAINT;
 --
 
 ALTER TABLE ONLY users
     ADD CONSTRAINT fk_users_countries FOREIGN KEY (country_id) REFERENCES countries(id);
+
+--
+-- Name: mtriggers fk_mtriggers_maps; Type: FK CONSTRAINT;
+--
+
+ALTER TABLE ONLY mtriggers
+    ADD CONSTRAINT fk_mtriggers_maps FOREIGN KEY (map_id) REFERENCES maps(steam_id);
+
+--
+-- Name: mtriggers fk_mtriggers_categories; Type: FK CONSTRAINT;
+--
+
+ALTER TABLE ONLY mtriggers
+    ADD CONSTRAINT fk_mtriggers_categories FOREIGN KEY (category_id) REFERENCES categories(id);
+
+
+--
+-- Name: mtrigger_entries fk_mtrigger_entries_mtriggers; Type: FK CONSTRAINT;
+--
+
+ALTER TABLE ONLY mtrigger_entries
+    ADD CONSTRAINT fk_mtrigger_entries_mtriggers FOREIGN KEY (mtrigger_id) REFERENCES mtriggers(id);
+
+--
+-- Name: mtrigger_entries fk_mtrigger_entries_changelog; Type: FK CONSTRAINT;
+--
+
+ALTER TABLE ONLY mtrigger_entries
+    ADD CONSTRAINT fk_mtrigger_entries_changelog FOREIGN KEY (changelog_id) REFERENCES changelog(id);
+
 
 
 --
