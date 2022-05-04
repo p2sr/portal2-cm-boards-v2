@@ -41,9 +41,6 @@ def get_bool(val):
     else:
         raise Error
 
-with open(".secret") as fp:
-    db_password = fp.read()
-
 # Game
 class PgSQLGame:
     def __init__(self, id_, name):
@@ -100,13 +97,26 @@ class PGSQLMap:
     def __str__(self):
         return f"{self.id} - {self.steam_id} - {self.name}"
 
-# Categories
-class PgSQLCategories:
-    def __init__(self, id_, name, map_id, rules):
+# Evidence Requirements
+class MySQLEvidenceRequirements:
+    def __init__(self, id_, rank, demo, video, active, timestamp, closed_timestamp):
         self.id = id_
-        self.name = name
-        self.map_id = map_id
-        self.rules = rules
+        self.rank = rank
+        self.demo = demo
+        self.video = video
+        self.active = active
+        self.timestamp = timestamp
+        self.closed_timestamp = closed_timestamp
+
+class PgSQLEvidenceRequirements:
+    def __init__(self, id_, rank, demo, video, active, timestamp, closed_timestamp):
+        self.id = id_
+        self.rank = rank
+        self.demo = demo
+        self.video = video
+        self.active = active
+        self.timestamp = timestamp
+        self.closed_timestamp = closed_timestamp
 
 # Users
 class MySQLUsersnew:
@@ -132,7 +142,7 @@ class MySQLUsersnew:
 class PgSQLUsers:
     def __init__(self, profile_number, board_name, 
     steam_name, banned, registered, avatar, twitch, 
-    youtube, title, admin, donation_amount, discord_id, auth_hash):
+    youtube, title, admin, donation_amount, discord_id, auth_hash, country):
         self.profile_number = profile_number
         self.board_name = board_name
         self.steam_name = steam_name
@@ -146,6 +156,7 @@ class PgSQLUsers:
         self.donation_amount = donation_amount
         self.discord_id = discord_id
         self.auth_hash = auth_hash
+        self.country = country
     
     def __str__(self):
         return f"{self.profile_number} - {self.steamname} - {self.banned}"
@@ -197,7 +208,7 @@ class PgSQLChangelog:
         self.category_id = self.get_category_id(map_id)
         self.score_delta = self.get_score_delta(previous_id, score)
         self.admin_note = None
-        self.last_modified = None # TODO: Handle
+        self.updated = None
 
     def __str__(self):
         return f"{self.id} - {self.time_gained} - {self.profile_number} - {self.score} - {self.note}"
@@ -246,7 +257,7 @@ class PgSQLCoopBundled:
 
 # Demos
 class PgSQLDemos:
-    def __init__(self, id_, file_id, file_name, partner_name, parsed_successfully, sar_version, cl_id):
+    def __init__(self, id_, file_id, file_name, partner_name, parsed_successfully, sar_version, cl_id, updated):
         self.id = id_ 
         self.file_id = file_id
         self.file_name = file_name
@@ -254,11 +265,62 @@ class PgSQLDemos:
         self.parsed_successfully = parsed_successfully
         self.sar_version = sar_version
         self.cl_id = cl_id
+        self.updated = updated
     
     def __str__(self):
         return f"{self.id} - {self.file_name} - {self.partner_name} - {self.parsed_successfully} - {self.sar_version} - {self.cl_id}"
 
+# Categories
+class PgSQLCategories:
+    def __init__(self, id_, name, map_id, rules_id, updated):
+        self.id = id_
+        self.name = name
+        self.map_id = map_id
+        self.rules_id = rules_id
+        self.updated = updated
+
+# Category Rules
+class PgSQLCategoryRules:
+    def __init__(self, id_, rules, external_link, is_active, updated): 
+        self.id = id_
+        self.rules = rules
+        self.external_link = external_link
+        self.is_active = is_active
+        self.updated = updated
+
+# Countries
+class PgSQLCountries:
+    def __init__(self, id_, iso, name, nicename, iso3, numcode, phonecode):
+        self.id = id_
+        self.iso = iso
+        self.name = name
+        self.nicename = nicename
+        self.iso3 = iso3
+        self.numcode = numcode
+        self.phonecode = phonecode
+
+# Mtriggers
+class PgSQLMtriggers:
+    def __init__(self, id_, map_id, category_id, name, description):
+        self.id = id_
+        self.map_id = map_id
+        self.category_id = category_id
+        self.name = name
+        self.description = description
+
+# Mtrigger Entries
+class PgSQLMtriggerEntries:
+    def __init__(self, id_, mtrigger_id, changelog_id, time):
+        self.id = id_
+        self.mtrigger_id = mtrigger_id
+        self.changelog_id = changelog_id
+        self.time = time
+
 def main():
+    with open(".secret") as fp:
+        db_password = fp.readline()
+        psql_username = fp.readline()
+    
     mysql_conn = mysql.connector.connect(
         host="localhost",
         user="root",
@@ -268,7 +330,7 @@ def main():
     )
     pg_conn = psycopg2.connect(
         dbname="p2boards",
-        user="djbates", # TODO: Allow this to be kept in a .secret or .env (pass as cl arg?)
+        user=psql_username,
         password=db_password
     )
     pg_conn.autocommit = True
@@ -292,7 +354,7 @@ def add_garbage(pg_cursor):
     for map in coop_map_ids:
         if map != 47828:
             pg_cursor.execute("""INSERT
-                INTO \"p2boards\".changelog
+                INTO changelog
                 (id, profile_number, score, map_id)
                 VALUES (%s, %s, %s, %s)
                 """,(starting_id, 'N/A', 0, str(map)))#Switch this to DESC (we read through the list in reverse order)
@@ -337,17 +399,17 @@ def coop_bundled(mysql_cursor, pg_cursor):
             temp = MySQLChangelog(*matching_times[0])
             temp2 = MySQLChangelog(*matching_times[1])
             pg_cursor.execute("""INSERT INTO 
-                \"p2boards\".coop_bundled 
+                coop_bundled 
                 (id, p_id1, p_id2, p1_is_host, cl_id1, cl_id2) 
                 VALUES (%s, %s, %s, %s, %s, %s);""",
                 (count, temp.profile_number, temp2.profile_number, None, temp.id, temp2.id))
             # Update both changelogs to include the new bundled information.
-            pg_cursor.execute("""UPDATE \"p2boards\".changelog SET coop_id = %s WHERE id = %s;""", (count, temp.id))
-            pg_cursor.execute("""UPDATE \"p2boards\".changelog SET coop_id = %s WHERE id = %s;""", (count, temp2.id))
+            pg_cursor.execute("""UPDATE changelog SET coop_id = %s WHERE id = %s;""", (count, temp.id))
+            pg_cursor.execute("""UPDATE changelog SET coop_id = %s WHERE id = %s;""", (count, temp2.id))
             if count < 10:
-                pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog WHERE id = %s;""", (temp.id,))
+                pg_cursor.execute("""SELECT * FROM changelog WHERE id = %s;""", (temp.id,))
                 print(pg_cursor.fetchall())
-                pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog WHERE id = %s;""", (temp2.id,))
+                pg_cursor.execute("""SELECT * FROM changelog WHERE id = %s;""", (temp2.id,))
                 print(pg_cursor.fetchall())
             # We want to del on index for better performance, but we need to find the ID for the second entry.
             # Deletion of happens at the end of every loop, we save the non-indexed value to `remove`
@@ -361,14 +423,14 @@ def coop_bundled(mysql_cursor, pg_cursor):
             # Insert coopbundle to PG, and update PG changelog for cl_id1
             temp = MySQLChangelog(*matching_times[0])
             pg_cursor.execute("""INSERT INTO 
-                \"p2boards\".coop_bundled 
+                coop_bundled 
                 (id, p_id1, p_id2, p1_is_host, cl_id1, cl_id2) 
                 VALUES (%s, %s, %s, %s, %s, %s);""",
                 (count, temp.profile_number, None, None, temp.id, None))
             # If value is none, have the server handle logic for a new changelog entry, rather than inserting a blank value.
-            pg_cursor.execute("""UPDATE \"p2boards\".changelog SET coop_id = %s WHERE id = %s;""", (count, temp.id))
+            pg_cursor.execute("""UPDATE changelog SET coop_id = %s WHERE id = %s;""", (count, temp.id))
             if count < 10:
-                pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog WHERE id = %s;""", (temp.id,))
+                pg_cursor.execute("""SELECT * FROM changelog WHERE id = %s;""", (temp.id,))
                 print(pg_cursor.fetchall())
             count += 1
         else: # There are more than 2 times.
@@ -384,7 +446,7 @@ def coop_bundled(mysql_cursor, pg_cursor):
             except:
                 ()
     
-    pg_cursor.execute("""SELECT * FROM \"p2boards\".coop_bundled""")
+    pg_cursor.execute("""SELECT * FROM coop_bundled""")
     print(pg_cursor.fetchall())    
     
 # NEW BLOCK
@@ -394,7 +456,7 @@ def categories(pg_cursor):
     id_ = 1
     for map in sp_map_ids:
         pg_cursor.execute("""INSERT INTO
-            \"p2boards\".categories
+            categories
             (id, name, map_id)
             VALUES (%s, %s, %s);""",
             (id_, "any%", map))
@@ -402,21 +464,21 @@ def categories(pg_cursor):
         id_ += 1
     for map in coop_map_ids:
         pg_cursor.execute("""INSERT INTO
-            \"p2boards\".categories
+            categories
             (id, name, map_id)
             VALUES (%s, %s, %s);""",
             (id_, "any%", map))
         category_values[map] = id_
         id_ += 1
     #pg_cursor.execute("""SELECT * FROM
-    #    \"p2boards\".categories""")
+    #    categories""")
     #print(pg_cursor.fetchall())
 
 def games(pg_cursor):
     # We just create game "Portal 2" for now.
-    pg_cursor.execute("""INSERT INTO \"p2boards\".games (id, game_name) VALUES (%s, %s);""",(1, "Portal 2"))
+    pg_cursor.execute("""INSERT INTO games (id, game_name) VALUES (%s, %s);""",(1, "Portal 2"))
     # pg_cursor.execute("""SELECT * FROM
-    #     \"p2boards\".games""")
+    #     games""")
     # print(pg_cursor.fetchall())
 
 def users(mysql_cursor, pg_cursor):
@@ -429,7 +491,7 @@ def users(mysql_cursor, pg_cursor):
         all_users_object.append(temp)
     for user in all_users_object:
         pg_cursor.execute("""INSERT INTO
-            \"p2boards\".users
+            users
             (profile_number, board_name, steam_name, 
             banned, registered, avatar, twitch, youtube, 
             title, admin, donation_amount, discord_id)
@@ -439,7 +501,7 @@ def users(mysql_cursor, pg_cursor):
             user.youtube, user.title, user.admin, user.donation_amount,
             None))
     # pg_cursor.execute("""SELECT * FROM
-    #     \"p2boards\".users""")
+    #     users""")
     # print(pg_cursor.fetchall())    
 
 def chapters(mysql_cursor, pg_cursor):
@@ -452,13 +514,13 @@ def chapters(mysql_cursor, pg_cursor):
         all_chapters_object.append(temp)
     for chapter in all_chapters_object:
         pg_cursor.execute("""INSERT INTO
-            \"p2boards\".chapters
+            chapters
             (id, chapter_name, is_multiplayer, game_id)
             VALUES (%s, %s, %s, %s);""",
             (chapter.id, chapter.chapter_name, chapter.is_multiplayer, 1)) 
             #This should be the ID of game, which should be 1          ^
     # pg_cursor.execute("""SELECT * FROM
-    #     \"p2boards\".chapters""")
+    #     chapters""")
     # print(pg_cursor.fetchall())   
 
 def maps(mysql_cursor, pg_cursor):
@@ -473,12 +535,12 @@ def maps(mysql_cursor, pg_cursor):
         map_name[temp.steam_id] = temp.name
     for map in all_maps_object:
         pg_cursor.execute("""INSERT INTO
-            \"p2boards\".maps
+            maps
             (id, steam_id, lp_id, name, chapter_id, is_public)
             VALUES (%s, %s, %s, %s, %s, %s);""",
             (map.id, map.steam_id, map.lp_id, map.name, map.chapter_id, map.is_public)) 
     # pg_cursor.execute("""SELECT * FROM
-    #     \"p2boards\".maps""")
+    #     maps""")
     # print(pg_cursor.fetchall())   
 
 #Demo creation will happen here.
@@ -505,11 +567,11 @@ def changelog_from_mysql(mysql_cursor, all_changelogs_local_list):
 def demos(pg_cursor):
     for demo in all_demo_objects:
         pg_cursor.execute("""INSERT INTO
-            \"p2boards\".demos
+            demos
             (id, drive_url, partner_name, parsed_successfully, sar_version, cl_id)
             VALUES (%s, %s, %s, %s, %s, %s);""",
             (demo.id, demo.drive_url, demo.partner_name, demo.parsed_successfully, demo.sar_version, demo.cl_id))
-    #pg_cursor.execute("""SELECT * FROM \"p2boards\".demos""")
+    #pg_cursor.execute("""SELECT * FROM demos""")
     #print(pg_cursor.fetchall())
 
 def changelog_to_pg(pg_cursor, all_changelogs_local_list):
@@ -518,7 +580,7 @@ def changelog_to_pg(pg_cursor, all_changelogs_local_list):
             print("Invalid User")
         else:
             pg_cursor.execute("""INSERT INTO
-                \"p2boards\".changelog
+                changelog
                 (id, timestamp, profile_number, score, map_id, demo_id, banned, youtube_id, 
                 previous_id, coop_id, post_rank, pre_rank, submission, note, category_id, 
                 score_delta, verified, admin_note)
@@ -529,7 +591,7 @@ def changelog_to_pg(pg_cursor, all_changelogs_local_list):
                 changelog.coop_id, changelog.post_rank, changelog.pre_rank, 
                 changelog.submission, changelog.note, changelog.category_id, 
                 changelog.score_delta, changelog.verified, changelog.admin_note))      
-    # pg_cursor.execute("""SELECT * FROM \"p2boards\".changelog""")
+    # pg_cursor.execute("""SELECT * FROM changelog""")
     # print(pg_cursor.fetchall())   
 
 main()

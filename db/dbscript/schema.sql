@@ -475,6 +475,7 @@ CREATE TABLE users (
     admin integer DEFAULT 0 NOT NULL,
     donation_amount character varying(11),
     discord_id character varying(40),
+    auth_hash character varying(64),
     country_id integer
 );
 
