@@ -391,3 +391,23 @@ SELECT old.steam_id, old.name, old.score, old.timestamp FROM
               AND cl1.verified = 'true'
               and cl1.category_id = m1.default_cat_id
               ORDER BY m1.steam_id, cl1.score) AS o1) AS a)) AS old;
+
+INSERT INTO users(profile_number, steam_name, board_name, banned, registered, avatar, twitch, youtube, title, admin, donation_amount, discord_id)
+VALUES ('76561197960265934', 'gr(e_e)n 51', NULL, false, 0, 'https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/3b/3b91acbe9f67798253aa45c40e74a6b76b831674_full.jpg', NULL, NULL, NULL, 0, 0, NULL);
+
+INSERT INTO games(id, game_name)
+VALUES (1, 'Portal 2');
+
+INSERT INTO chapters(id, chapter_name, is_multiplayer, game_id)
+VALUES (1, 'Team Building', true,	1);
+
+INSERT INTO maps(id, steam_id, lp_id, name, chapter_id, default_cat_id, is_public)
+VALUES (1, '47741', '47740', 'Doors', 1, 61, true);
+
+INSERT INTO categories(id, name, map_id, rules)
+VALUES (61, 'any%', '47741', '');
+
+
+INSERT INTO changelog (id, timestamp, profile_number, score, map_id, demo_id, banned, youtube_id, previous_id, coop_id, post_rank, pre_rank, submission, note, category_id, score_delta, verified, admin_note)
+VALUES (1, NULL, '76561197960265934', 1378, '47741', NULL, false, NULL, NULL, NULL, NULL, NULL, false, NULL, 61, NULL, true,	NULL);
+
