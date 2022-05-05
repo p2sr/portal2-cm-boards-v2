@@ -2,7 +2,6 @@
 # We accidentally used the same one for all, regaurdless of the map and it seems to be completely unnecessary.
 from re import L
 import mysql.connector
-from mysql.connector.errors import Error
 import psycopg2
 
 changelogIDs = []
@@ -38,8 +37,6 @@ def get_bool(val):
         return True
     elif val == 0:
         return False
-    else:
-        raise Error
 
 # Game
 class PgSQLGame:
@@ -112,11 +109,13 @@ class PgSQLEvidenceRequirements:
     def __init__(self, id_, rank, demo, video, active, timestamp, closed_timestamp):
         self.id = id_
         self.rank = rank
-        self.demo = demo
-        self.video = video
-        self.active = active
+        self.demo = bool(demo)
+        self.video = bool(video)
+        self.active = bool(active)
         self.timestamp = timestamp
         self.closed_timestamp = closed_timestamp
+    def __str__(self):
+        return f"{self.id} - {self.rank}, {self.demo}, {self.video}, {self.active}"
 
 # Users
 class MySQLUsersnew:
@@ -221,7 +220,7 @@ class PgSQLChangelog:
             # demo_id is serial, but we want to work around a weird issue with psycopg2 not resetting the serial.
             map_name_temp = map_name.get(map_id).replace(" ", "")
             file_name = f"{map_name_temp}_{self.score}_{self.profile_number}_{len(all_demo_objects)+1}.dem"
-            temp = PgSQLDemos(len(all_demo_objects)+1, None, file_name, None, self.verified, None, self.id)
+            temp = PgSQLDemos(len(all_demo_objects)+1, None, file_name, None, self.verified, None, self.id, None)
             all_demo_objects.append(temp)
             #print(temp)
             return len(all_demo_objects)
@@ -318,38 +317,183 @@ class PgSQLMtriggerEntries:
 
 def main():
     with open(".secret") as fp:
-        db_password = fp.readline()
+        db_password = fp.readline().strip()
         psql_username = fp.readline()
-    
     mysql_conn = mysql.connector.connect(
-        host="localhost",
         user="root",
-        password=db_password,
-        database="p2boardsOriginal",
+        password="test",
+        database="p2boards",
         autocommit=False,
     )
     pg_conn = psycopg2.connect(
-        dbname="p2boards",
+        dbname="p2boardsnew",
         user=psql_username,
-        password=db_password
+        password=123
     )
     pg_conn.autocommit = True
     pg_cursor = pg_conn.cursor()
     mysql_cursor = mysql_conn.cursor()
-    # add_garbage(pg_cursor)
-    categories(pg_cursor)
-    games(pg_cursor)
-    users(mysql_cursor, pg_cursor)
-    chapters(mysql_cursor, pg_cursor)
-    maps(mysql_cursor, pg_cursor)
+    # add_filler_entries(pg_cursor)
+    #evidence_requirements(mysql_cursor, pg_cursor)
+    #games(pg_cursor)
+    #chapters(mysql_cursor, pg_cursor)
+    #maps(mysql_cursor, pg_cursor, False)
+    #categories(pg_cursor, False)
+    #countries(pg_cursor)
+    #users(mysql_cursor, pg_cursor)
+    maps(mysql_cursor, pg_cursor, True)
+    categories(pg_cursor, True)
     all_changelogs_local_list = []
     changelog_from_mysql(mysql_cursor, all_changelogs_local_list) #Demo creation will happen here.
-    demos(pg_cursor)
+    demos(pg_cursor) # TODO: Add demos, changelog, coop_bundled...
+    exit()
+
     changelog_to_pg(pg_cursor, all_changelogs_local_list)
     coop_bundled(mysql_cursor, pg_cursor)
 
+def evidence_requirements(mysql_cursor, pg_cursor):
+    get_evidence = """SELECT *
+        FROM evidence_requirements"""
+    mysql_cursor.execute(get_evidence)
+    evidence = mysql_cursor.fetchall()
+    for x in evidence:
+        temp = PgSQLEvidenceRequirements(*x)
+        print(temp)
+        pg_cursor.execute("""INSERT INTO evidence_requirements
+            (id, rank, demo, video, active, timestamp, closed_timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (temp.id, temp.rank, temp.demo, temp.video, temp.active, temp.timestamp, temp.closed_timestamp))
+    # pg_cursor.execute("""SELECT * FROM
+    #    evidence_requirements;""")
+    # print(pg_cursor.fetchall())
 
-def add_garbage(pg_cursor):
+# Creating the games for the leaderboard.
+def games(pg_cursor):
+    # We just create game "Portal 2" for now.
+    pg_cursor.execute("""INSERT INTO games (id, game_name) VALUES (%s, %s);""",(1, "Portal 2"))
+    # pg_cursor.execute("""SELECT * FROM
+    #     games""")
+    # print(pg_cursor.fetchall())
+
+
+def chapters(mysql_cursor, pg_cursor):
+    mysql_cursor.execute("SELECT * FROM chapters")
+    all_chapters = mysql_cursor.fetchall()
+    all_chapters_object = []
+    for chapter in all_chapters:
+        temp = MySQLChapter(*chapter)
+        all_chapters_object.append(temp)
+    for chapter in all_chapters_object:
+        pg_cursor.execute("""INSERT INTO
+            chapters
+            (id, chapter_name, is_multiplayer, game_id)
+            VALUES (%s, %s, %s, %s);""",
+            (chapter.id, chapter.chapter_name, chapter.is_multiplayer, 1)) 
+            #This should be the ID of game, which should be 1          ^
+    # pg_cursor.execute("""SELECT * FROM
+    #     chapters""")
+    # print(pg_cursor.fetchall())   
+
+def maps(mysql_cursor, pg_cursor, no_insert):
+    if not no_insert: 
+        # Trimmed down, otherwise the same
+        mysql_cursor.execute("SELECT * FROM maps")
+        all_maps = mysql_cursor.fetchall()
+        all_maps_object = []
+        for map in all_maps:
+            temp = MySQLMap(*map)
+            all_maps_object.append(temp)
+            # Add map_id & name to dictionary for later use
+            map_name[temp.steam_id] = temp.name
+        for map in all_maps_object:
+            pg_cursor.execute("""INSERT INTO
+                maps
+                (id, steam_id, lp_id, name, chapter_id, is_public)
+                VALUES (%s, %s, %s, %s, %s, %s);""",
+                (map.id, map.steam_id, map.lp_id, map.name, map.chapter_id, map.is_public)) 
+        # pg_cursor.execute("""SELECT * FROM
+        #     maps""")
+        # print(pg_cursor.fetchall())
+    else: 
+        mysql_cursor.execute("SELECT * FROM maps")
+        all_maps = mysql_cursor.fetchall()
+        for map in all_maps:
+            temp = MySQLMap(*map)
+            # Add map_id & name to dictionary for later use
+            map_name[temp.steam_id] = temp.name
+
+# Create both the category, and it's rule-set for all 108 base p2 maps.
+def categories(pg_cursor, no_insert):
+    if not no_insert: 
+        id_ = 1
+        for map in coop_map_ids:
+            pg_cursor.execute("""INSERT INTO category_rules
+                (id, is_active)
+                VALUES (%s, %s)""",
+                (id_, True))
+            pg_cursor.execute("""INSERT INTO
+                categories
+                (id, name, map_id, rules_id)
+                VALUES (%s, %s, %s, %s);""",
+                (id_, "any%", map, id_))
+            category_values[map] = id_
+            id_ += 1
+        for map in sp_map_ids:
+            pg_cursor.execute("""INSERT INTO category_rules
+                (id, is_active)
+                VALUES (%s, %s)""",
+                (id_, True))
+            pg_cursor.execute("""INSERT INTO
+                categories
+                (id, name, map_id, rules_id)
+                VALUES (%s, %s, %s, %s);""",
+                (id_, "any%", map, id_))
+            category_values[map] = id_
+            id_ += 1
+        #pg_cursor.execute("""SELECT * FROM
+        #    categories""")
+        #print(pg_cursor.fetchall())
+    else: 
+        id_ = 1
+        for map in coop_map_ids:
+            category_values[map] = id_
+            id_ += 1
+        for map in sp_map_ids:
+            category_values[map] = id_
+            id_ += 1
+
+def countries(pg_cursor):
+    with open('countries.sql', 'r') as f:
+        string = f.read()
+    pg_cursor.execute(string)
+    # pg_cursor.execute("""SELECT * FROM countries""")
+    # print(pg_cursor.fetchall())  
+
+
+def users(mysql_cursor, pg_cursor):
+    # Keep all user data, add `None` for discord_id 
+    mysql_cursor.execute("SELECT * FROM usersnew")
+    all_users = mysql_cursor.fetchall()
+    all_users_object = []
+    for user in all_users:
+        temp = MySQLUsersnew(*user)
+        all_users_object.append(temp)
+    for user in all_users_object:
+        pg_cursor.execute("""INSERT INTO
+            users
+            (profile_number, board_name, steam_name, 
+            banned, registered, avatar, twitch, youtube, 
+            title, admin, donation_amount, discord_id, auth_hash, country_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);""",
+            (user.profile_number, user.boardname, user.steamname, 
+            user.banned, user.registered, user.avatar, user.twitch,
+            user.youtube, user.title, user.admin, user.donation_amount, None,
+            user.auth_hash, None))
+    # pg_cursor.execute("""SELECT * FROM
+    #     users""")
+    # print(pg_cursor.fetchall())    
+
+def add_filler_entries(pg_cursor):
     starting_id = 157806
     for map in coop_map_ids:
         if map != 47828:
@@ -448,100 +592,8 @@ def coop_bundled(mysql_cursor, pg_cursor):
     
     pg_cursor.execute("""SELECT * FROM coop_bundled""")
     print(pg_cursor.fetchall())    
-    
-# NEW BLOCK
-def categories(pg_cursor):
-    # We want to create 108 any% cateogies for all 108 base-maps
-    # TODO: Create default cat_id for each map
-    id_ = 1
-    for map in sp_map_ids:
-        pg_cursor.execute("""INSERT INTO
-            categories
-            (id, name, map_id)
-            VALUES (%s, %s, %s);""",
-            (id_, "any%", map))
-        category_values[map] = id_
-        id_ += 1
-    for map in coop_map_ids:
-        pg_cursor.execute("""INSERT INTO
-            categories
-            (id, name, map_id)
-            VALUES (%s, %s, %s);""",
-            (id_, "any%", map))
-        category_values[map] = id_
-        id_ += 1
-    #pg_cursor.execute("""SELECT * FROM
-    #    categories""")
-    #print(pg_cursor.fetchall())
 
-def games(pg_cursor):
-    # We just create game "Portal 2" for now.
-    pg_cursor.execute("""INSERT INTO games (id, game_name) VALUES (%s, %s);""",(1, "Portal 2"))
-    # pg_cursor.execute("""SELECT * FROM
-    #     games""")
-    # print(pg_cursor.fetchall())
 
-def users(mysql_cursor, pg_cursor):
-    # Keep all user data, add `None` for discord_id 
-    mysql_cursor.execute("SELECT * FROM usersnew")
-    all_users = mysql_cursor.fetchall()
-    all_users_object = []
-    for user in all_users:
-        temp = MySQLUsersnew(*user)
-        all_users_object.append(temp)
-    for user in all_users_object:
-        pg_cursor.execute("""INSERT INTO
-            users
-            (profile_number, board_name, steam_name, 
-            banned, registered, avatar, twitch, youtube, 
-            title, admin, donation_amount, discord_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);""",
-            (user.profile_number, user.boardname, user.steamname, 
-            user.banned, user.registered, user.avatar, user.twitch,
-            user.youtube, user.title, user.admin, user.donation_amount,
-            None))
-    # pg_cursor.execute("""SELECT * FROM
-    #     users""")
-    # print(pg_cursor.fetchall())    
-
-def chapters(mysql_cursor, pg_cursor):
-    # Set game_id = 1
-    mysql_cursor.execute("SELECT * FROM chapters")
-    all_chapters = mysql_cursor.fetchall()
-    all_chapters_object = []
-    for chapter in all_chapters:
-        temp = MySQLChapter(*chapter)
-        all_chapters_object.append(temp)
-    for chapter in all_chapters_object:
-        pg_cursor.execute("""INSERT INTO
-            chapters
-            (id, chapter_name, is_multiplayer, game_id)
-            VALUES (%s, %s, %s, %s);""",
-            (chapter.id, chapter.chapter_name, chapter.is_multiplayer, 1)) 
-            #This should be the ID of game, which should be 1          ^
-    # pg_cursor.execute("""SELECT * FROM
-    #     chapters""")
-    # print(pg_cursor.fetchall())   
-
-def maps(mysql_cursor, pg_cursor):
-    # Trimmed down, otherwise the same
-    mysql_cursor.execute("SELECT * FROM maps")
-    all_maps = mysql_cursor.fetchall()
-    all_maps_object = []
-    for map in all_maps:
-        temp = MySQLMap(*map)
-        all_maps_object.append(temp)
-        # Add map_id & name to dictionary for later use
-        map_name[temp.steam_id] = temp.name
-    for map in all_maps_object:
-        pg_cursor.execute("""INSERT INTO
-            maps
-            (id, steam_id, lp_id, name, chapter_id, is_public)
-            VALUES (%s, %s, %s, %s, %s, %s);""",
-            (map.id, map.steam_id, map.lp_id, map.name, map.chapter_id, map.is_public)) 
-    # pg_cursor.execute("""SELECT * FROM
-    #     maps""")
-    # print(pg_cursor.fetchall())   
 
 #Demo creation will happen here.
 def changelog_from_mysql(mysql_cursor, all_changelogs_local_list):
