@@ -3,8 +3,7 @@
 from re import L
 import mysql.connector #https://github.com/mysql/mysql-connector-python
 import psycopg2
-
-bad_id_order = []
+import datetime
 changelogIDs = []
 all_demo_objects = []
 coopdict = {}
@@ -202,7 +201,7 @@ class PgSQLChangelog:
         self.coop_id = coopid
         self.post_rank = post_rank
         self.pre_rank = pre_rank
-        self.submission = get_bool(submission)
+        self.submission = submission
         self.note = note
         self.category_id = self.get_category_id(map_id)
         self.score_delta = self.get_score_delta(previous_id, score)
@@ -220,9 +219,8 @@ class PgSQLChangelog:
             # demo_id is serial, but we want to work around a weird issue with psycopg2 not resetting the serial.
             map_name_temp = map_name.get(map_id).replace(" ", "")
             file_name = f"{map_name_temp}_{self.score}_{self.profile_number}_{len(all_demo_objects)+1}.dem"
-            temp = PgSQLDemos(len(all_demo_objects)+1, None, file_name, None, self.verified, None, self.id, None)
+            temp = PgSQLDemos(len(all_demo_objects)+1, file_name, None, self.verified, None, self.id, None)
             all_demo_objects.append(temp)
-            #print(temp)
             return len(all_demo_objects)
     
     def get_category_id(self, map_id):
@@ -238,13 +236,8 @@ class PgSQLChangelog:
         if previous_id == None:
             return None
         else:
-            try: 
-                old_score = changelog_id_score_map[previous_id]
-                return score-old_score 
-            except:
-                print(f"Current ID - {self.id}  -   Previous ID = {self.previous_id}    -   Diff {self.previous_id-self.id}")
-                bad_id_order.append((self.id, self.previous_id))
-                return None
+            old_score = changelog_id_score_map[previous_id]
+            return score-old_score 
 
 # Coop bundled
 class PgSQLCoopBundled:
@@ -261,10 +254,9 @@ class PgSQLCoopBundled:
 
 # Demos
 class PgSQLDemos:
-    def __init__(self, id_, file_id, file_name, partner_name, parsed_successfully, sar_version, cl_id, updated):
+    def __init__(self, id_, file_id, partner_name, parsed_successfully, sar_version, cl_id, updated):
         self.id = id_ 
         self.file_id = file_id
-        self.file_name = file_name
         self.partner_name = partner_name
         self.parsed_successfully = parsed_successfully
         self.sar_version = sar_version
@@ -335,7 +327,7 @@ def main():
         user=psql_username,
         password=123
     )
-    pg_conn.autocommit = True
+    pg_conn.autocommit = False # TODO: Change after testing
     pg_cursor = pg_conn.cursor()
     mysql_cursor = mysql_conn.cursor()
     # evidence_requirements(mysql_cursor, pg_cursor)
@@ -345,16 +337,15 @@ def main():
     # categories(pg_cursor, False)
     # countries(pg_cursor)
     # users(mysql_cursor, pg_cursor)
-    maps(mysql_cursor, pg_cursor, True)
-    categories(pg_cursor, True)
-    all_changelogs_local_list = []
-    changelog_from_mysql(mysql_cursor, all_changelogs_local_list) # In-memory Demo creation will happen here.
-    print(f"Number of scores where the previous id has a higher value {len(bad_id_order)}")
-    exit()
-    demos(pg_cursor)
-    changelog_to_pg(pg_cursor, all_changelogs_local_list)
-    add_filler_entries(pg_cursor)
+    # maps(mysql_cursor, pg_cursor, True)
+    # categories(pg_cursor, True)
+    # all_changelogs_local_list = []
+    # changelog_from_mysql(mysql_cursor, all_changelogs_local_list) # In-memory Demo creation will happen here.
+    # demos(pg_cursor)
+    # changelog_to_pg(pg_cursor, all_changelogs_local_list)
+    # add_filler_entries(pg_cursor)
     coop_bundled(mysql_cursor, pg_cursor)
+
 
 def evidence_requirements(mysql_cursor, pg_cursor):
     get_evidence = """SELECT *
@@ -480,32 +471,71 @@ def users(mysql_cursor, pg_cursor):
             user.auth_hash, None))
 
 def add_filler_entries(pg_cursor):
-    starting_id = pg_cursor.execute("""SELECT COUNT(*) FROM changelog""").fetchone()
-    print(starting_id)
+    pg_cursor.execute("""INSERT INTO users (profile_number, banned, registered, admin) VALUES('N/A', false, 0, 0)""")
+
+    pg_cursor.execute("""SELECT id FROM changelog ORDER BY id DESC""")
+    starting_id = pg_cursor.fetchone()[0]
     for map in coop_map_ids:
+        starting_id += 1
         pg_cursor.execute("""INSERT
             INTO changelog
-            (id, profile_number, score, map_id)
-            VALUES (%s, %s, %s, %s)
-            """,(starting_id + 1, 'N/A', 0, str(map))) #Switch this to DESC (we read through the list in reverse order)
-        starting_id += 1
+            (id, profile_number, score, verified, map_id)
+            VALUES (%s, %s, %s, %s, %s)
+            """,(starting_id, 'N/A', 0, True, str(map))) #Switch this to DESC (we read through the list in reverse order)
+
+def get_matching_times(value, mysql_cursor):
+    # This should be the most common case, so we're going to try it first, before expanding the range.
+    string = f"""SELECT changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id, changelog.wr_gain,
+        changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id,
+        changelog.post_rank, changelog.pre_rank, changelog.submission,
+        changelog.note, changelog.pending 
+        FROM changelog 
+        INNER JOIN usersnew 
+        ON usersnew.profile_number=changelog.profile_number
+        WHERE time_gained = \"{value.time_gained}\" AND score={value.score} AND map_id={value.map_id} 
+        AND usersnew.banned = 0 AND changelog.banned = 0"""
+    mysql_cursor.execute(string)
+    res = mysql_cursor.fetchall()
+    if len(res) == 2:
+        return res
+    else: 
+        range1 = value.time_gained - datetime.timedelta(hours=-3)
+        range2 = value.time_gained - datetime.timedelta(hours=+3)
+        # print(f"TIME RANGE TRYING = {range1} -> {range2} - from base {value.time_gained}")
+        string = f"""SELECT changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id, changelog.wr_gain,
+            changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id,
+            changelog.post_rank, changelog.pre_rank, changelog.submission,
+            changelog.note, changelog.pending 
+            FROM changelog 
+            INNER JOIN usersnew 
+            ON usersnew.profile_number=changelog.profile_number
+            WHERE score={value.score} AND map_id={value.map_id} 
+            AND usersnew.banned = 0 AND changelog.banned = 0 AND time_gained BETWEEN \"{range1}\" AND \"{range2}\""""
+        mysql_cursor.execute(string)
+        res2 = mysql_cursor.fetchall()
+        if len(res2) == 2:
+            print(f"FOUND FROM TIME RANGE {res2}")
+            return res2
+        else: 
+            return res
 
 def coop_bundled(mysql_cursor, pg_cursor):
+    # TODO: Do this in batches
     get_all_coop = """SELECT
         changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id, changelog.wr_gain,
         changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id,
         changelog.post_rank, changelog.pre_rank, changelog.submission,
         changelog.note, changelog.pending 
-        FROM changelog 
-        LEFT JOIN maps 
-        ON maps.steam_id=changelog.map_id 
-        LEFT JOIN usersnew
-        ON usersnew.profile_number=changelog.profile_number
-        WHERE maps.is_coop=1
-        AND usersnew.banned=0
-        AND changelog.banned=0
-        AND changelog.time_gained IS NOT NULL
-        ORDER BY time_gained ASC""" #Switch this to DESC (we read through the list in reverse order)
+            FROM changelog 
+                LEFT JOIN maps 
+                ON maps.steam_id=changelog.map_id 
+                LEFT JOIN usersnew
+                ON usersnew.profile_number=changelog.profile_number
+            WHERE maps.is_coop=1
+            AND usersnew.banned=0
+            AND changelog.banned=0
+            AND changelog.time_gained IS NOT NULL
+            ORDER BY time_gained DESC""" #Switch this to DESC (we read through the list in reverse order)
     mysql_cursor.execute(get_all_coop)
     all_coop = mysql_cursor.fetchall()
     # Adds every coop changelog entry into a class object, and inserts it into a dictionary with id as the key
@@ -518,13 +548,10 @@ def coop_bundled(mysql_cursor, pg_cursor):
     while len(changelogIDs) != 0:
         is_bundled = False
         backup_id = 0
-         
         index = len(changelogIDs)-1
         value = coopdict[changelogIDs[index]]
-        get_matching_times = f"SELECT * FROM changelog WHERE time_gained=\"{value.time_gained}\" AND score={value.score} AND map_id={value.map_id}"
-        #print(get_matching_times)
-        mysql_cursor.execute(get_matching_times)
-        matching_times = mysql_cursor.fetchall()
+        matching_times = get_matching_times(value, mysql_cursor)
+        
         if len(matching_times) == 2:
             temp = MySQLChangelog(*matching_times[0])
             temp2 = MySQLChangelog(*matching_times[1])
@@ -538,9 +565,9 @@ def coop_bundled(mysql_cursor, pg_cursor):
             pg_cursor.execute("""UPDATE changelog SET coop_id = %s WHERE id = %s;""", (count, temp2.id))
             if count < 10:
                 pg_cursor.execute("""SELECT * FROM changelog WHERE id = %s;""", (temp.id,))
-                print(pg_cursor.fetchall())
+                print(f"TEST FIRST 10 - {pg_cursor.fetchall()}")
                 pg_cursor.execute("""SELECT * FROM changelog WHERE id = %s;""", (temp2.id,))
-                print(pg_cursor.fetchall())
+                print(f"TEST FIRST 10 - {pg_cursor.fetchall()}")
             # We want to del on index for better performance, but we need to find the ID for the second entry.
             # Deletion of happens at the end of every loop, we save the non-indexed value to `remove`
             is_bundled = True
@@ -561,11 +588,13 @@ def coop_bundled(mysql_cursor, pg_cursor):
             pg_cursor.execute("""UPDATE changelog SET coop_id = %s WHERE id = %s;""", (count, temp.id))
             if count < 10:
                 pg_cursor.execute("""SELECT * FROM changelog WHERE id = %s;""", (temp.id,))
-                print(pg_cursor.fetchall())
+                print(f"TEST FIRST 10 - {pg_cursor.fetchall()}")
             count += 1
         else: # There are more than 2 times.
-            temp = MySQLChangelog(*matching_times[0])
-            print(f"{temp}") #DEBUG: This case shouldn't be reached.
+            print("INVALID CASE REACHED\n") # TODO: Log this result
+            for inv_i, invalid_result in enumerate(matching_times):
+                temp = MySQLChangelog(*invalid_result)
+                print(f"SCORE {inv_i} - {temp}")
         #
         # print(f"Deleting {changelogIDs[index]}")
         del changelogIDs[index]
@@ -579,8 +608,6 @@ def coop_bundled(mysql_cursor, pg_cursor):
     pg_cursor.execute("""SELECT * FROM coop_bundled""")
     print(pg_cursor.fetchall())    
 
-
-
 #Demo creation will happen here.
 def changelog_from_mysql(mysql_cursor, all_changelogs_local_list):
     # `coop_id` & `admin_note` now exists
@@ -590,22 +617,26 @@ def changelog_from_mysql(mysql_cursor, all_changelogs_local_list):
     mysql_cursor.execute("SELECT * FROM changelog")
     all_changelogs = mysql_cursor.fetchall()
     
-    # This change should save us needing to double allocate.
-    for cl in all_changelogs:
-        temp = PgSQLChangelog(cl[0], cl[1], cl[2], cl[3], cl[5], cl[6], cl[7], cl[8], cl[9], None, cl[10], cl[11], cl[12], cl[13], cl[14])
+    all_changelogs_new = []
+    # The fact we have to do this twice is really annoying, but ultimately doesn't matter a ton.
+    for changelog in all_changelogs:
+        temp = MySQLChangelog(*changelog)
+        all_changelogs_new.append(temp)
         changelog_id_score_map[temp.id] = temp.score
+    for changelog in all_changelogs_new:
+        temp = PgSQLChangelog(changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id,
+            changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id, None, 
+            changelog.post_rank, changelog.pre_rank, changelog.submission, changelog.note, changelog.pending)
         all_changelogs_local_list.append(temp)
-
+        changelog_id_score_map[temp.id] = temp.score
 
 def demos(pg_cursor):
     for demo in all_demo_objects:
         pg_cursor.execute("""INSERT INTO
             demos
-            (id, drive_url, partner_name, parsed_successfully, sar_version, cl_id)
+            (id, file_id, partner_name, parsed_successfully, sar_version, cl_id)
             VALUES (%s, %s, %s, %s, %s, %s);""",
-            (demo.id, demo.drive_url, demo.partner_name, demo.parsed_successfully, demo.sar_version, demo.cl_id))
-    #pg_cursor.execute("""SELECT * FROM demos""")
-    #print(pg_cursor.fetchall())
+            (demo.id, demo.file_id, demo.partner_name, demo.parsed_successfully, demo.sar_version, demo.cl_id))
 
 def changelog_to_pg(pg_cursor, all_changelogs_local_list):
     for changelog in all_changelogs_local_list:
@@ -624,7 +655,15 @@ def changelog_to_pg(pg_cursor, all_changelogs_local_list):
                 changelog.coop_id, changelog.post_rank, changelog.pre_rank, 
                 changelog.submission, changelog.note, changelog.category_id, 
                 changelog.score_delta, changelog.verified, changelog.admin_note))      
-    # pg_cursor.execute("""SELECT * FROM changelog""")
-    # print(pg_cursor.fetchall())   
 
 main()
+
+
+# SELECT maps.name, changelog.id, changelog.score, IFNULL(usersnew.boardname, usersnew.steamname)
+# FROM changelog 
+# INNER JOIN maps ON changelog.map_id=maps.steam_id
+# INNER JOIN usersnew ON usersnew.profile_number=changelog.profile_number
+# WHERE maps.is_coop = 1 AND
+# time_gained = '2013-07-14 10:45:47'
+# AND usersnew.banned = 0 AND changelog.banned = 0
+# ORDER BY changelog.score;

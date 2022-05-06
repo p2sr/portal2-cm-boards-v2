@@ -150,7 +150,7 @@ CREATE TABLE changelog (
     coop_id bigint,
     post_rank integer,
     pre_rank integer,
-    submission boolean DEFAULT false NOT NULL,
+    submission integer DEFAULT 0 NOT NULL,
     note character varying(100),
     category_id integer DEFAULT 1 NOT NULL,
     score_delta integer,
