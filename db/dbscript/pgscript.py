@@ -1,12 +1,12 @@
 # TODO: Is there any reason why we need more than 1 generic filler score? 
 # We accidentally used the same one for all, regaurdless of the map and it seems to be completely unnecessary.
 from re import L
-import mysql.connector
+import mysql.connector #https://github.com/mysql/mysql-connector-python
 import psycopg2
 
+bad_id_order = []
 changelogIDs = []
 all_demo_objects = []
-
 coopdict = {}
 category_values = {}
 map_name = {}
@@ -210,7 +210,7 @@ class PgSQLChangelog:
         self.updated = None
 
     def __str__(self):
-        return f"{self.id} - {self.time_gained} - {self.profile_number} - {self.score} - {self.note}"
+        return f"{self.id} - {self.timestamp} - {self.profile_number} - {self.score} - {self.note}"
 
     def make_new_demo_id(self, map_id, has_demo):
         if has_demo == 0:
@@ -238,8 +238,13 @@ class PgSQLChangelog:
         if previous_id == None:
             return None
         else:
-            old_score = changelog_id_score_map[previous_id]
-            return score-old_score 
+            try: 
+                old_score = changelog_id_score_map[previous_id]
+                return score-old_score 
+            except:
+                print(f"Current ID - {self.id}  -   Previous ID = {self.previous_id}    -   Diff {self.previous_id-self.id}")
+                bad_id_order.append((self.id, self.previous_id))
+                return None
 
 # Coop bundled
 class PgSQLCoopBundled:
@@ -321,7 +326,7 @@ def main():
         psql_username = fp.readline()
     mysql_conn = mysql.connector.connect(
         user="root",
-        password="test",
+        password=db_password,
         database="p2boards",
         autocommit=False,
     )
@@ -333,22 +338,22 @@ def main():
     pg_conn.autocommit = True
     pg_cursor = pg_conn.cursor()
     mysql_cursor = mysql_conn.cursor()
-    # add_filler_entries(pg_cursor)
-    #evidence_requirements(mysql_cursor, pg_cursor)
-    #games(pg_cursor)
-    #chapters(mysql_cursor, pg_cursor)
-    #maps(mysql_cursor, pg_cursor, False)
-    #categories(pg_cursor, False)
-    #countries(pg_cursor)
-    #users(mysql_cursor, pg_cursor)
+    # evidence_requirements(mysql_cursor, pg_cursor)
+    # games(pg_cursor)
+    # chapters(mysql_cursor, pg_cursor)
+    # maps(mysql_cursor, pg_cursor, False)
+    # categories(pg_cursor, False)
+    # countries(pg_cursor)
+    # users(mysql_cursor, pg_cursor)
     maps(mysql_cursor, pg_cursor, True)
     categories(pg_cursor, True)
     all_changelogs_local_list = []
-    changelog_from_mysql(mysql_cursor, all_changelogs_local_list) #Demo creation will happen here.
-    demos(pg_cursor) # TODO: Add demos, changelog, coop_bundled...
+    changelog_from_mysql(mysql_cursor, all_changelogs_local_list) # In-memory Demo creation will happen here.
+    print(f"Number of scores where the previous id has a higher value {len(bad_id_order)}")
     exit()
-
+    demos(pg_cursor)
     changelog_to_pg(pg_cursor, all_changelogs_local_list)
+    add_filler_entries(pg_cursor)
     coop_bundled(mysql_cursor, pg_cursor)
 
 def evidence_requirements(mysql_cursor, pg_cursor):
@@ -363,18 +368,10 @@ def evidence_requirements(mysql_cursor, pg_cursor):
             (id, rank, demo, video, active, timestamp, closed_timestamp)
             VALUES (%s, %s, %s, %s, %s, %s, %s)""",
             (temp.id, temp.rank, temp.demo, temp.video, temp.active, temp.timestamp, temp.closed_timestamp))
-    # pg_cursor.execute("""SELECT * FROM
-    #    evidence_requirements;""")
-    # print(pg_cursor.fetchall())
-
 # Creating the games for the leaderboard.
 def games(pg_cursor):
     # We just create game "Portal 2" for now.
     pg_cursor.execute("""INSERT INTO games (id, game_name) VALUES (%s, %s);""",(1, "Portal 2"))
-    # pg_cursor.execute("""SELECT * FROM
-    #     games""")
-    # print(pg_cursor.fetchall())
-
 
 def chapters(mysql_cursor, pg_cursor):
     mysql_cursor.execute("SELECT * FROM chapters")
@@ -390,10 +387,6 @@ def chapters(mysql_cursor, pg_cursor):
             VALUES (%s, %s, %s, %s);""",
             (chapter.id, chapter.chapter_name, chapter.is_multiplayer, 1)) 
             #This should be the ID of game, which should be 1          ^
-    # pg_cursor.execute("""SELECT * FROM
-    #     chapters""")
-    # print(pg_cursor.fetchall())   
-
 def maps(mysql_cursor, pg_cursor, no_insert):
     if not no_insert: 
         # Trimmed down, otherwise the same
@@ -421,7 +414,6 @@ def maps(mysql_cursor, pg_cursor, no_insert):
             temp = MySQLMap(*map)
             # Add map_id & name to dictionary for later use
             map_name[temp.steam_id] = temp.name
-
 # Create both the category, and it's rule-set for all 108 base p2 maps.
 def categories(pg_cursor, no_insert):
     if not no_insert: 
@@ -466,9 +458,6 @@ def countries(pg_cursor):
     with open('countries.sql', 'r') as f:
         string = f.read()
     pg_cursor.execute(string)
-    # pg_cursor.execute("""SELECT * FROM countries""")
-    # print(pg_cursor.fetchall())  
-
 
 def users(mysql_cursor, pg_cursor):
     # Keep all user data, add `None` for discord_id 
@@ -489,20 +478,17 @@ def users(mysql_cursor, pg_cursor):
             user.banned, user.registered, user.avatar, user.twitch,
             user.youtube, user.title, user.admin, user.donation_amount, None,
             user.auth_hash, None))
-    # pg_cursor.execute("""SELECT * FROM
-    #     users""")
-    # print(pg_cursor.fetchall())    
 
 def add_filler_entries(pg_cursor):
-    starting_id = 157806
+    starting_id = pg_cursor.execute("""SELECT COUNT(*) FROM changelog""").fetchone()
+    print(starting_id)
     for map in coop_map_ids:
-        if map != 47828:
-            pg_cursor.execute("""INSERT
-                INTO changelog
-                (id, profile_number, score, map_id)
-                VALUES (%s, %s, %s, %s)
-                """,(starting_id, 'N/A', 0, str(map)))#Switch this to DESC (we read through the list in reverse order)
-            starting_id += 1
+        pg_cursor.execute("""INSERT
+            INTO changelog
+            (id, profile_number, score, map_id)
+            VALUES (%s, %s, %s, %s)
+            """,(starting_id + 1, 'N/A', 0, str(map))) #Switch this to DESC (we read through the list in reverse order)
+        starting_id += 1
 
 def coop_bundled(mysql_cursor, pg_cursor):
     get_all_coop = """SELECT
@@ -604,17 +590,12 @@ def changelog_from_mysql(mysql_cursor, all_changelogs_local_list):
     mysql_cursor.execute("SELECT * FROM changelog")
     all_changelogs = mysql_cursor.fetchall()
     
-    all_changelogs_new = []
-    for changelog in all_changelogs:
-        temp = MySQLChangelog(*changelog)
-        all_changelogs_new.append(temp)
+    # This change should save us needing to double allocate.
+    for cl in all_changelogs:
+        temp = PgSQLChangelog(cl[0], cl[1], cl[2], cl[3], cl[5], cl[6], cl[7], cl[8], cl[9], None, cl[10], cl[11], cl[12], cl[13], cl[14])
         changelog_id_score_map[temp.id] = temp.score
-    for changelog in all_changelogs_new:
-        temp = PgSQLChangelog(changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id,
-            changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id, None, 
-            changelog.post_rank, changelog.pre_rank, changelog.submission, changelog.note, changelog.pending)
         all_changelogs_local_list.append(temp)
-        changelog_id_score_map[temp.id] = temp.score
+
 
 def demos(pg_cursor):
     for demo in all_demo_objects:
