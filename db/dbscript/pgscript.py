@@ -327,7 +327,7 @@ def main():
         user=psql_username,
         password=123
     )
-    pg_conn.autocommit = False # TODO: Change after testing
+    pg_conn.autocommit = True
     pg_cursor = pg_conn.cursor()
     mysql_cursor = mysql_conn.cursor()
     # evidence_requirements(mysql_cursor, pg_cursor)
@@ -514,7 +514,8 @@ def get_matching_times(value, mysql_cursor):
         mysql_cursor.execute(string)
         res2 = mysql_cursor.fetchall()
         if len(res2) == 2:
-            print(f"FOUND FROM TIME RANGE {res2}")
+            f = open("Range.txt", "a+")
+            f.write(f"{res2}\n")
             return res2
         else: 
             return res
@@ -563,11 +564,6 @@ def coop_bundled(mysql_cursor, pg_cursor):
             # Update both changelogs to include the new bundled information.
             pg_cursor.execute("""UPDATE changelog SET coop_id = %s WHERE id = %s;""", (count, temp.id))
             pg_cursor.execute("""UPDATE changelog SET coop_id = %s WHERE id = %s;""", (count, temp2.id))
-            if count < 10:
-                pg_cursor.execute("""SELECT * FROM changelog WHERE id = %s;""", (temp.id,))
-                print(f"TEST FIRST 10 - {pg_cursor.fetchall()}")
-                pg_cursor.execute("""SELECT * FROM changelog WHERE id = %s;""", (temp2.id,))
-                print(f"TEST FIRST 10 - {pg_cursor.fetchall()}")
             # We want to del on index for better performance, but we need to find the ID for the second entry.
             # Deletion of happens at the end of every loop, we save the non-indexed value to `remove`
             is_bundled = True
@@ -586,15 +582,16 @@ def coop_bundled(mysql_cursor, pg_cursor):
                 (count, temp.profile_number, None, None, temp.id, None))
             # If value is none, have the server handle logic for a new changelog entry, rather than inserting a blank value.
             pg_cursor.execute("""UPDATE changelog SET coop_id = %s WHERE id = %s;""", (count, temp.id))
-            if count < 10:
-                pg_cursor.execute("""SELECT * FROM changelog WHERE id = %s;""", (temp.id,))
-                print(f"TEST FIRST 10 - {pg_cursor.fetchall()}")
+            # if count < 10:
+            #     pg_cursor.execute("""SELECT * FROM changelog WHERE id = %s;""", (temp.id,))
+            #     print(f"TEST FIRST 10 - {pg_cursor.fetchall()}")
             count += 1
         else: # There are more than 2 times.
-            print("INVALID CASE REACHED\n") # TODO: Log this result
+            f = open("Invalid.txt", "a+")
             for inv_i, invalid_result in enumerate(matching_times):
                 temp = MySQLChangelog(*invalid_result)
-                print(f"SCORE {inv_i} - {temp}")
+                f.write(f"SCORE {inv_i} - {temp}\n")
+            f.close()
         #
         # print(f"Deleting {changelogIDs[index]}")
         del changelogIDs[index]
@@ -605,8 +602,8 @@ def coop_bundled(mysql_cursor, pg_cursor):
             except:
                 ()
     
-    pg_cursor.execute("""SELECT * FROM coop_bundled""")
-    print(pg_cursor.fetchall())    
+    # pg_cursor.execute("""SELECT * FROM coop_bundled""")
+    # print(pg_cursor.fetchall())    
 
 #Demo creation will happen here.
 def changelog_from_mysql(mysql_cursor, all_changelogs_local_list):
@@ -667,3 +664,13 @@ main()
 # time_gained = '2013-07-14 10:45:47'
 # AND usersnew.banned = 0 AND changelog.banned = 0
 # ORDER BY changelog.score;
+
+# SELECT changelog.time_gained, changelog.profile_number, changelog.score, changelog.map_id, changelog.wr_gain,
+#             changelog.has_demo, changelog.banned, changelog.youtube_id, changelog.previous_id, changelog.id,
+#             changelog.post_rank, changelog.pre_rank, changelog.submission,
+#             changelog.note, changelog.pending 
+#             FROM changelog 
+#             INNER JOIN usersnew 
+#             ON usersnew.profile_number=changelog.profile_number
+#             WHERE score=1053 AND map_id='52665'
+#             AND usersnew.banned = 0 AND changelog.banned = 0 AND time_gained BETWEEN '2022-04-30 19:58:51' AND '2022-05-01 01:58:51';
