@@ -1,4 +1,6 @@
-use crate::models::models::*;
+use crate::models::changelog::MapScoreDate;
+use crate::models::points::*;
+use crate::models::users::*;
 use anyhow::Result;
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Row};

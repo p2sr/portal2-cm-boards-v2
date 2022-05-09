@@ -1,5 +1,6 @@
 use crate::controllers::changelog::build_filtered_changelog;
-use crate::models::models::*;
+use crate::models::admin::*;
+use crate::models::changelog::{BannedTimeDetails, ChangelogPage, ChangelogQueryParams};
 use anyhow::Result;
 use sqlx::PgPool;
 

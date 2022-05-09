@@ -516,6 +516,7 @@ def get_matching_times(value, mysql_cursor):
         if len(res2) == 2:
             f = open("Range.txt", "a+")
             f.write(f"{res2}\n")
+            f.close()
             return res2
         else: 
             return res

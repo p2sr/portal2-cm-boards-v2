@@ -1,7 +1,9 @@
-use crate::models::models::{
-    Changelog, ChangelogInsert, HistoryParams, OptIDs, ScoreLookup, ScoreParams, SpBanned, SpMap,
-    SpPbHistory, SpPreviews, SpRanked, Users, UsersPage,
+use crate::models::changelog::{
+    Changelog, ChangelogInsert, HistoryParams, ScoreLookup, ScoreParams,
 };
+use crate::models::chapters::OptIDs;
+use crate::models::sp::*;
+use crate::models::users::{Users, UsersPage};
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
 use crate::tools::helpers::check_for_valid_score;
 use crate::tools::{config::Config, helpers::score};

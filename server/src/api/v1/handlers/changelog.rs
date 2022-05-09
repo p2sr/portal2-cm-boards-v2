@@ -1,6 +1,4 @@
-use crate::models::models::{
-    Changelog, ChangelogInsert, ChangelogPage, ChangelogQueryParams, SubmissionChangelog,
-};
+use crate::models::changelog::*;
 use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
 use crate::tools::helpers::check_for_valid_score;

@@ -1,4 +1,4 @@
-use crate::models::models::{PointsReadWrapper, PointsReceiveWrapper, PointsWriteWrapper};
+use crate::models::points::{PointsReadWrapper, PointsReceiveWrapper, PointsWriteWrapper};
 use crate::tools::cache::{write_to_file, CacheState};
 use actix_web::{get, post, web, HttpResponse, Responder};
 use anyhow::{Error, Result};

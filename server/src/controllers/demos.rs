@@ -1,4 +1,4 @@
-use crate::models::models::*;
+use crate::models::demo::*;
 use anyhow::Result;
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Row};

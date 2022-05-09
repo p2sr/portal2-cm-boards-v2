@@ -54,6 +54,8 @@ mod controllers;
 /// Module for models
 mod models;
 /// Module for testing
+
+#[cfg(test)]
 mod tests;
 /// Helpter functions used for the boards
 mod tools;

@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use sqlx::postgres::PgRow;
 use sqlx::{Row, PgPool};
 use chrono::NaiveDateTime;
-use crate::models::models::*;
+use crate::models::changelog::*;
+use crate::models::users::Users;
 
 // Implementations of associated functions for Changelog
 impl Changelog {

@@ -1,4 +1,5 @@
-use crate::models::models::{GameID, Maps};
+use crate::models::chapters::GameID;
+use crate::models::maps::Maps;
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 

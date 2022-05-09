@@ -1,4 +1,5 @@
-use crate::models::models::*;
+use crate::models::maps::Maps;
+use crate::models::sp::*;
 use anyhow::Result;
 use sqlx::PgPool;
 

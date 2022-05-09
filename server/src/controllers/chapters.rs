@@ -1,4 +1,4 @@
-use crate::models::models::{ChapterQueryParams, Chapters, Games};
+use crate::models::chapters::{ChapterQueryParams, Chapters, Games};
 use anyhow::Result;
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Row};

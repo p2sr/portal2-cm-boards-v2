@@ -1,4 +1,4 @@
-use crate::models::models::{ChapterQueryParams, Chapters};
+use crate::models::chapters::{ChapterQueryParams, Chapters};
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 

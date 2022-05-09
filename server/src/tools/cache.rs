@@ -47,7 +47,10 @@
 //! ```
 //!
 
-use crate::models::models::{CoopMap, Maps, Points, SpMap};
+use crate::models::coop::CoopMap;
+use crate::models::maps::Maps;
+use crate::models::points::Points;
+use crate::models::sp::SpMap;
 use crate::tools::config::Config;
 use anyhow::Result;
 use serde::Serialize;

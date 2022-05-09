@@ -1,4 +1,5 @@
-use crate::models::models::{AvatarInsert, PointsProfileWrapper, ProfilePage, Users};
+use crate::models::points::{PointsProfileWrapper, ProfilePage};
+use crate::models::users::{AvatarInsert, Users};
 use crate::tools::cache::CacheState;
 use actix_web::{get, post, put, web, HttpResponse, Responder};
 use anyhow::Result;

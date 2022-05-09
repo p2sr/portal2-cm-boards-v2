@@ -1,6 +1,6 @@
-use crate::models::models::{
-    Changelog, ChangelogInsert, DemoInsert, DemoOptions, Demos, Maps, SubmissionChangelog,
-};
+use crate::models::changelog::{Changelog, ChangelogInsert, SubmissionChangelog};
+use crate::models::demo::*;
+use crate::models::maps::Maps;
 use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
 use crate::tools::helpers::check_for_valid_score;

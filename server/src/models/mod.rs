@@ -1,3 +1,18 @@
-#[allow(clippy::module_inception)]
-/// Datamodels for any data formats that we're using.
-pub mod models;
+/// Admin-specific models.
+pub mod admin;
+/// Changelog-specific models.
+pub mod changelog;
+/// Chapter-related models.
+pub mod chapters;
+/// Cooperative-specific models.
+pub mod coop;
+/// Demo models
+pub mod demo;
+/// Maps-based models.
+pub mod maps;
+/// Point-based models.
+pub mod points;
+/// Singleplayer-specific models.
+pub mod sp;
+/// User-related models.
+pub mod users;

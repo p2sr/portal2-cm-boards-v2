@@ -1,7 +1,6 @@
-use crate::models::models::{
-    Changelog, CoopBanned, CoopBundled, CoopBundledInsert, CoopMap, CoopPreviews, OptIDs,
-    ScoreParams,
-};
+use crate::models::changelog::{Changelog, ScoreParams};
+use crate::models::chapters::OptIDs;
+use crate::models::coop::*;
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
 use crate::tools::{config::Config, helpers::filter_coop_entries};
 use actix_web::{get, post, web, HttpResponse, Responder};

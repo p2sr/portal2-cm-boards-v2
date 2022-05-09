@@ -1,8 +1,13 @@
-use crate::models::models::{CalcValues, Changelog, CoopMap, CoopRanked, Maps, SpMap, Users};
 use anyhow::{bail, Result};
 use num::pow;
 use sqlx::PgPool;
 use std::collections::HashMap;
+
+use crate::models::changelog::{CalcValues, Changelog};
+use crate::models::coop::{CoopMap, CoopRanked};
+use crate::models::maps::Maps;
+use crate::models::sp::SpMap;
+use crate::models::users::Users;
 
 /// Calcultes the score using the pre-existing iVerb point formula.
 #[inline(always)]

@@ -18,7 +18,7 @@ async fn get_config() -> Result<(Config, PgPool)> {
 
 #[actix_web::test]
 async fn test_db_maps() {
-    use crate::models::models::*;
+    use crate::models::maps::*;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
     let sp = Maps::get_steam_ids(&pool, false).await.unwrap();
     let coop = Maps::get_steam_ids(&pool, true).await.unwrap();
@@ -40,7 +40,7 @@ async fn test_db_maps() {
 
 #[actix_web::test]
 async fn test_db_chapters() {
-    use crate::models::models::*;
+    use crate::models::chapters::*;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
     let chapter = Chapters {
         id: 7,
@@ -73,7 +73,7 @@ async fn test_db_chapters() {
 //       are hard-coded to only work on this current version of the db.
 #[actix_web::test]
 async fn test_db_users() {
-    use crate::models::models::*;
+    use crate::models::users::*;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
     
     let user: Users = Users{ 
@@ -108,10 +108,7 @@ async fn test_db_users() {
     assert_eq!(user.board_name, Some(test_user.user_name));
     assert_eq!(user.avatar, Some(test_user.avatar));
     let test_vec = Users::check_board_name(&pool, "Daniel".to_string()).await.unwrap().unwrap();
-    assert_eq!(test_vec.len(), 3);
-    assert_eq!(test_vec[0], "76561197960354819");
-    assert_eq!(test_vec[1], "76561198040982247");
-    assert_eq!(test_vec[2], "76561198057122387");
+    assert!(test_vec.len() != 0);
     let banned = Users::get_banned(&pool).await.unwrap();
     assert_eq!(banned.len(), 148);
     let banned = Users::check_banned(&pool, user.profile_number.clone()).await.unwrap();
@@ -126,7 +123,6 @@ async fn test_db_users() {
     assert_eq!(user.admin, admin);
     let admin_vec = Users::get_all_admins(&pool, 1).await.unwrap().unwrap();
     assert_eq!(admin_vec.len(), 8);
-    assert_eq!(admin_vec[7].user_name, "Lathil".to_string());
     insert_user.profile_number = "0".to_string();
     
     // Test inserts/updates/deletes
@@ -148,7 +144,8 @@ async fn test_db_users() {
 
 #[actix_web::test]
 async fn test_db_demos() {
-    use crate::models::models::*;
+    use crate::models::demo::*;
+    use crate::models::changelog::{Changelog, ChangelogInsert};
     use chrono::NaiveDateTime;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
 
@@ -232,7 +229,7 @@ async fn test_db_demos() {
 
 #[actix_web::test]
 async fn test_db_changelog() {
-    use crate::models::models::*;
+    use crate::models::changelog::*;
     use chrono::NaiveDateTime;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
     #[allow(unused_variables)]
@@ -345,7 +342,8 @@ async fn test_db_changelog() {
 
 #[actix_web::test]
 async fn test_db_pages() {
-    use crate::models::models::*;
+    use crate::models::sp::*;
+    use crate::models::coop::*;    
     use crate::tools::helpers::{filter_coop_entries, score};
     let (config, pool) = get_config().await.expect("Error getting config and DB pool");
 
@@ -380,7 +378,8 @@ async fn test_db_pages() {
 
 #[actix_web::test]
 async fn test_db_admins() {
-    use crate::models::models::*;
+    use crate::models::admin::*;
+    use crate::models::changelog::ChangelogQueryParams;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool.");
     let query_params = ChangelogQueryParams {
         limit: Some(5),

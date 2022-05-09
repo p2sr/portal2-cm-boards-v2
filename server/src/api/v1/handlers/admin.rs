@@ -1,4 +1,6 @@
-use crate::models::models::{Admin, AdminLevel, ChangelogQueryParams, Users};
+use crate::models::admin::*;
+use crate::models::changelog::ChangelogQueryParams;
+use crate::models::users::Users;
 use actix_web::{get, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
