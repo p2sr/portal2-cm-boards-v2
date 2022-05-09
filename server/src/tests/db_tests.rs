@@ -89,6 +89,8 @@ async fn test_db_users() {
         admin: 1,
         donation_amount: None,
         discord_id: None,
+        auth_hash: None,
+        country_id: None,
     };
     let mut insert_user = user.clone();
     let test_user = Users::get_user(&pool, user.profile_number.clone()).await.unwrap().unwrap();
@@ -155,7 +157,8 @@ async fn test_db_demos() {
         partner_name: None,
         parsed_successfully: true,
         sar_version: None,
-        cl_id: 127825
+        cl_id: 127825,
+        updated: None,
     };
     let new_demo = Demos::get_demo(&pool, demo.id).await.unwrap().unwrap();
 
@@ -194,7 +197,7 @@ async fn test_db_demos() {
         coop_id: None,
         post_rank: Some(1),
         pre_rank: Some(3),
-        submission: true,
+        submission: 1,
         note: None,
         category_id: 19,
         score_delta: Some(-65),
@@ -246,12 +249,13 @@ async fn test_db_changelog() {
         coop_id: None,
         post_rank: Some(1),
         pre_rank: Some(3),
-        submission: false,
+        submission: 0,
         note: None,
         category_id: 19,
         score_delta: Some(-83),
         verified: Some(true),
         admin_note: None,
+        updated: None,
     };
 
     let clinsert = ChangelogInsert {
@@ -266,7 +270,7 @@ async fn test_db_changelog() {
         coop_id: None,
         post_rank: Some(1),
         pre_rank: Some(3),
-        submission: true,
+        submission: 1,
         note: None,
         category_id: 19,
         score_delta: Some(-65),

@@ -16,13 +16,27 @@ pub struct Changelog {
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
-    pub submission: bool,
+    pub submission: i32,
     pub note: Option<String>,
     pub category_id: i32,
     pub score_delta: Option<i32>,
     pub verified: Option<bool>,
     pub admin_note: Option<String>,
+    pub updated: Option<NaiveDateTime>,
 }
+
+/// One-to-one struct for evidence_requirements
+#[derive(Serialize, Deserialize, Debug, Clone, FromRow)]
+pub struct EvidenceRequirements {
+    pub id: i32,
+    pub rank: i32,
+    pub demo: Option<bool>,
+    pub video: Option<bool>,
+    pub active: Option<bool>,
+    pub timestamp: Option<NaiveDateTime>,
+    pub closed_timestamp: Option<NaiveDateTime>,
+}
+
 /// All changelog data except for the ID, for table insertion.
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct ChangelogInsert {
@@ -37,7 +51,7 @@ pub struct ChangelogInsert {
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
-    pub submission: bool,
+    pub submission: i32,
     pub note: Option<String>,
     pub category_id: i32,
     pub score_delta: Option<i32>,
@@ -60,7 +74,7 @@ pub struct ChangelogPage {
     pub coop_id: Option<i64>,
     pub post_rank: Option<i32>,
     pub pre_rank: Option<i32>,
-    pub submission: bool,
+    pub submission: i32,
     pub note: Option<String>,
     pub category_id: i32,
     pub score_delta: Option<i32>,

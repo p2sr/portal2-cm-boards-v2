@@ -15,6 +15,28 @@ pub struct Users {
     pub admin: i32,
     pub donation_amount: Option<String>,
     pub discord_id: Option<String>,
+    pub auth_hash: Option<String>,
+    pub country_id: Option<i32>,
+}
+
+/// One-to-one struct for countries
+#[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
+pub struct Countries {
+    id: i32,
+    iso: String,
+    name: String,
+    nicename: String,
+    iso3: String,
+    numcode: i32,
+    phonecode: i32,
+}
+
+/// One-to-one struct for countries
+#[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
+pub struct CountriesMin {
+    id: i32,
+    iso3: String,
+    nicename: String,
 }
 
 /// Includes only a `user_name` and `avatar`, does not include the `profile_number`

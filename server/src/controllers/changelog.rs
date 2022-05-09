@@ -313,7 +313,7 @@ impl ChangelogInsert {
             youtube_id: params.youtube_id,
             note: params.note,
             category_id: params.category_id.unwrap_or_else(|| cache[&params.map_id]),
-            submission: true,
+            submission: 1,
             ..Default::default()
         }
     }

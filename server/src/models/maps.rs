@@ -1,7 +1,8 @@
+use chrono::NaiveDateTime;
 use sqlx::FromRow;
 
 /// One-to-one struct for map data.
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, Debug, FromRow)]
 pub struct Maps {
     pub id: i32,
     pub steam_id: String,
@@ -13,10 +14,20 @@ pub struct Maps {
 }
 
 /// One-to-one struct for Category data.
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, Debug, FromRow)]
 pub struct Categories {
     pub id: i32,
     pub name: String,
     pub map_id: String,
-    pub rules: String,
+    pub rules_id: Option<i32>,
+    pub updated: Option<NaiveDateTime>,
+}
+
+#[derive(Serialize, Deserialize, Debug, FromRow)]
+pub struct CategoryRules {
+    pub id: i32,
+    pub rules: Option<String>,
+    pub external_link: Option<String>,
+    pub is_active: Option<bool>,
+    pub updated: Option<NaiveDateTime>,
 }

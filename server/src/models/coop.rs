@@ -1,6 +1,18 @@
 use chrono::NaiveDateTime;
 use sqlx::FromRow;
 
+/// One-to-one struct for coop_bundled data.
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct CoopBundled {
+    pub id: i64,
+    pub p_id1: String,
+    pub p_id2: Option<String>,
+    pub p1_is_host: Option<bool>,
+    pub cl_id1: i64,
+    pub cl_id2: Option<i64>,
+    pub updated: Option<NaiveDateTime>,
+}
+
 /// The minimal data we want for Coop map pages to lower bandwitch usage.
 #[derive(Serialize, FromRow, Clone)]
 pub struct CoopMap {
@@ -50,17 +62,6 @@ pub struct CoopRanked {
     pub map_data: CoopMap,
     pub rank: i32,
     pub points: f32,
-}
-
-/// One-to-one struct for coop_bundled data.
-#[derive(Serialize, Deserialize, FromRow)]
-pub struct CoopBundled {
-    pub id: i64,
-    pub p_id1: String,
-    pub p_id2: Option<String>,
-    pub p1_is_host: Option<bool>,
-    pub cl_id1: i64,
-    pub cl_id2: Option<i64>,
 }
 
 #[derive(Deserialize, Serialize, Debug, FromRow)]
