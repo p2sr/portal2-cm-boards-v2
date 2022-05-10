@@ -45,7 +45,7 @@ async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Respo
     let state_data = &mut cache.current_state.lock().await;
     let is_cached = state_data.get_mut("sp_previews").unwrap();
     if !*is_cached {
-        match SpPreviews::get_sp_previews(pool.get_ref()).await {
+        match SpPreview::get_sp_previews(pool.get_ref()).await {
             Ok(sp_previews) => {
                 if write_to_file("sp_previews", &sp_previews).await.is_ok() {
                     *is_cached = true;
@@ -55,10 +55,13 @@ async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Respo
                     HttpResponse::Ok().json(sp_previews)
                 }
             }
-            _ => HttpResponse::NotFound().body("Error fetching previews"),
+            Err(e) => {
+                eprintln!(" -> {e}");
+                HttpResponse::NotFound().body("Error fetching previews")
+            }
         }
     } else {
-        match read_from_file::<Vec<SpPreviews>>("sp_previews").await {
+        match read_from_file::<Vec<Vec<SpPreview>>>("sp_previews").await {
             Ok(sp_previews) => HttpResponse::Ok().json(sp_previews),
             _ => HttpResponse::NotFound().body("Error fetching sp previews from cache"),
         }

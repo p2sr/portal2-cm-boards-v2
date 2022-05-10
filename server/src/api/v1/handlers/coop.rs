@@ -41,7 +41,7 @@ async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Res
     let state_data = &mut cache.current_state.lock().await;
     let is_cached = state_data.get_mut("coop_previews").unwrap();
     if !*is_cached {
-        match CoopPreviews::get_coop_previews(pool.get_ref()).await {
+        match CoopPreview::get_coop_previews(pool.get_ref()).await {
             Ok(previews) => {
                 if write_to_file("coop_previews", &previews).await.is_ok() {
                     *is_cached = true;
@@ -54,7 +54,7 @@ async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Res
             _ => HttpResponse::NotFound().body("Error fetching coop map previews."),
         }
     } else {
-        match read_from_file::<Vec<CoopPreviews>>("coop_previews").await {
+        match read_from_file::<Vec<Vec<CoopPreview>>>("coop_previews").await {
             Ok(previews) => HttpResponse::Ok().json(previews),
             _ => HttpResponse::NotFound().body("Error fetching coop previews from cache"),
         }

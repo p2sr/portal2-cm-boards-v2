@@ -47,13 +47,7 @@ pub struct CoopPreview {
     pub category_id: i32,
     pub user_name1: String,
     pub user_name2: Option<String>,
-}
-
-/// Wrapper for prevciewing the top 7 for all Coop maps.
-#[derive(Serialize, Deserialize)]
-pub struct CoopPreviews {
     pub map_id: String,
-    pub scores: Vec<CoopPreview>,
 }
 
 /// Wrapper for the coop map data and the rank/score.

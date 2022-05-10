@@ -31,11 +31,11 @@ pub struct SpPreview {
 }
 
 /// Wrapper for multiple SpPreviews, prevents repeat data (multiple map_name and map_id copies)
-#[derive(Serialize, Deserialize)]
-pub struct SpPreviews {
-    pub map_id: String,
-    pub scores: Vec<SpPreview>,
-}
+// #[derive(Serialize, Deserialize)]
+// pub struct SpPreviews {
+//     pub map_id: String,
+//     pub scores: Vec<SpPreview>,
+// }
 
 /// Wrapper for a player's SP PB history.
 #[derive(Serialize, Deserialize)]

@@ -1,9 +1,10 @@
 use crate::models::coop::*;
 use crate::models::maps::Maps;
 use anyhow::Result;
+use futures::future::try_join_all;
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Row};
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 impl CoopBundled {
     pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64> {
@@ -103,34 +104,24 @@ impl CoopMap {
 }
 
 impl CoopPreview {
+    // TODO: Filter by default cat_id
     /// Gets the top 7 (unique on player) times on a given Coop Map.
-    pub async fn get_coop_preview(pool: &PgPool, map_id: String) -> Result<Vec<CoopPreview>> {
+    pub async fn get_coop_preview(pool: &PgPool, map_id: &str) -> Result<Vec<CoopPreview>> {
         // TODO: Open to PRs to contain all this functionality in the SQL statement.
-        // TODO: Filter by default cat_id
         let res = sqlx::query_as::<_, CoopPreview>(
             r#"
                 SELECT
                     c1.profile_number AS profile_number1, c2.profile_number AS profile_number2,
                     c1.score,
                     c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2, c1.category_id,
-                    CASE 
-                    WHEN p1.board_name IS NULL
-                        THEN p1.steam_name
-                    WHEN p1.board_name IS NOT NULL
-                        THEN p1.board_name
-                    END user_name1, 
-                    CASE 
-                    WHEN p2.board_name IS NULL
-                        THEN p2.steam_name
-                    WHEN p2.board_name IS NOT NULL
-                        THEN p2.board_name
-                    END user_name2
+                    COALESCE(p1.board_name, p1.steam_name) AS user_name1, 
+                    COALESCE(p2.board_name, p2.steam_name) AS user_name2, c1.map_id
                 FROM (SELECT * FROM 
                 "p2boards".coop_bundled 
                 WHERE id IN 
                     (SELECT coop_id
                     FROM "p2boards".changelog
-                    WHERE map_id = '47825'
+                    WHERE map_id = $1
                     AND coop_id IS NOT NULL)) as cb 
                 INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
                 INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
@@ -146,44 +137,36 @@ impl CoopPreview {
                 LIMIT 40
                 "#,
         )
-        .bind(map_id.clone())
+        .bind(map_id)
         .fetch_all(pool)
         .await?;
-        // TODO: Maybe remove unwrap(), it assumes that the profile_number2 will not be None.
+
         let mut vec_final = Vec::new();
-        let default = "N/A".to_string();
-        let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(80);
-        remove_dups.insert(default.clone(), 1);
+        let mut remove_dups = HashSet::with_capacity(80);
+        remove_dups.insert("N/A".to_string());
         for entry in res {
-            match remove_dups.insert(entry.profile_number1.clone(), 1) {
-                Some(_) => match remove_dups.insert(entry.profile_number2.clone().unwrap(), 1) {
-                    Some(_) => (),
-                    _ => vec_final.push(entry),
+            match remove_dups.insert(entry.profile_number1.clone()) {
+                false => match remove_dups.insert(entry.profile_number2.clone().unwrap()) {
+                    false => (),
+                    true => vec_final.push(entry),
                 },
-                _ => match remove_dups.insert(entry.profile_number2.clone().unwrap(), 1) {
-                    Some(_) => vec_final.push(entry),
-                    _ => vec_final.push(entry),
+                true => match remove_dups.insert(entry.profile_number2.clone().unwrap()) {
+                    false => vec_final.push(entry),
+                    true => vec_final.push(entry),
                 },
             }
         }
         vec_final.truncate(7);
         Ok(vec_final)
     }
-}
-
-impl CoopPreviews {
     // Collects the top 7 preview data for all Coop maps.
-    pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<CoopPreviews>> {
+    pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<Vec<CoopPreview>>> {
         let map_id_vec = Maps::get_steam_ids(pool, true).await?;
-        let mut vec_final = Vec::new();
-        for map_id in map_id_vec.iter() {
-            let vec_temp = CoopPreview::get_coop_preview(pool, map_id.to_string()).await?;
-            vec_final.push(CoopPreviews {
-                map_id: map_id.clone(),
-                scores: vec_temp,
-            })
-        }
-        Ok(vec_final)
+        let futures: Vec<_> = map_id_vec
+            .iter()
+            .map(|map_id| CoopPreview::get_coop_preview(pool, map_id))
+            .collect();
+        try_join_all(futures).await
     }
 }
 

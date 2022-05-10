@@ -1,6 +1,7 @@
 use crate::models::maps::Maps;
 use crate::models::sp::*;
 use anyhow::Result;
+use futures::future::try_join_all;
 use sqlx::PgPool;
 
 impl SpMap {
@@ -21,12 +22,7 @@ impl SpMap {
                     t.submission,
                     t.note,
                     t.category_id,
-                    CASE
-                    WHEN t.board_name IS NULL
-                        THEN t.steam_name
-                    WHEN t.board_name IS NOT NULL
-                        THEN t.board_name
-                    END user_name,
+                    COALESCE(t.board_name, t.steam_name) AS user_name,
                     t.avatar
                 FROM (
                     SELECT DISTINCT ON (changelog.profile_number) 
@@ -65,16 +61,11 @@ impl SpMap {
 
 impl SpPreview {
     /// Gets preview information for top 7 on an SP Map.
-    pub async fn get_sp_preview(pool: &PgPool, map_id: String) -> Result<Vec<SpPreview>> {
+    pub async fn get_sp_preview(pool: &PgPool, map_id: &str) -> Result<Vec<SpPreview>> {
         Ok(sqlx::query_as::<_, SpPreview>(
             r#"
                 SELECT t.CL_profile_number, t.score, t.youtube_id, t.category_id,
-                CASE
-                    WHEN t.board_name IS NULL
-                        THEN t.steam_name
-                    WHEN t.board_name IS NOT NULL
-                        THEN t.board_name
-                    END user_name, t.map_id
+                COALESCE(t.board_name, t.steam_name) AS user_name, t.map_id
                 FROM (
                     SELECT DISTINCT ON (changelog.profile_number) 
                         changelog.profile_number as CL_profile_number,
@@ -87,27 +78,20 @@ impl SpPreview {
                     ORDER BY changelog.profile_number, changelog.score ASC
                 ) t
                ORDER BY score
-               LIMIT 7"#,
+               LIMIT 7;"#,
         )
-        .bind(map_id.clone())
+        .bind(map_id)
         .fetch_all(pool)
         .await?)
     }
-}
-
-impl SpPreviews {
     /// Collects the top 7 preview data for all SP maps.
-    pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<SpPreviews>> {
+    pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<Vec<SpPreview>>> {
         let map_id_vec = Maps::get_steam_ids(pool, false).await?;
-        let mut vec_final = Vec::new();
-        for map_id in map_id_vec.iter() {
-            let vec_temp = SpPreview::get_sp_preview(pool, map_id.to_string()).await?;
-            vec_final.push(SpPreviews {
-                map_id: map_id.clone(),
-                scores: vec_temp,
-            })
-        }
-        Ok(vec_final)
+        let futures: Vec<_> = map_id_vec
+            .iter()
+            .map(|map_id| SpPreview::get_sp_preview(pool, map_id))
+            .collect();
+        try_join_all(futures).await
     }
 }
 
