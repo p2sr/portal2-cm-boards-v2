@@ -28,10 +28,10 @@ impl SpMap {
                     SELECT DISTINCT ON (changelog.profile_number) 
                         changelog.profile_number as CL_profile_number,
                         users.profile_number as U_profile_number, *
-                    FROM "p2boards".changelog
-                    INNER JOIN "p2boards".users ON (users.profile_number = changelog.profile_number)
-                    INNER JOIN "p2boards".maps ON (changelog.map_id = maps.steam_id)
-                    INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
+                    FROM changelog
+                    INNER JOIN users ON (users.profile_number = changelog.profile_number)
+                    INNER JOIN maps ON (changelog.map_id = maps.steam_id)
+                    INNER JOIN chapters ON (maps.chapter_id = chapters.id)
                         WHERE map_id = $1
                         AND users.banned = False
                         AND changelog.verified = True
@@ -70,8 +70,8 @@ impl SpPreview {
                     SELECT DISTINCT ON (changelog.profile_number) 
                         changelog.profile_number as CL_profile_number,
                         users.profile_number as U_profile_number, *
-                    FROM "p2boards".changelog
-                    INNER JOIN "p2boards".users ON (users.profile_number = changelog.profile_number)
+                    FROM changelog
+                    INNER JOIN users ON (users.profile_number = changelog.profile_number)
                     WHERE map_id = $1
                     AND users.banned = False
                     AND changelog.banned = False
@@ -101,7 +101,7 @@ impl SpBanned {
         Ok(sqlx::query_as::<_, SpBanned>(
             r#"
                 SELECT changelog.profile_number, changelog.score 
-                    FROM "p2boards".changelog
+                    FROM changelog
                     WHERE changelog.banned = True
                         AND changelog.map_id = $1
                     ORDER BY changelog.score ASC

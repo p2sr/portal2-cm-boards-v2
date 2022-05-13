@@ -134,8 +134,8 @@ mysql>*/
 
 SELECT t.timestamp, t.score, t.steam_name, t.board_name FROM (
   SELECT DISTINCT ON (changelog.profile_number) *
-  FROM "p2boards".changelog
-  INNER JOIN "p2boards".users ON (users.profile_number = changelog.profile_number)
+  FROM changelog
+  INNER JOIN users ON (users.profile_number = changelog.profile_number)
   WHERE map_id = '47763'
   AND users.banned = False
   AND changelog.banned = False
@@ -160,8 +160,8 @@ SELECT t.timestamp,
   t.avatar
  FROM (
   SELECT DISTINCT ON (changelog.profile_number) *
-  FROM "p2boards".changelog
-  INNER JOIN "p2boards".users ON (users.profile_number = changelog.profile_number)
+  FROM changelog
+  INNER JOIN users ON (users.profile_number = changelog.profile_number)
   WHERE map_id = '47763'
   AND users.banned = False
   AND changelog.verified = True
@@ -200,16 +200,16 @@ SELECT  c1.timestamp,
         p1.avatar,
         p2.avatar
 FROM (SELECT * FROM 
-  "p2boards".coop_bundled 
+  coop_bundled 
   WHERE id IN 
     (SELECT coop_id
-    FROM "p2boards".changelog
+    FROM changelog
     WHERE map_id = $1
     AND coop_id IS NOT NULL)) as cb 
-  INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
-  INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
-  INNER JOIN "p2boards".users AS p1 ON (p1.profile_number = cb.p_id1)
-  INNER JOIN "p2boards".users AS p2 ON (p2.profile_number = cb.p_id2)
+  INNER JOIN changelog AS c1 ON (c1.id = cb.cl_id1)
+  INNER JOIN changelog AS c2 ON (c2.id = cb.cl_id2)
+  INNER JOIN users AS p1 ON (p1.profile_number = cb.p_id1)
+  INNER JOIN users AS p2 ON (p2.profile_number = cb.p_id2)
   WHERE p1.banned=False
   AND p2.banned=False
   AND c1.banned=False
@@ -220,16 +220,16 @@ FROM (SELECT * FROM
 
 SELECT c1.timestamp, c1.profile_number, c2.profile_number, c1.score, c1.demo_id, c2.demo_id, c1.youtube_id, c2.youtube_id, c1.submission, c2.submission, c1.note, c2.note, c1.category_id, c2.category_id, p1.board_name, p2.board_name, p1.avatar, p2.avatar
 FROM (SELECT * FROM 
-  "p2boards".coop_bundled 
+  coop_bundled 
   WHERE id IN 
     (SELECT coop_id
-    FROM "p2boards".changelog
+    FROM changelog
     WHERE map_id='47828'
     AND coop_id IS NOT NULL)) as cb 
-  INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
-  INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2) 
-  INNER JOIN "p2boards".users AS p1 ON (p1.profile_number = cb.p_id1)
-  INNER JOIN "p2boards".users AS p2 ON (p2.profile_number = cb.p_id2)
+  INNER JOIN changelog AS c1 ON (c1.id = cb.cl_id1)
+  INNER JOIN changelog AS c2 ON (c2.id = cb.cl_id2) 
+  INNER JOIN users AS p1 ON (p1.profile_number = cb.p_id1)
+  INNER JOIN users AS p2 ON (p2.profile_number = cb.p_id2)
   WHERE p1.banned=False
   AND p2.banned=False
   AND c1.banned=False
@@ -239,49 +239,36 @@ FROM (SELECT * FROM
   ORDER BY score ASC;
 
 
-SELECT  c1.timestamp, 
+SELECT  c1.timestamp, c2.timestamp,
       c1.score, 
-      c1.note, 
-      c2.note,
-      CASE 
-        WHEN p1.board_name IS NULL
-          THEN p1.steam_name
-        WHEN p1.board_name IS NOT NULL
-          THEN p1.board_name
-      END p1_username, 
-      CASE 
-        WHEN p2.board_name IS NULL
-          THEN p2.steam_name
-        WHEN p2.board_name IS NOT NULL
-          THEN p2.board_name
-      END p2_username
+      COALESCE(p1.board_name, p1.steam_name) AS p1_username,
+      COALESCE(p2.board_name, p2.steam_name) AS p2_username
 FROM (SELECT * FROM 
-"p2boards".coop_bundled 
+coop_bundled 
 WHERE id IN 
   (SELECT coop_id
-  FROM "p2boards".changelog
-  WHERE map_id='52777'
-  AND coop_id IS NOT NULL)) as cb 
-INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
-INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
-INNER JOIN "p2boards".users AS p1 ON (p1.profile_number = cb.p_id1)
-INNER JOIN "p2boards".users AS p2 ON (p2.profile_number = cb.p_id2)
+  FROM changelog
+  WHERE coop_id IS NOT NULL)) as cb 
+INNER JOIN changelog AS c1 ON (c1.id = cb.cl_id1)
+INNER JOIN changelog AS c2 ON (c2.id = cb.cl_id2)
+INNER JOIN users AS p1 ON (p1.profile_number = cb.p_id1)
+INNER JOIN users AS p2 ON (p2.profile_number = cb.p_id2)
 WHERE p1.banned=False
 AND p2.banned=False
 AND c1.banned=False
 AND c2.banned=False
 AND c1.verified=True
 AND c2.verified=True
-ORDER BY score ASC;
+ORDER BY timestamp DESC;
 
 
 SELECT users.profile_number, a.user_name, a.banned_runs, b.total_runs, c.non_verified_runs
-  FROM "p2boards".users RIGHT JOIN (
+  FROM users RIGHT JOIN (
       SELECT usr.profile_number,
       COALESCE(usr.board_name, usr.steam_name) AS user_name,
       COUNT(changelog.id) AS banned_runs
-          FROM "p2boards".changelog
-          INNER JOIN "p2boards".users AS usr ON (usr.profile_number = changelog.profile_number)
+          FROM changelog
+          INNER JOIN users AS usr ON (usr.profile_number = changelog.profile_number)
           WHERE changelog.banned = 'true'
           GROUP BY usr.profile_number) 
       AS a
@@ -289,15 +276,15 @@ SELECT users.profile_number, a.user_name, a.banned_runs, b.total_runs, c.non_ver
   LEFT JOIN (
       SELECT usr2.profile_number,
       COUNT(cl.id) AS total_runs
-          FROM "p2boards".changelog as cl
-          INNER JOIN "p2boards".users AS usr2 ON (usr2.profile_number = cl.profile_number)
+          FROM changelog as cl
+          INNER JOIN users AS usr2 ON (usr2.profile_number = cl.profile_number)
           GROUP BY usr2.profile_number)
       AS b
       ON users.profile_number = b.profile_number
   LEFT JOIN (
       SELECT usr3.profile_number, COUNT(cl2.id) AS non_verified_runs
-          FROM "p2boards".changelog as cl2
-          INNER JOIN "p2boards".users AS usr3 ON (usr3.profile_number = cl2.profile_number)
+          FROM changelog as cl2
+          INNER JOIN users AS usr3 ON (usr3.profile_number = cl2.profile_number)
           WHERE cl2.verified = 'false'
           GROUP BY usr3.profile_number)
       AS c
@@ -307,11 +294,11 @@ SELECT users.profile_number, a.user_name, a.banned_runs, b.total_runs, c.non_ver
 
 
 SELECT users.profile_number, a.user_name, a.banned_runs, b.total_runs, c.non_verified_runs
-      FROM "p2boards".users
+      FROM users
       FULL OUTER JOIN ( 
           SELECT usr3.profile_number, COUNT(cl2.id) AS non_verified_runs
-              FROM "p2boards".changelog as cl2
-              INNER JOIN "p2boards".users AS usr3 ON (usr3.profile_number = cl2.profile_number)
+              FROM changelog as cl2
+              INNER JOIN users AS usr3 ON (usr3.profile_number = cl2.profile_number)
               WHERE cl2.verified = 'false'
               GROUP BY usr3.profile_number)
           AS c
@@ -320,8 +307,8 @@ SELECT users.profile_number, a.user_name, a.banned_runs, b.total_runs, c.non_ver
           SELECT usr.profile_number,
           COALESCE(usr.board_name, usr.steam_name) AS user_name,
           COUNT(changelog.id) AS banned_runs
-              FROM "p2boards".changelog
-              INNER JOIN "p2boards".users AS usr ON (usr.profile_number = changelog.profile_number)
+              FROM changelog
+              INNER JOIN users AS usr ON (usr.profile_number = changelog.profile_number)
               WHERE changelog.banned = 'true'
               GROUP BY usr.profile_number) 
           AS a
@@ -329,22 +316,22 @@ SELECT users.profile_number, a.user_name, a.banned_runs, b.total_runs, c.non_ver
       LEFT JOIN (
           SELECT usr2.profile_number,
           COUNT(cl.id) AS total_runs
-              FROM "p2boards".changelog as cl
-              INNER JOIN "p2boards".users AS usr2 ON (usr2.profile_number = cl.profile_number)
+              FROM changelog as cl
+              INNER JOIN users AS usr2 ON (usr2.profile_number = cl.profile_number)
               GROUP BY usr2.profile_number)
           AS b
           ON users.profile_number = b.profile_number
       ORDER BY a.banned_runs DESC;
 
 SELECT d.profile_number, d.user_name, d.total_runs, d.banned_runs, d.non_verified_runs
-  FROM "p2boards".users
+  FROM users
   FULL OUTER JOIN (
     SELECT users1.profile_number, a.user_name, a.banned_runs, b.total_runs, c.non_verified_runs
-        FROM "p2boards".users AS users1
+        FROM users AS users1
         FULL OUTER JOIN ( 
             SELECT usr3.profile_number, COUNT(cl2.id) AS non_verified_runs
-                FROM "p2boards".changelog as cl2
-                INNER JOIN "p2boards".users AS usr3 ON (usr3.profile_number = cl2.profile_number)
+                FROM changelog as cl2
+                INNER JOIN users AS usr3 ON (usr3.profile_number = cl2.profile_number)
                 WHERE cl2.verified = 'false'
                 GROUP BY usr3.profile_number)
             AS c
@@ -353,8 +340,8 @@ SELECT d.profile_number, d.user_name, d.total_runs, d.banned_runs, d.non_verifie
             SELECT usr.profile_number,
             COALESCE(usr.board_name, usr.steam_name) AS user_name,
             COUNT(changelog.id) AS banned_runs
-                FROM "p2boards".changelog
-                INNER JOIN "p2boards".users AS usr ON (usr.profile_number = changelog.profile_number)
+                FROM changelog
+                INNER JOIN users AS usr ON (usr.profile_number = changelog.profile_number)
                 WHERE changelog.banned = 'true'
                 GROUP BY usr.profile_number) 
             AS a
@@ -362,8 +349,8 @@ SELECT d.profile_number, d.user_name, d.total_runs, d.banned_runs, d.non_verifie
         FULL OUTER JOIN (
             SELECT usr2.profile_number,
             COUNT(cl.id) AS total_runs
-                FROM "p2boards".changelog as cl
-                INNER JOIN "p2boards".users AS usr2 ON (usr2.profile_number = cl.profile_number)
+                FROM changelog as cl
+                INNER JOIN users AS usr2 ON (usr2.profile_number = cl.profile_number)
                 GROUP BY usr2.profile_number)
             AS b
             ON users1.profile_number = b.profile_number)
@@ -376,15 +363,15 @@ ORDER BY d.total_runs DESC;
 
 
 SELECT old.steam_id, old.name, old.score, old.timestamp FROM 
-  (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM "p2boards".maps 
-  INNER JOIN "p2boards".changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
+  (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM maps 
+  INNER JOIN changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
   SELECT *
     FROM (
         SELECT MAX(o1.timestamp)
           FROM
           (SELECT DISTINCT ON (m1.steam_id) m1.steam_id, m1.name, cl1.score, cl1.timestamp, cl1.id
-            FROM "p2boards".changelog AS cl1
-              INNER JOIN "p2boards".maps AS m1
+            FROM changelog AS cl1
+              INNER JOIN maps AS m1
                 ON (cl1.map_id = m1.steam_id)
               WHERE cl1.profile_number = '76561198040982247'
               AND cl1.banned = 'false'
@@ -428,3 +415,33 @@ CREATE TABLE IF NOT EXISTS `country` (
 -- Dumping data for table `country`
 --
 
+
+SELECT  c1.timestamp, 
+    c1.score,
+    COALESCE(p1.board_name, p1.steam_name) AS user_name1,
+    COALESCE(p2.board_name, p2.steam_name) AS user_name2
+FROM (SELECT * FROM 
+coop_bundled 
+WHERE id IN 
+    (SELECT coop_id
+    FROM changelog
+    WHERE coop_id IS NOT NULL)) as cb 
+INNER JOIN changelog AS c1 ON (c1.id = cb.cl_id1)
+INNER JOIN changelog AS c2 ON (c2.id = cb.cl_id2)
+INNER JOIN users AS p1 ON (p1.profile_number = cb.p_id1)
+INNER JOIN users AS p2 ON (p2.profile_number = cb.p_id2)
+INNER JOIN maps ON (c1.map_id = maps.steam_id)
+INNER JOIN chapters ON (maps.chapter_id = chapters.id)
+WHERE p1.banned=False
+    AND p2.banned = False
+    AND c1.banned = False
+    AND c2.banned = False
+    AND c1.verified = True
+    AND c2.verified = True
+ORDER BY timestamp DESC;
+
+    c1.profile_number AS profile_number1, c2.profile_number AS profile_number2, 
+    c1.demo_id AS demo_id1, c2.demo_id AS demo_id2, 
+    c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2,
+    c1.submission AS submission1, c2.submission AS submission2, 
+    c1.category_id, p1.avatar AS avatar1, p2.avatar AS avatar2

@@ -10,12 +10,10 @@ impl Users {
     #[allow(dead_code)]
     pub async fn get_user(pool: &PgPool, profile_number: String) -> Result<Option<Users>> {
         Ok(Some(
-            sqlx::query_as::<_, Users>(
-                r#"SELECT * FROM "p2boards".users WHERE profile_number = $1"#,
-            )
-            .bind(profile_number)
-            .fetch_one(pool)
-            .await?,
+            sqlx::query_as::<_, Users>(r#"SELECT * FROM users WHERE profile_number = $1"#)
+                .bind(profile_number)
+                .fetch_one(pool)
+                .await?,
         ))
     }
     /// Gets a user's avatar and user_name/board_name (favors board_name)
@@ -23,7 +21,7 @@ impl Users {
         Ok(sqlx::query_as::<_, UsersPage>(
             r#"
                 SELECT COALESCE(board_name, steam_name) AS user_name, avatar
-                    FROM "p2boards".users
+                    FROM users
                     WHERE users.profile_number = $1
                 "#,
         )
@@ -38,7 +36,7 @@ impl Users {
         let nick_name = format!("%{}%", &nick_name);
         let res = sqlx::query(
             r#"
-                SELECT users.profile_number FROM "p2boards".users
+                SELECT users.profile_number FROM users
                 WHERE 
                     CASE
                         WHEN users.board_name IS NULL
@@ -59,12 +57,12 @@ impl Users {
     }
     /// Returns a list of all banned player's profile_numbers.
     pub async fn get_banned(pool: &PgPool) -> Result<Vec<String>> {
-        Ok(sqlx::query(
-            r#"SELECT users.profile_number FROM "p2boards".users WHERE users.banned = True"#,
+        Ok(
+            sqlx::query(r#"SELECT users.profile_number FROM users WHERE users.banned = True"#)
+                .map(|row: PgRow| row.get(0))
+                .fetch_all(pool)
+                .await?,
         )
-        .map(|row: PgRow| row.get(0))
-        .fetch_all(pool)
-        .await?)
     }
     /// Returns a list of all banned player's as a UsersDisplay object.
     pub async fn get_banned_display(pool: &PgPool) -> Result<Option<Vec<UsersDisplay>>> {
@@ -73,7 +71,7 @@ impl Users {
                 r#" SELECT users.profile_number,
                 COALESCE(users.board_name, users.steam_name) as user_name, 
                 users.avatar
-                    FROM "p2boards".users WHERE users.banned = 'true'"#,
+                    FROM users WHERE users.banned = 'true'"#,
             )
             .fetch_all(pool)
             .await?,
@@ -81,20 +79,20 @@ impl Users {
     }
     /// Returns the boolean flag associated with the user in the boards, if Err, assumed User does not exist.
     pub async fn check_banned(pool: &PgPool, profile_number: String) -> Result<bool> {
-        Ok(sqlx::query(
-            r#"SELECT users.banned FROM "p2boards".users WHERE users.profile_number = $1"#,
+        Ok(
+            sqlx::query(r#"SELECT users.banned FROM users WHERE users.profile_number = $1"#)
+                .bind(profile_number)
+                .map(|row: PgRow| row.get(0))
+                .fetch_one(pool)
+                .await?,
         )
-        .bind(profile_number)
-        .map(|row: PgRow| row.get(0))
-        .fetch_one(pool)
-        .await?)
     }
     /// Returns the title associated with the user (CAN BE NONE)
     #[allow(dead_code)]
     pub async fn get_title(pool: &PgPool, profile_number: String) -> Result<Option<String>> {
         // Result of query can be None, None is valid and should not return an error.
         let res: Option<String> =
-            sqlx::query(r#"SELECT title FROM "p2boards".users WHERE users.profile_number = $1"#)
+            sqlx::query(r#"SELECT title FROM users WHERE users.profile_number = $1"#)
                 .bind(profile_number)
                 .map(|row: PgRow| row.get(0))
                 .fetch_one(pool)
@@ -108,7 +106,7 @@ impl Users {
             sqlx::query_as::<_, Socials>(
                 r#"
                 SELECT twitch, youtube, discord_id 
-                FROM "p2boards".users 
+                FROM users 
                 WHERE profile_number = $1"#,
             )
             .bind(profile_number)
@@ -120,7 +118,7 @@ impl Users {
     #[allow(dead_code)]
     pub async fn get_admin_for_user(pool: &PgPool, profile_number: String) -> Result<Option<i32>> {
         Ok(Some(
-            sqlx::query(r#"SELECT admin FROM "p2boards".users WHERE profile_number = $1"#)
+            sqlx::query(r#"SELECT admin FROM users WHERE profile_number = $1"#)
                 .bind(profile_number)
                 .map(|row: PgRow| row.get(0))
                 .fetch_one(pool)
@@ -145,7 +143,7 @@ impl Users {
                 SELECT users.profile_number, 
                     COALESCE(users.board_name, users.steam_name) AS user_name,
                     users.avatar
-                FROM "p2boards".users
+                FROM users
                 WHERE users.admin = $1
                 "#,
             )
@@ -159,7 +157,7 @@ impl Users {
         Ok(Some(
             sqlx::query_as::<_, Users>(
                 r#"
-            SELECT * FROM "p2boards".users
+            SELECT * FROM users
                 WHERE donation_amount IS NOT NULL
                 ORDER BY CAST(donation_amount AS decimal) DESC;"#,
             )
@@ -172,18 +170,18 @@ impl Users {
         profile_number: &String,
     ) -> Result<Option<ProfileData>> {
         let s1 = r#"SELECT old.steam_id AS map, old.name AS map_name, old.score, old.timestamp FROM 
-            (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM "p2boards".maps 
-            INNER JOIN "p2boards".changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
+            (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM maps 
+            INNER JOIN changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
             SELECT *
                 FROM (
                     SELECT "#;
         let s2 = r#"(o1.timestamp)
         FROM
         (SELECT DISTINCT ON (m1.steam_id) m1.steam_id, m1.name, cl1.score, cl1.timestamp, cl1.id
-            FROM "p2boards".changelog AS cl1
-            INNER JOIN "p2boards".maps AS m1
+            FROM changelog AS cl1
+            INNER JOIN maps AS m1
                 ON (cl1.map_id = m1.steam_id)
-            INNER JOIN "p2boards".chapters AS c1
+            INNER JOIN chapters AS c1
                 ON (m1.chapter_id = c1.id)
             WHERE cl1.profile_number = $1
             AND c1.is_multiplayer = $2
@@ -226,7 +224,7 @@ impl Users {
         // We do not care about the returning profile_number. As it is not generated and we already have it
         let res = sqlx::query_as::<_, Users>(
             r#"
-                INSERT INTO "p2boards".Users
+                INSERT INTO Users
                 (profile_number, board_name, steam_name, banned, registered, 
                 avatar, twitch, youtube, title, admin, donation_amount, discord_id)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -261,7 +259,7 @@ impl Users {
         // (board_name should only be changed by the backend, admin should only be updated by admin etc)
         let _ = sqlx::query(
             r#"
-                UPDATE "p2boards".users
+                UPDATE users
                 SET board_name = $1, steam_name = $2, banned = $3, registered = $4, 
                 avatar = $5, twitch = $6, youtube = $7, title = $8, admin = $9,
                 donation_amount = $10, discord_id = $11
@@ -290,9 +288,9 @@ impl Users {
     ) -> Result<String> {
         Ok(sqlx::query(
             r#"WITH old AS (
-                SELECT avatar FROM "p2boards".users WHERE profile_number = $2
+                SELECT avatar FROM users WHERE profile_number = $2
             )
-            UPDATE "p2boards".users SET avatar = $1 
+            UPDATE users SET avatar = $1 
                 WHERE profile_number = $2 RETURNING (SELECT avatar FROM old)"#,
         )
         .bind(avatar)
@@ -304,7 +302,7 @@ impl Users {
     #[allow(dead_code)]
     pub async fn delete_user(pool: &PgPool, profile_number: String) -> Result<bool> {
         let res = sqlx::query_as::<_, Users>(
-            r#"DELETE FROM "p2boards".users 
+            r#"DELETE FROM users 
                 WHERE profile_number = $1 RETURNING *"#,
         )
         .bind(profile_number)

@@ -86,7 +86,7 @@ pub fn construct_sp_score(params: PostSP) -> Result<ChangelogInsert> {
         coop_id: None,
         post_rank,         // New rank as of this score update
         pre_rank: prerank, // Rank prior to this score update
-        submission: false,
+        submission: 0,
         note: None,
         category_id: params.cat_id,
         score_delta,

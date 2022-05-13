@@ -17,7 +17,7 @@ sqlx = { version = "0.5.11", features = [
     "runtime-actix-rustls",
     "postgres",
     "chrono",
-    "offline",
+    "macros",
 ] }
 chrono = { version = "0.4.19", features = ["serde", "rustc-serialize"] }
 

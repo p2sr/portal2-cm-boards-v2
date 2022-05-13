@@ -9,14 +9,14 @@ use crate::models::users::Users;
 // Implementations of associated functions for Changelog
 impl Changelog {
     pub async fn get_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<Changelog>> {
-        Ok(Some(sqlx::query_as::<_, Changelog>(r#"SELECT * FROM "p2boards".changelog WHERE id = $1"#)
+        Ok(Some(sqlx::query_as::<_, Changelog>(r#"SELECT * FROM changelog WHERE id = $1"#)
             .bind(cl_id)
             .fetch_one(pool)
             .await?))
     }
     #[allow(dead_code)]
     pub async fn get_demo_id_from_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<i64>> {
-        Ok(Some(sqlx::query(r#"SELECT demo_id FROM "p2boards".changelog WHERE id = $1"#)
+        Ok(Some(sqlx::query(r#"SELECT demo_id FROM changelog WHERE id = $1"#)
             .bind(cl_id)
             .map(|row: PgRow| {row.get(0)})
             .fetch_one(pool)
@@ -28,9 +28,9 @@ impl Changelog {
         // We don't care about the result, we only care if there is a result.
         let res = sqlx::query(r#" 
                 SELECT * 
-                FROM "p2boards".changelog
-                    INNER JOIN "p2boards".maps ON (maps.steam_id = changelog.map_id)
-                    INNER JOIN "p2boards".chapters ON (chapters.id = maps.chapter_id)
+                FROM changelog
+                    INNER JOIN maps ON (maps.steam_id = changelog.map_id)
+                    INNER JOIN chapters ON (chapters.id = maps.chapter_id)
                 WHERE changelog.score = $1
                     AND changelog.map_id = $2
                     AND changelog.profile_number = $3
@@ -54,9 +54,9 @@ impl Changelog {
     pub async fn get_sp_pb_history(pool: &PgPool, profile_number: &str, map_id: &str, cat_id: i32, game_id: i32) -> Result<Vec<Changelog>> {
         Ok(sqlx::query_as::<_, Changelog>(r#" 
                 SELECT changelog.* 
-                FROM "p2boards".changelog
-                    INNER JOIN "p2boards".maps ON (maps.steam_id = changelog.map_id)
-                    INNER JOIN "p2boards".chapters ON (chapters.id = maps.chapter_id)
+                FROM changelog
+                    INNER JOIN maps ON (maps.steam_id = changelog.map_id)
+                    INNER JOIN chapters ON (chapters.id = maps.chapter_id)
                 WHERE changelog.profile_number = $1
                     AND changelog.map_id = $2
                     AND changelog.category_id = $3
@@ -71,7 +71,7 @@ impl Changelog {
     }
     /// Deletes all references to a demo_id in `changelog`
     pub async fn delete_references_to_demo(pool: &PgPool, demo_id: i64) -> Result<Vec<i64>> {
-        let res: Vec<i64> = sqlx::query(r#"UPDATE "p2boards".changelog SET demo_id = NULL WHERE demo_id = $1 RETURNING id;"#)
+        let res: Vec<i64> = sqlx::query(r#"UPDATE changelog SET demo_id = NULL WHERE demo_id = $1 RETURNING id;"#)
             .bind(demo_id)
             .map(|row: PgRow| {row.get(0)})
             .fetch_all(pool)
@@ -81,7 +81,7 @@ impl Changelog {
     /// Deletes all references to a coop_id in `changelog`
     #[allow(dead_code)]
     pub async fn delete_references_to_coop_id(pool: &PgPool, coop_id: i64) -> Result<Vec<i64>> {
-        let res: Vec<i64> = sqlx::query(r#"UPDATE "p2boards".changelog SET coop_id NULL WHERE coop_id = $1 RETURNING id;"#)
+        let res: Vec<i64> = sqlx::query(r#"UPDATE changelog SET coop_id NULL WHERE coop_id = $1 RETURNING id;"#)
             .bind(coop_id)
             .map(|row: PgRow| {row.get(0)})
             .fetch_all(pool)
@@ -92,7 +92,7 @@ impl Changelog {
     pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64> {
         // TODO: https://stackoverflow.com/questions/4448340/postgresql-duplicate-key-violates-unique-constraint
         let res: i64 = sqlx::query(r#"
-                INSERT INTO "p2boards".changelog 
+                INSERT INTO changelog 
                 (timestamp, profile_number, score, map_id, demo_id, banned, 
                 youtube_id, coop_id, post_rank, pre_rank, submission, note,
                 category_id, score_delta, verified, admin_note) VALUES 
@@ -109,7 +109,7 @@ impl Changelog {
     }
     /// Updates all fields (except ID) for a given changelog entry. Returns the updated Changelog struct.
     pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<bool> {
-        let _ = sqlx::query(r#"UPDATE "p2boards".changelog 
+        let _ = sqlx::query(r#"UPDATE changelog 
                 SET timestamp = $1, profile_number = $2, score = $3, map_id = $4, demo_id = $5, banned = $6, 
                 youtube_id = $7, coop_id = $8, post_rank = $9, pre_rank = $10, submission = $11, note = $12,
                 category_id = $13, score_delta = $14, verified = $15, admin_note = $16
@@ -125,7 +125,7 @@ impl Changelog {
     }
     /// Updates demo_id
     pub async fn update_demo_id_in_changelog(pool: &PgPool, cl_id: i64, demo_id: i64) -> Result<bool> {
-        let _ = sqlx::query(r#"UPDATE "p2boards".changelog 
+        let _ = sqlx::query(r#"UPDATE changelog 
                 SET demo_id = $1 WHERE id = $2;"#)
             .bind(demo_id)
             .bind(cl_id)
@@ -134,7 +134,7 @@ impl Changelog {
         Ok(true)
     }
     pub async fn delete_changelog(pool: &PgPool, cl_id: i64) -> Result<bool> {
-        let res = sqlx::query_as::<_, Changelog>(r#"DELETE FROM "p2boards".changelog WHERE id = $1 RETURNING *"#)
+        let res = sqlx::query_as::<_, Changelog>(r#"DELETE FROM changelog WHERE id = $1 RETURNING *"#)
             .bind(cl_id)
             .fetch_one(pool)
             .await;
@@ -185,10 +185,10 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
             cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
             cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name AS map_name,  
             COALESCE(u.board_name, u.steam_name) AS user_name, u.avatar
-                FROM "p2boards".changelog AS cl
-                    INNER JOIN "p2boards".users AS u ON (u.profile_number = cl.profile_number)
-                    INNER JOIN "p2boards".maps AS map ON (map.steam_id = cl.map_id)
-                    INNER JOIN "p2boards".chapters AS chapter on (map.chapter_id = chapter.id)
+                FROM changelog AS cl
+                    INNER JOIN users AS u ON (u.profile_number = cl.profile_number)
+                    INNER JOIN maps AS map ON (map.steam_id = cl.map_id)
+                    INNER JOIN chapters AS chapter on (map.chapter_id = chapter.id)
     "#,
     );
     let mut filters: Vec<String> = Vec::new();

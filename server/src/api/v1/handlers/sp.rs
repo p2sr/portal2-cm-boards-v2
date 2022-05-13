@@ -80,7 +80,7 @@ async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Respo
 /// - **Default**
 ///     - `/api/v1/map/sp/47802` - Will assume default category ID
 /// - **Specific Category**                   
-///     - `/api/v1/map/sp/47802?cat_id=40`
+///     - `/api/v1/map/sp/47802?cat_id=88`
 /// - **Specific Game**
 ///     - `/api/v1/map/sp/47802?game_id=1`
 ///
@@ -99,7 +99,7 @@ async fn sp(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Respo
 ///             "youtube_id": "MtwWXAO2E5c?start=0",
 ///             "submission": false,
 ///             "note": "https://www.youtube.com/watch?v=orwgEEaJln0",
-///             "category_id": 40,
+///             "category_id": 88,
 ///             "user_name": "Zyntex",
 ///             "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/9d/9d160bcde456f7bb452b1ed9d9e740cd73f89266_full.jpg"
 ///         },
@@ -189,7 +189,7 @@ async fn sp_all_banned(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> impl 
 /// - **With Parameters**
 ///     - `/api/v1/sp/banned/47458?profile_number=76561198823602829&score=2445`
 /// - **With Optional**
-///     - `/api/v1/sp/banned/47458?profile_number=76561198823602829&score=2445&cat_id=1&game_id=1`
+///     - `/api/v1/sp/banned/47458?profile_number=76561198823602829&score=2445&cat_id=49&game_id=1`
 ///
 /// Makes a call to the underlying [SpBanned::get_sp_banned]
 ///
@@ -240,7 +240,7 @@ async fn sp_banned(
 /// - **With Parametes**
 ///     - `/api/v1/sp/history?map_id=47458&profile_number=76561198795823814
 /// - **With cat_id**
-///     - `/api/v1/sp/history?map_id=47458&profile_number=76561198795823814&cat_id=1
+///     - `/api/v1/sp/history?map_id=47458&profile_number=76561198795823814&cat_id=49
 ///
 /// Makes a call to the underlying [Users::get_user_data] & [Changelog::get_sp_pb_history]
 ///
@@ -268,7 +268,7 @@ async fn sp_banned(
 ///             "pre_rank": 1,
 ///             "submission": true,
 ///             "note": "",
-///             "category_id": 1,
+///             "category_id": 49,
 ///             "score_delta": -7,
 ///             "verified": true,
 ///             "admin_note": null

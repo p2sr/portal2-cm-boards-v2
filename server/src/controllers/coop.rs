@@ -10,7 +10,7 @@ impl CoopBundled {
     pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64> {
         Ok(sqlx::query(
             r#"
-                INSERT INTO "p2boards".coop_bundled 
+                INSERT INTO coop_bundled 
                 (p_id1, p_id2, p1_is_host, cl_id1, cl_id2) VALUES 
                 ($1, $2, $3, $4, $5)
                 RETURNING id"#,
@@ -25,7 +25,7 @@ impl CoopBundled {
         .await?)
     }
     pub async fn get_temp_coop_changelog(pool: &PgPool, map_id: &str) -> Result<CoopTempUser> {
-        Ok(sqlx::query_as::<_, CoopTempUser>(r#"SELECT id AS cl_id, profile_number FROM "p2boards".changelog WHERE profile_number = 'N/A' AND map_id = $1"#)
+        Ok(sqlx::query_as::<_, CoopTempUser>(r#"SELECT id AS cl_id, profile_number FROM changelog WHERE profile_number = 'N/A' AND map_id = $1"#)
             .bind(map_id)
             .fetch_one(pool)
             .await?)
@@ -42,38 +42,28 @@ impl CoopMap {
     ) -> Result<Vec<CoopMap>> {
         match sqlx::query_as::<_, CoopMap>(
             r#"
-                SELECT  c1.timestamp, 
+                SELECT c1.timestamp, 
                     c1.score, cb.p1_is_host, c1.note AS note1, c2.note AS note2,
-                    CASE 
-                        WHEN p1.board_name IS NULL
-                            THEN p1.steam_name
-                        WHEN p1.board_name IS NOT NULL
-                            THEN p1.board_name
-                    END user_name1, 
-                        CASE 
-                        WHEN p2.board_name IS NULL
-                            THEN p2.steam_name
-                        WHEN p2.board_name IS NOT NULL
-                            THEN p2.board_name
-                    END user_name2,
+                    COALESCE(p1.board_name, p1.steam_name) AS user_name1,
+                    COALESCE(p2.board_name, p2.steam_name) AS user_name2,
                     c1.profile_number AS profile_number1, c2.profile_number AS profile_number2, 
                     c1.demo_id AS demo_id1, c2.demo_id AS demo_id2, 
                     c1.youtube_id AS youtube_id1, c2.youtube_id AS youtube_id2,
                     c1.submission AS submission1, c2.submission AS submission2, 
                     c1.category_id, p1.avatar AS avatar1, p2.avatar AS avatar2
                 FROM (SELECT * FROM 
-                "p2boards".coop_bundled 
+                coop_bundled 
                 WHERE id IN 
                     (SELECT coop_id
-                    FROM "p2boards".changelog
+                    FROM changelog
                     WHERE map_id = $1
                     AND coop_id IS NOT NULL)) as cb 
-                INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
-                INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
-                INNER JOIN "p2boards".users AS p1 ON (p1.profile_number = cb.p_id1)
-                INNER JOIN "p2boards".users AS p2 ON (p2.profile_number = cb.p_id2)
-                INNER JOIN "p2boards".maps ON (c1.map_id = maps.steam_id)
-                INNER JOIN "p2boards".chapters ON (maps.chapter_id = chapters.id)
+                INNER JOIN changelog AS c1 ON (c1.id = cb.cl_id1)
+                INNER JOIN changelog AS c2 ON (c2.id = cb.cl_id2)
+                INNER JOIN users AS p1 ON (p1.profile_number = cb.p_id1)
+                INNER JOIN users AS p2 ON (p2.profile_number = cb.p_id2)
+                INNER JOIN maps ON (c1.map_id = maps.steam_id)
+                INNER JOIN chapters ON (maps.chapter_id = chapters.id)
                 WHERE p1.banned=False
                     AND p2.banned = False
                     AND c1.banned = False
@@ -97,7 +87,7 @@ impl CoopMap {
             }
             Err(e) => {
                 eprintln!("{}", e);
-                Err(anyhow::Error::new(e).context("Error with SP Maps"))
+                Err(anyhow::Error::new(e).context("Error with Coop Maps"))
             }
         }
     }
@@ -117,16 +107,16 @@ impl CoopPreview {
                     COALESCE(p1.board_name, p1.steam_name) AS user_name1, 
                     COALESCE(p2.board_name, p2.steam_name) AS user_name2, c1.map_id
                 FROM (SELECT * FROM 
-                "p2boards".coop_bundled 
+                coop_bundled 
                 WHERE id IN 
                     (SELECT coop_id
-                    FROM "p2boards".changelog
+                    FROM changelog
                     WHERE map_id = $1
                     AND coop_id IS NOT NULL)) as cb 
-                INNER JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
-                INNER JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
-                INNER JOIN "p2boards".users AS p1 ON (p1.profile_number = cb.p_id1)
-                INNER JOIN "p2boards".users AS p2 ON (p2.profile_number = cb.p_id2)
+                INNER JOIN changelog AS c1 ON (c1.id = cb.cl_id1)
+                INNER JOIN changelog AS c2 ON (c2.id = cb.cl_id2)
+                INNER JOIN users AS p1 ON (p1.profile_number = cb.p_id1)
+                INNER JOIN users AS p2 ON (p2.profile_number = cb.p_id2)
                 WHERE p1.banned=False
                     AND p2.banned=False
                     AND c1.banned=False
@@ -182,14 +172,14 @@ impl CoopBanned {
         Ok(sqlx::query_as::<_, CoopBanned>(r#"
                 SELECT c1.score, c1.profile_number AS profile_number1, c2.profile_number AS profile_number2
                 FROM (SELECT * FROM 
-                    "p2boards".coop_bundled 
+                    coop_bundled 
                     WHERE id IN 
                     (SELECT coop_id
-                    FROM "p2boards".changelog
+                    FROM changelog
                     WHERE map_id = $1
                     AND coop_id IS NOT NULL)) as cb
-                LEFT JOIN "p2boards".changelog AS c1 ON (c1.id = cb.cl_id1)
-                LEFT JOIN "p2boards".changelog AS c2 ON (c2.id = cb.cl_id2)
+                LEFT JOIN changelog AS c1 ON (c1.id = cb.cl_id1)
+                LEFT JOIN changelog AS c2 ON (c2.id = cb.cl_id2)
                     WHERE (c1.banned = True OR c1.verified = False)
                     OR (c2.banned = True OR c2.verified = False)
                     AND c1.category_id = $2

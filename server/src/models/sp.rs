@@ -11,7 +11,7 @@ pub struct SpMap {
     pub score: i32,
     pub demo_id: Option<i64>,
     pub youtube_id: Option<String>,
-    pub submission: bool,
+    pub submission: i32,
     pub note: Option<String>,
     pub category_id: i32,
     pub user_name: Option<String>,

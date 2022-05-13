@@ -7,7 +7,7 @@ impl Chapters {
     /// Returns the maps for a given chapter.
     pub async fn get_map_ids(pool: &PgPool, chapter_id: i32) -> Result<Option<Vec<String>>> {
         Ok(Some(
-            sqlx::query(r#"SELECT maps.steam_id FROM p2boards.maps WHERE chapter_id=$1"#)
+            sqlx::query(r#"SELECT maps.steam_id FROM maps WHERE chapter_id=$1"#)
                 .bind(chapter_id)
                 .map(|row: PgRow| row.get(0))
                 .fetch_all(pool)
@@ -21,7 +21,7 @@ impl Chapters {
     // ) -> Result<Option<Vec<Chapters>>> {
     //     let query_chapter_name = format!("%{}%", &chapter_name);
     //     let res = sqlx::query_as::<_, Chapters>(
-    //         r#"SELECT * FROM "p2boards".chapters
+    //         r#"SELECT * FROM chapters
     //             WHERE LOWER(chapter_name) LIKE LOWER(%$1%)"#,
     //     )
     //     .bind(query_chapter_name)
@@ -33,7 +33,7 @@ impl Chapters {
     #[allow(dead_code)]
     pub async fn get_chapter_by_id(pool: &PgPool, chapter_id: i32) -> Result<Option<Chapters>> {
         Ok(Some(
-            sqlx::query_as::<_, Chapters>(r#"SELECT * FROM "p2boards".chapters WHERE id=$1;"#)
+            sqlx::query_as::<_, Chapters>(r#"SELECT * FROM chapters WHERE id=$1;"#)
                 .bind(chapter_id)
                 .fetch_one(pool)
                 .await?,
@@ -46,7 +46,7 @@ impl Chapters {
         chapter_id: i32,
     ) -> Result<Option<bool>> {
         Ok(Some(
-            sqlx::query(r#"SELECT is_multiplayer FROM "p2boards".chapters WHERE id=$1"#)
+            sqlx::query(r#"SELECT is_multiplayer FROM chapters WHERE id=$1"#)
                 .bind(chapter_id)
                 .map(|row: PgRow| row.get(0))
                 .fetch_one(pool)
@@ -58,8 +58,8 @@ impl Chapters {
         Ok(Some(
             sqlx::query_as::<_, Games>(
                 r#"SELECT games.id, games.game_name 
-                FROM "p2boards".games
-                INNER JOIN "p2boards".chapters ON (games.id = chapters.game_id)
+                FROM games
+                INNER JOIN chapters ON (games.id = chapters.game_id)
                 WHERE chapters.id = $1"#,
             )
             .bind(chapter_id)
@@ -83,7 +83,7 @@ impl Chapters {
 // TODO: Do we want to return a chapter/map bundled information?
 ///
 pub async fn build_filtered_chapter(params: ChapterQueryParams) -> Result<String> {
-    let mut query_string: String = String::from(r#"SELECT * FROM "p2boards".chapters"#);
+    let mut query_string: String = String::from(r#"SELECT * FROM chapters"#);
     let mut filters: Vec<String> = Vec::new();
     if let Some(chapter_name) = params.chapter_name {
         filters.push(format!(

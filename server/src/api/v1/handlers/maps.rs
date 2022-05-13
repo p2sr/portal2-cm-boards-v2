@@ -54,7 +54,7 @@ async fn maps(pool: web::Data<PgPool>, query: web::Query<GameID>) -> impl Respon
 /// ## Example JSON ouput
 ///
 /// ```json
-/// 1
+/// 49
 /// ```
 #[get("/default_category/{map}")]
 async fn default_category(params: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {

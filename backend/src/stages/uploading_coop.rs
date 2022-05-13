@@ -136,7 +136,7 @@ pub fn construct_coop_score(params: PostCoop) -> Result<(ChangelogInsert, Change
         coop_id: None,
         post_rank,          // New rank as of this score update
         pre_rank: prerank1, // Rank prior to this score update
-        submission: false,
+        submission: 0,
         note: None,
         category_id: params.cat_id,
         score_delta: score_delta1,
@@ -156,7 +156,7 @@ pub fn construct_coop_score(params: PostCoop) -> Result<(ChangelogInsert, Change
         coop_id: None,
         post_rank,          // New rank as of this score update
         pre_rank: prerank2, // Rank prior to this score update
-        submission: false,
+        submission: 0,
         note: None,
         category_id: params.cat_id,
         score_delta: score_delta2,
@@ -227,7 +227,7 @@ pub fn construct_coop_score_from_one(params: PostCoop) -> Result<(ChangelogInser
         coop_id: None,
         post_rank,          // New rank as of this score update
         pre_rank: prerank1, // Rank prior to this score update
-        submission: false,
+        submission: 0,
         note: None,
         category_id: params.cat_id,
         score_delta: score_delta1,

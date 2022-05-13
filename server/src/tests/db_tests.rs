@@ -28,7 +28,7 @@ async fn test_db_maps() {
     let pgun = "Portal Gun".to_string();
     assert_eq!(map_name, pgun);
     let default_cat = Maps::get_default_cat(&pool, sp[0].clone()).await.unwrap().unwrap();
-    assert_eq!(default_cat, 1);
+    assert_eq!(default_cat, 49);
     let chapter_id = Maps::get_chapter_from_map_id(&pool, sp[0].clone()).await.unwrap().unwrap();
     assert_eq!(chapter_id.id, 7);
     assert_eq!(chapter_id.chapter_name, Some("The Courtesy Call".to_string()));
@@ -85,7 +85,7 @@ async fn test_db_users() {
         avatar: Some("https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/92/921d9d7402a6e766759bcc0b2ac7b91f1dcf0ad2_full.jpg".to_string()),
         twitch: Some("bigdaniel".to_string()),
         youtube: Some("/channel/UCtwF46_PUGCefgRfrcIXOZA".to_string()),
-        title: None,
+        title: Some("Sysadmin".to_string()),
         admin: 1,
         donation_amount: None,
         discord_id: None,
@@ -112,7 +112,7 @@ async fn test_db_users() {
     let test_vec = Users::check_board_name(&pool, "Daniel".to_string()).await.unwrap().unwrap();
     assert!(test_vec.len() != 0);
     let banned = Users::get_banned(&pool).await.unwrap();
-    assert_eq!(banned.len(), 148);
+    assert!(banned.len() > 148);
     let banned = Users::check_banned(&pool, user.profile_number.clone()).await.unwrap();
     assert!(!banned);
     let title = Users::get_title(&pool, user.profile_number.clone()).await.unwrap();
@@ -152,17 +152,19 @@ async fn test_db_demos() {
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
 
     let demo = Demos {
-        id: 14598,
-        file_id: "LaservsTurret_1763_76561198040982247_14598.dem".to_string(),
+        id: 14607,
+        file_id: "LaservsTurret_1763_76561198040982247_14607.dem".to_string(),
         partner_name: None,
         parsed_successfully: true,
         sar_version: None,
         cl_id: 127825,
         updated: None,
     };
-    let new_demo = Demos::get_demo(&pool, demo.id).await.unwrap().unwrap();
+    let demo_by_cl_id = Demos::get_demo_by_cl_id(&pool, demo.cl_id).await.unwrap().unwrap();
 
-    assert_eq!(demo.id, new_demo.id);
+    let new_demo = Demos::get_demo(&pool, demo_by_cl_id.id).await.unwrap().unwrap();
+
+    assert_eq!(demo_by_cl_id.id, new_demo.id);
     assert_eq!(demo.file_id, new_demo.file_id);
     assert_eq!(demo.partner_name, new_demo.partner_name);
     assert_eq!(demo.parsed_successfully, new_demo.parsed_successfully);
@@ -353,9 +355,9 @@ async fn test_db_pages() {
 
     let sp_map_id = "47763".to_string();
     let coop_map_id = "52642".to_string();
-    let smp = SpMap::get_sp_map_page(&pool, &sp_map_id, DEFAULT_PAGE_SIZE as i32, 19, 1).await.unwrap();
+    let smp = SpMap::get_sp_map_page(&pool, &sp_map_id, DEFAULT_PAGE_SIZE as i32, 67, 1).await.unwrap();
     assert_ne!(smp.len(), 0);
-    let cmp = CoopMap::get_coop_map_page(&pool, &coop_map_id, DEFAULT_PAGE_SIZE as i32, 81, 1).await.unwrap();
+    let cmp = CoopMap::get_coop_map_page(&pool, &coop_map_id, DEFAULT_PAGE_SIZE as i32, 21, 1).await.unwrap();
     assert_ne!(cmp.len(), 0);
     let coop_entries_filtered = filter_coop_entries(cmp, config.proof.results as usize).await;
     // Ensure we didn't mess up the ranking/points algorithm.

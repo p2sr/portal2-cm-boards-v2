@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use sqlx::types::Json;
 use sqlx::FromRow;
 
 /// One-to-one struct for demo data.
@@ -26,10 +27,23 @@ pub struct Mtriggers {
 /// One-to-one struct for mtrigger_entry data.
 #[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
 pub struct MtriggerEntries {
-    id: i32,
-    mtrigger_id: i32,
-    changelog_id: i64,
-    time: i32,
+    pub id: i32,
+    pub mtrigger_id: i32,
+    pub changelog_id: i64,
+    pub time: i32,
+}
+
+/// The bundled mtrigger & mtrigger entry
+#[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
+pub struct MtriggerBundle {
+    pub mtrigger_id: i32,
+    pub map_id: String,
+    pub category_id: String,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub mtrigger_entry_id: i32,
+    pub changelog_id: i64,
+    pub time: i32,
 }
 
 /// Insert struct for `Demos`, excludes `id`

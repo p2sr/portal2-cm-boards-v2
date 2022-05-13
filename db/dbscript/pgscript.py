@@ -323,7 +323,7 @@ def main():
         autocommit=False,
     )
     pg_conn = psycopg2.connect(
-        dbname="p2boardsnew",
+        dbname="p2boards",
         user=psql_username,
         password=123
     )
@@ -344,8 +344,15 @@ def main():
     # demos(pg_cursor)
     # changelog_to_pg(pg_cursor, all_changelogs_local_list)
     # add_filler_entries(pg_cursor)
-    coop_bundled(mysql_cursor, pg_cursor)
+    # assign_default_cats(pg_cursor)
+    # coop_bundled(mysql_cursor, pg_cursor)
 
+def assign_default_cats(pg_cursor):
+    pg_cursor.execute("""SELECT id, map_id FROM categories;""")
+    res = pg_cursor.fetchall()
+    for cat_id, steam_id in res:
+        string = f"UPDATE maps SET default_cat_id = {cat_id} WHERE maps.steam_id = '{steam_id}'"
+        pg_cursor.execute(string)
 
 def evidence_requirements(mysql_cursor, pg_cursor):
     get_evidence = """SELECT *
