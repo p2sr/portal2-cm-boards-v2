@@ -346,6 +346,18 @@ def main():
     # add_filler_entries(pg_cursor)
     # assign_default_cats(pg_cursor)
     # coop_bundled(mysql_cursor, pg_cursor)
+    # fill_in_coop_bundled(pg_cursor)
+
+def fill_in_coop_bundled(pg_cursor):
+    pg_cursor.execute("""SELECT id, map_id FROM changelog WHERE profile_number = 'N/A'""")
+    res = pg_cursor.fetchall()
+    mapping = {}
+    for v, k in res:
+        mapping[k] = v
+    pg_cursor.execute("""SELECT coop_bundled.id, cl_id1, changelog.map_id FROM coop_bundled INNER JOIN changelog ON (changelog.id = cl_id1) WHERE p_id2 IS NULL;""")
+    res = pg_cursor.fetchall()
+    for entry in res:
+        pg_cursor.execute("""UPDATE coop_bundled SET p_id2 = 'N/A', cl_id2 = %s WHERE id = %s""",(mapping[entry[2]], entry[0]))
 
 def assign_default_cats(pg_cursor):
     pg_cursor.execute("""SELECT id, map_id FROM categories;""")
