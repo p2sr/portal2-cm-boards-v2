@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use num::pow;
 use sqlx::PgPool;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::models::changelog::{CalcValues, Changelog};
 use crate::models::coop::{CoopMap, CoopRanked};
@@ -33,15 +33,15 @@ pub async fn get_default_cat_ids(pool: &PgPool) -> HashMap<String, i32> {
 /// Filters out all obsolete times from the result, then truncates to x entries.
 pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Vec<CoopRanked> {
     let mut coop_entries_filtered = Vec::new();
-    let mut remove_dups: HashMap<String, i32> = HashMap::with_capacity(limit);
-    remove_dups.insert("".to_string(), 1);
+    let mut remove_dups: HashSet<String> = HashSet::with_capacity(limit);
+    remove_dups.insert("N/A".to_string());
     let mut i = 1;
     for entry in coop_entries.into_iter() {
-        match remove_dups.insert(entry.profile_number1.clone(), 1) {
+        match remove_dups.insert(entry.profile_number1.clone()) {
             // If player 1 has a better time, check to see if player 2 doesn't.
-            Some(_) => match remove_dups.insert(entry.profile_number2.clone(), 1) {
-                Some(_) => (),
-                _ => {
+            false => match remove_dups.insert(entry.profile_number2.clone()) {
+                false => (),
+                true => {
                     coop_entries_filtered.push(CoopRanked {
                         map_data: entry.clone(),
                         rank: i,
@@ -51,8 +51,8 @@ pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Ve
                 }
             },
             // This case handles if player 1 doesn't have a better time, and it tries to add player 2 in as well, if two has a better time or not, this is included.
-            _ => match remove_dups.insert(entry.profile_number2.clone(), 1) {
-                Some(_) => {
+            true => match remove_dups.insert(entry.profile_number2.clone()) {
+                false => {
                     coop_entries_filtered.push(CoopRanked {
                         map_data: entry.clone(),
                         rank: i,
@@ -60,7 +60,7 @@ pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Ve
                     });
                     i += 1;
                 }
-                _ => {
+                true => {
                     coop_entries_filtered.push(CoopRanked {
                         map_data: entry.clone(),
                         rank: i,
