@@ -13,6 +13,16 @@ pub struct CoopBundled {
     pub updated: Option<NaiveDateTime>,
 }
 
+/// Insert struct for creating a new `CoopBundled`
+#[derive(Serialize, Deserialize, FromRow)]
+pub struct CoopBundledInsert {
+    pub p_id1: String,
+    pub p_id2: Option<String>,
+    pub p1_is_host: Option<bool>,
+    pub cl_id1: i64,
+    pub cl_id2: Option<i64>,
+}
+
 /// The minimal data we want for Coop map pages to lower bandwitch usage.
 #[derive(Serialize, FromRow, Clone)]
 pub struct CoopMap {
@@ -62,16 +72,6 @@ pub struct CoopRanked {
 pub struct CoopTempUser {
     pub cl_id: i64,
     pub profile_number: String,
-}
-
-/// Insert struct for creating a new `CoopBundled`
-#[derive(Serialize, Deserialize, FromRow)]
-pub struct CoopBundledInsert {
-    pub p_id1: String,
-    pub p_id2: Option<String>,
-    pub p1_is_host: Option<bool>,
-    pub cl_id1: i64,
-    pub cl_id2: Option<i64>,
 }
 
 /// Banned times for Coop

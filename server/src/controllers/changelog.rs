@@ -14,13 +14,30 @@ impl Changelog {
             .fetch_one(pool)
             .await?))
     }
-    #[allow(dead_code)]
+    // pub async fn search_changelog(pool: &PgPool, params: ChangelogSearchQuery) -> Result<Option<Changelog>> {
+    //     Ok(sqlx::query_as::<_, Changelog>(r#"SELECT * FROM changelog
+    //         INNER JOIN maps ON (maps.steam_id = changelog.map_id)
+    //         INNER JOIN chapters ON (chapters.id = maps.chapter_id)
+    //             WHERE profile_number = $1
+    //             AND map_id = $2
+    //             AND score = $3
+    //             AND category_id = COALESCE($4, maps.default_cat_id)
+    //             AND chapters.game_id = $5"#)
+    //         .bind(params.profile_number)
+    //         .bind(params.map_id)
+    //         .bind(params.score)
+    //         .bind(params.category_id)
+    //         .bind(params.game_id.unwrap_or(1))
+    //         .fetch_optional(pool)
+    //         .await?)
+    // }
+    /// Get just the demo ID from a changelog id.
     pub async fn get_demo_id_from_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<i64>> {
-        Ok(Some(sqlx::query(r#"SELECT demo_id FROM changelog WHERE id = $1"#)
+        let res: Option<i64> = sqlx::query_scalar(r#"SELECT demo_id FROM changelog WHERE id = $1"#)
             .bind(cl_id)
-            .map(|row: PgRow| {row.get(0)})
-            .fetch_one(pool)
-            .await?))
+            .fetch_optional(pool)
+            .await?;
+        Ok(res)
     }
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.

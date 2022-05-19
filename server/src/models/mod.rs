@@ -7,7 +7,7 @@ pub mod chapters;
 /// Cooperative-specific models.
 pub mod coop;
 /// Demo models
-pub mod demo;
+pub mod demos;
 /// Maps-based models.
 pub mod maps;
 /// Point-based models.

@@ -333,16 +333,12 @@ async fn sp_history(
 }
 
 /// Receives a new score to add to the DB.
-#[allow(unused_variables)]
 #[post("/sp/post_score")]
 async fn sp_post_score(
     params: web::Json<ChangelogInsert>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
 ) -> impl Responder {
-    // TODO: Handle demo uploads.
-    // TODO: Working with sequence re-sync. Need to implement role-back.
-
     let res = Changelog::insert_changelog(pool.get_ref(), params.0).await;
     match res {
         Ok(id) => {
@@ -442,7 +438,7 @@ async fn sp_update(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> imp
 ///
 /// Makes a call to the underlying [check_for_valid_score]
 ///
-/// ## Example JSON output:
+/// ## Example JSON output where score is valid:
 ///
 /// ```json
 /// {
@@ -452,6 +448,11 @@ async fn sp_update(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> imp
 ///     "score_delta": 2,
 ///     "banned": false
 /// }
+///
+/// ## Example JSON output where score is **not** valid:
+///
+/// ```json
+/// false
 /// ```
 #[get("/sp/validate")]
 pub async fn sp_validate(
@@ -475,7 +476,7 @@ pub async fn sp_validate(
         Ok(details) => HttpResponse::Ok().json(details),
         Err(e) => {
             eprintln!("Error finding newscore details -> {:#?}", e);
-            HttpResponse::NotFound().json("Score is not valid.")
+            HttpResponse::NotFound().json(false)
         }
     }
 }

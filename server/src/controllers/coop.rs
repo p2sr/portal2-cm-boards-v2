@@ -1,5 +1,6 @@
 use crate::models::coop::*;
 use crate::models::maps::Maps;
+use crate::models::changelog::Changelog;
 use anyhow::Result;
 use futures::future::try_join_all;
 use sqlx::postgres::PgRow;
@@ -28,6 +29,13 @@ impl CoopBundled {
         Ok(sqlx::query_as::<_, CoopTempUser>(r#"SELECT id AS cl_id, profile_number FROM changelog WHERE profile_number = 'N/A' AND map_id = $1"#)
             .bind(map_id)
             .fetch_one(pool)
+            .await?)
+    }
+    pub async fn update_changelog_with_coop_id(pool: &PgPool, cl_id: i64, coop_id: i64) -> Result<Option<Changelog>> {
+        Ok(sqlx::query_as::<_, Changelog>(r#"UPDATE changelog SET coop_id = $1 WHERE id = $2 RETURNING *"#)
+            .bind(coop_id)
+            .bind(cl_id)
+            .fetch_optional(pool)
             .await?)
     }
 }

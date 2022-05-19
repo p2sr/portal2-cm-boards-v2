@@ -142,6 +142,16 @@ pub struct ChangelogQueryParams {
     pub last: Option<i64>,
 }
 
+/// Query parameters for searching for a given
+#[derive(Deserialize, Debug)]
+pub struct ChangelogSearchQuery {
+    pub profile_number: String,
+    pub map_id: String,
+    pub score: i32,
+    pub category_id: Option<i32>,
+    pub game_id: Option<i32>,
+}
+
 /// Fields for a submission to the changelog
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SubmissionChangelog {

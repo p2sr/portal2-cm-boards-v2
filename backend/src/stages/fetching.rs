@@ -3,8 +3,7 @@ use super::exporting::*;
 use super::fetching_coop::*;
 use super::fetching_sp::*;
 use crate::models::{
-    Entry, FetchingData, GetPlayerSummariesWrapper, Leaderboards, PostSP, SpBanned, SpRanked,
-    Users, XmlTag,
+    Entry, FetchingData, GetPlayerSummariesWrapper, Leaderboards, SpBanned, Users, XmlTag,
 };
 use anyhow::Result;
 use log::{debug, trace};
@@ -103,33 +102,4 @@ pub fn update_image(profile_number: &str) -> Result<String> {
             Ok("http://media.steampowered.com/steamcommunity/public/images/avatars/f9/f91787b7fb6d4a2cb8dee079ab457839b33a8845_full.jpg".to_string())
         }
     }
-}
-// TODO:
-// 620 - Portal 2.
-// http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?key={}&steamid={}}&format=json
-#[allow(dead_code)]
-pub fn add_user(profile_number: String) -> Result<Users> {
-    // http://steamcommunity.com/profiles/{}/?xml=1
-    // GET https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/
-    let api_key = dotenv::var("STEAM_API_KEY").expect("Cannot find STEAM_API_KEY in ./.env");
-
-    let steam_api_url = format!(
-        "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={}&steamids={}",
-        api_key, profile_number
-    );
-    let user = reqwest::blocking::get(&steam_api_url)?.json::<GetPlayerSummariesWrapper>()?;
-
-    let new_user = Users {
-        profile_number,
-        board_name: None,
-        steam_name: Some(user.response.players[0].personaname.clone()),
-        banned: false,
-        registered: 0,
-        avatar: Some(user.response.players[0].avatarfull.clone()),
-        ..Default::default()
-    };
-
-    let url = String::from("http://localhost:8080/api/v1/user");
-    let client = reqwest::blocking::Client::new();
-    Ok(client.post(&url).json(&new_user).send()?.json::<Users>()?)
 }

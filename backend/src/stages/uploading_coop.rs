@@ -44,8 +44,8 @@ pub fn post_coop_pb(params: PostCoop) -> Result<()> {
 pub fn construct_coop_score(params: PostCoop) -> Result<(ChangelogInsert, ChangelogInsert)> {
     let profile_number2 = params.profile_number2.unwrap();
     // Handle there being a partner
-    let previous_id1: Option<i32>;
-    let previous_id2: Option<i32>;
+    let previous_id1: Option<i64>;
+    let previous_id2: Option<i64>;
     let past_score1: Option<i32>;
     let past_score2: Option<i32>;
     // Grab the PB history. For now, we're just going to use 2 calls to our API rather than a combined call. (We'll use SP here).
@@ -64,7 +64,7 @@ pub fn construct_coop_score(params: PostCoop) -> Result<(ChangelogInsert, Change
             let current_pb = pb_vec.into_iter().next();
             if let Some(s) = current_pb {
                 let current_pb = s;
-                previous_id1 = Some(current_pb.id as i32);
+                previous_id1 = Some(current_pb.id);
                 past_score1 = Some(current_pb.score);
             } else {
                 previous_id1 = None;
@@ -81,7 +81,7 @@ pub fn construct_coop_score(params: PostCoop) -> Result<(ChangelogInsert, Change
             let current_pb = pb_vec.into_iter().next();
             if let Some(s) = current_pb {
                 let current_pb = s;
-                previous_id2 = Some(current_pb.id as i32);
+                previous_id2 = Some(current_pb.id);
                 past_score2 = Some(current_pb.score);
             } else {
                 previous_id2 = None;
@@ -169,7 +169,7 @@ pub fn construct_coop_score(params: PostCoop) -> Result<(ChangelogInsert, Change
 }
 
 pub fn construct_coop_score_from_one(params: PostCoop) -> Result<(ChangelogInsert, CoopTempUser)> {
-    let previous_id1: Option<i32>;
+    let previous_id1: Option<i64>;
     let past_score1: Option<i32>;
     // Grab the PB history. For now, we're just going to use 2 calls to our API rather than a combined call. (We'll use SP here).
     let url = format!(
@@ -183,7 +183,7 @@ pub fn construct_coop_score_from_one(params: PostCoop) -> Result<(ChangelogInser
             let current_pb = pb_vec.into_iter().next();
             if let Some(s) = current_pb {
                 let current_pb = s;
-                previous_id1 = Some(current_pb.id as i32);
+                previous_id1 = Some(current_pb.id);
                 past_score1 = Some(current_pb.score);
             } else {
                 previous_id1 = None;
@@ -238,4 +238,14 @@ pub fn construct_coop_score_from_one(params: PostCoop) -> Result<(ChangelogInser
     let url = format!("http://localhost:8080/api/v1/coop/temp/{}", params.id);
     let temp_usr_data: CoopTempUser = reqwest::blocking::get(&url)?.json()?;
     Ok((score1, temp_usr_data))
+}
+
+pub async fn upload_coop_bundled(cb: CoopBundledInsert) -> Result<i64> {
+    Ok(reqwest::Client::new()
+        .post("http://localhost:8080/api/v1/coop/post_score")
+        .json(&cb)
+        .send()
+        .await?
+        .json::<i64>()
+        .await?)
 }

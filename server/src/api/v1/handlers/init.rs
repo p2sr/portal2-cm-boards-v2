@@ -4,7 +4,7 @@ use crate::api::v1::handlers::admin::*;
 use crate::api::v1::handlers::changelog::*;
 use crate::api::v1::handlers::chapters::*;
 use crate::api::v1::handlers::coop::*;
-use crate::api::v1::handlers::demo::*;
+use crate::api::v1::handlers::demos::*;
 use crate::api::v1::handlers::maps::*;
 use crate::api::v1::handlers::points::*;
 use crate::api::v1::handlers::sp::*;
@@ -16,6 +16,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
         web::scope("/api/v1")
             .service(changelog)
             .service(changelog_add)
+            .service(changelog_demo_update)
             .service(default_categories_all)
             .service(sp)
             .service(sp_map)
@@ -31,6 +32,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(coop_banned)
             .service(coop_add)
             .service(coop_temp)
+            .service(coop_update_changelog)
             .service(maps)
             .service(default_category)
             .service(map_ids)
@@ -56,6 +58,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(demos)
             .service(demos_changelog)
             .service(demos_delete)
+            .service(demos_add)
             .service(admin_changelog)
             .service(admin_banned_stats)
             .service(admins_list),

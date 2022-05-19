@@ -146,7 +146,7 @@ async fn test_db_users() {
 
 #[actix_web::test]
 async fn test_db_demos() {
-    use crate::models::demo::*;
+    use crate::models::demos::*;
     use crate::models::changelog::{Changelog, ChangelogInsert};
     use chrono::NaiveDateTime;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");

@@ -102,13 +102,20 @@ pub async fn check_for_valid_score(
     }
     let cl = Changelog::get_sp_pb_history(pool, &profile_number, &map_id, cat_id, game_id).await;
     let cl = match cl {
-        Ok(x) => x,
+        Ok(x) => {
+            if x.is_empty() {
+                return Ok(values);
+            } else {
+                x
+            }
+        }
         Err(e) => {
             eprintln!("Error with sp pb history -> {:?}", e);
             eprintln!("Assume there is not sp_pb_histroy for the player.");
             return Ok(values);
         }
     };
+
     if cl[0].score <= score {
         bail!("Current score is the same, or better.")
     }

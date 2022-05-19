@@ -36,7 +36,7 @@ pub fn construct_sp_score(params: PostSP) -> Result<ChangelogInsert> {
         }
     };
 
-    let previous_id: Option<i32>;
+    let previous_id: Option<i64>;
     let past_score: Option<i32>;
     let pb_vec = pb_history.pb_history;
     match pb_vec {
@@ -44,7 +44,7 @@ pub fn construct_sp_score(params: PostSP) -> Result<ChangelogInsert> {
             let current_pb = pb_vec.into_iter().next();
             if let Some(s) = current_pb {
                 let current_pb = s;
-                previous_id = Some(current_pb.id as i32);
+                previous_id = Some(current_pb.id);
                 past_score = Some(current_pb.score);
             } else {
                 previous_id = None;

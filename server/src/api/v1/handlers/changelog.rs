@@ -1,8 +1,9 @@
 use crate::models::changelog::*;
+use crate::models::demos::DemoOptions;
 use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
 use crate::tools::helpers::check_for_valid_score;
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{get, post, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 /// **GET** method for changelog entiries. Utilizes [ChangelogQueryParams] as an optional addition to the query
@@ -189,4 +190,45 @@ async fn changelog_add(
 #[get("/default_categories_all")]
 pub async fn default_categories_all(pool: web::Data<PgPool>) -> impl Responder {
     web::Json(crate::tools::helpers::get_default_cat_ids(pool.get_ref()).await)
+}
+
+/// **PUT** method for updating the demo_id on a changelog entry.
+///
+/// Accepts field values for a new [DemoOptions]
+///
+/// ## Parameters (expects valid JSON Object):
+/// - `demo_id`    
+///     - **Required** - `i64` : The ID of the existing demo.
+/// - `cl_id
+///     - **Required** - `i64` : The ID of the existing changelog entry.
+///
+/// ## Example endpoints:       
+/// - `/api/v1/changelog/demo`
+///
+/// ## Example JSON Input String
+/// ```json
+/// {
+///     "cl_id" : 15625,
+///     "demo_id" : 1251
+/// }
+/// ```
+#[put("/changelog/demo")]
+pub async fn changelog_demo_update(
+    pool: web::Data<PgPool>,
+    ids: web::Json<DemoOptions>,
+) -> impl Responder {
+    let ids = ids.into_inner();
+    match Changelog::update_demo_id_in_changelog(
+        pool.get_ref(),
+        ids.cl_id.unwrap(),
+        ids.demo_id.unwrap(),
+    )
+    .await
+    {
+        Ok(b) => HttpResponse::Ok().json(b),
+        Err(e) => {
+            eprintln!("Error updating demo_id in changelog entry -> {e}");
+            HttpResponse::InternalServerError().body("Error updating changelog entry.")
+        }
+    }
 }

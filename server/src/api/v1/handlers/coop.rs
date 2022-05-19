@@ -3,7 +3,7 @@ use crate::models::chapters::OptIDs;
 use crate::models::coop::*;
 use crate::tools::cache::{read_from_file, write_to_file, CacheState};
 use crate::tools::{config::Config, helpers::filter_coop_entries};
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{get, put, post, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 // TODO: Should use default cat_id
@@ -230,11 +230,7 @@ async fn coop_banned(
         Err(_) => HttpResponse::NotFound().body("Error checking ban information."),
     }
 }
-// pub p_id1: String,
-// pub p_id2: Option<String>,
-// pub p1_is_host: Option<bool>,
-// pub cl_id1: i64,
-// pub cl_id2: Option<i64>,
+
 /// **POST** method that accepts a new coop score.
 ///
 /// Makes the assumption that there are two existing changelog entries that will be used to create a new coop score.
@@ -281,6 +277,27 @@ async fn coop_add(
             HttpResponse::Ok().json(id)
         }
         _ => HttpResponse::NotFound().body("Error adding new score to database."),
+    }
+}
+
+#[put("/coop/update_changelog/{cl_id}/{coop_id}")]
+async fn coop_update_changelog(pool: web::Data<PgPool>, path: web::Path<(i64, i64)>, cache: web::Data<CacheState>) -> impl Responder {
+    match CoopBundled::update_changelog_with_coop_id(pool.get_ref(), path.0, path.1).await {
+        Ok(Some(id)) => {
+            // Invalidate cache if this new score impacts the top 7 preview times.
+            let state_data = &mut cache.current_state.lock().await;
+            let is_cached = state_data.get_mut("coop_previews").unwrap();
+            *is_cached = false;
+            HttpResponse::Ok().json(id)
+        }
+        Ok(None) => {
+            eprintln!("Did not get any return from the SQL statement.");
+            HttpResponse::NotFound().body("Error changing coop_id on changelog entry, changelog value not returned.")
+        }
+        Err(e) => {
+            eprintln!("Error changing coop_id on changelog entry -> {e}");
+            HttpResponse::NotFound().body("Error changing coop_id on changelog entry.")
+        },
     }
 }
 

@@ -9,14 +9,14 @@ fn test_steam_api() {
     assert_eq!(image, "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/92/921d9d7402a6e766759bcc0b2ac7b91f1dcf0ad2_full.jpg".to_string());
 }
 
-#[test]
+#[actix_web::test]
 #[should_panic] // Should panic, we're uploading a duplicate user.
 /// Check the uploading endpoint.
 /// REQUIRES THAT THE LOCAL WEB SERVER AND DB ARE UP.
-fn add_user_steam_api() {
-    use crate::stages::fetching::*;
+async fn add_user_steam_api() {
+    use crate::stages::uploading::*;
 
-    match add_user("76561198040982247".to_string()) {
+    match add_user("76561198040982247").await {
         Ok(_) => (),
         Err(e) => {
             // Could not insert user, it already exists.
