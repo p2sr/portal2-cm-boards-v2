@@ -8,37 +8,14 @@ use crate::models::users::Users;
 
 // Implementations of associated functions for Changelog
 impl Changelog {
+    /// Search for a [Changelog] by ID, return the entire [Changelog].
     pub async fn get_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<Changelog>> {
         Ok(Some(sqlx::query_as::<_, Changelog>(r#"SELECT * FROM changelog WHERE id = $1"#)
             .bind(cl_id)
             .fetch_one(pool)
             .await?))
     }
-    // pub async fn search_changelog(pool: &PgPool, params: ChangelogSearchQuery) -> Result<Option<Changelog>> {
-    //     Ok(sqlx::query_as::<_, Changelog>(r#"SELECT * FROM changelog
-    //         INNER JOIN maps ON (maps.steam_id = changelog.map_id)
-    //         INNER JOIN chapters ON (chapters.id = maps.chapter_id)
-    //             WHERE profile_number = $1
-    //             AND map_id = $2
-    //             AND score = $3
-    //             AND category_id = COALESCE($4, maps.default_cat_id)
-    //             AND chapters.game_id = $5"#)
-    //         .bind(params.profile_number)
-    //         .bind(params.map_id)
-    //         .bind(params.score)
-    //         .bind(params.category_id)
-    //         .bind(params.game_id.unwrap_or(1))
-    //         .fetch_optional(pool)
-    //         .await?)
-    // }
-    /// Get just the demo ID from a changelog id.
-    pub async fn get_demo_id_from_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<i64>> {
-        let res: Option<i64> = sqlx::query_scalar(r#"SELECT demo_id FROM changelog WHERE id = $1"#)
-            .bind(cl_id)
-            .fetch_optional(pool)
-            .await?;
-        Ok(res)
-    }
+    // TODO: params in a [ScoreLookup]
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
     pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String, cat_id: i32, game_id: i32) -> Result<bool> {
@@ -67,7 +44,10 @@ impl Changelog {
             None => Ok(false),
         }
     }
-    /// Returns a vec of changelog for a user's PB history on a given SP map.
+    /// Returns a vec of [Changelog] for a user's personal best history on a given singleplayer map.
+    /// 
+    /// The function does not check to make sure that the map_id is singleplayer, but it is returned as a changelog entry,
+    /// and no special join is done to handle coop-specific personal best history.
     pub async fn get_sp_pb_history(pool: &PgPool, profile_number: &str, map_id: &str, cat_id: i32, game_id: i32) -> Result<Vec<Changelog>> {
         Ok(sqlx::query_as::<_, Changelog>(r#" 
                 SELECT changelog.* 
@@ -86,28 +66,23 @@ impl Changelog {
             .fetch_all(pool)
             .await?)
     }
-    /// Deletes all references to a demo_id in `changelog`
+    /// Deletes all references to a `demo_id` in `changelog`.
     pub async fn delete_references_to_demo(pool: &PgPool, demo_id: i64) -> Result<Vec<i64>> {
-        let res: Vec<i64> = sqlx::query(r#"UPDATE changelog SET demo_id = NULL WHERE demo_id = $1 RETURNING id;"#)
+        Ok(sqlx::query_scalar(r#"UPDATE changelog SET demo_id = NULL WHERE demo_id = $1 RETURNING id;"#)
             .bind(demo_id)
-            .map(|row: PgRow| {row.get(0)})
             .fetch_all(pool)
-            .await?;
-        Ok(res)
+            .await?)
     }
-    /// Deletes all references to a coop_id in `changelog`
+    /// Deletes all references to a `coop_id` in `changelog`
     #[allow(dead_code)]
     pub async fn delete_references_to_coop_id(pool: &PgPool, coop_id: i64) -> Result<Vec<i64>> {
-        let res: Vec<i64> = sqlx::query(r#"UPDATE changelog SET coop_id NULL WHERE coop_id = $1 RETURNING id;"#)
+        Ok(sqlx::query_scalar(r#"UPDATE changelog SET coop_id NULL WHERE coop_id = $1 RETURNING id;"#)
             .bind(coop_id)
-            .map(|row: PgRow| {row.get(0)})
             .fetch_all(pool)
-            .await?;
-        Ok(res)
+            .await?)
     }
     /// Insert a new changelog entry.
     pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64> {
-        // TODO: https://stackoverflow.com/questions/4448340/postgresql-duplicate-key-violates-unique-constraint
         let res: i64 = sqlx::query(r#"
                 INSERT INTO changelog 
                 (timestamp, profile_number, score, map_id, demo_id, banned, 

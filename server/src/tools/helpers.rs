@@ -3,11 +3,14 @@ use num::pow;
 use sqlx::PgPool;
 use std::collections::{HashMap, HashSet};
 
-use crate::models::changelog::{CalcValues, Changelog, SubmissionChangelog};
+use crate::models::changelog::{CalcValues, Changelog, SubmissionChangelog, ChangelogInsert};
 use crate::models::coop::{CoopMap, CoopRanked};
 use crate::models::maps::Maps;
 use crate::models::sp::SpMap;
 use crate::models::users::Users;
+
+use super::cache::CacheState;
+use super::config::Config;
 
 /// Calcultes the score using the pre-existing iVerb point formula.
 #[inline(always)]
@@ -130,4 +133,49 @@ pub async fn check_for_valid_score(
         }
     }
     Ok(values)
+}
+
+
+/// Returns a ChangelogInsert that should be valid to insert.
+/// 
+/// Checks for a past score on the map for the user.
+/// 
+/// Score is invalid if any of the following are true
+/// 1. The user is banned.
+/// 2. The user has a time on the same map, with the same score (time).
+/// 3. The user does not exist (and cannot be added from Steam).
+/// 
+/// This function handles the error case where the user is valid on steam, but does not currently exist in our database.
+pub async fn get_valid_changelog_insert(pool: &PgPool, config: &Config, cache: &CacheState, mut cl: SubmissionChangelog) -> Result<ChangelogInsert> {
+    if cl.category_id.is_none() {
+        cl.category_id = Some(cache.default_cat_ids[&cl.map_id]);
+    } // Steps 1 & 2
+    let values = match check_for_valid_score(pool, &cl, config.proof.results).await {
+        Ok(details) => {
+            if details.banned {
+                bail!("User is banned");
+            } else {
+                details
+            }
+        },
+        Err(e) => {
+            // Step 3
+            eprintln!("Error checking valid score details -> {e}");
+            // Try to insert the user into the users table.
+            match Users::new_from_steam(&config.steam.api_key, &cl.profile_number).await {
+                Ok(user) => {
+                    match Users::insert_new_users(pool, user).await {
+                        Ok(true) => CalcValues::default(),
+                        _ => bail!("Could not add new user to database.")
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Could not get user from steam -> {e}");
+                    bail!("Invalid user steam_id provided.");
+                }
+            }
+        },
+    };
+    // Step 4
+    Ok(ChangelogInsert::new_from_submission(cl, values, &cache.default_cat_ids).await)
 }

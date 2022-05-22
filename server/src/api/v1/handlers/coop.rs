@@ -231,6 +231,35 @@ async fn coop_banned(
     }
 }
 
+/// **GET** method to get the temporary changelog entry used to bundle scores with only one changelog entry.
+/// 
+/// ## Parameters:
+/// - `map_id`
+///     - **Required** - `String` : The steam id for the map.
+/// 
+/// ## Example Endpoints
+/// - `/api/v1/coop/temp/`
+///
+/// Makes a call to the underlying [CoopBundled::get_temp_coop_changelog]
+/// 
+/// ## Example JSON output:
+/// {
+///    "cl_id": 200042,
+///    "profile_number": "N/A"
+/// }
+/// 
+#[get("/coop/temp/{map_id}")]
+async fn coop_temp(pool: web::Data<PgPool>, map_id: web::Path<String>) -> impl Responder {
+    match CoopBundled::get_temp_coop_changelog(pool.get_ref(), &map_id).await {
+        Ok(res) => HttpResponse::Ok().json(res),
+        Err(e) => {
+            eprintln!("Error finding temp score -> {}", e);
+            HttpResponse::NotFound().body("Cannot find temp score on given map.")
+        }
+    }
+}
+
+
 /// **POST** method that accepts a new coop score.
 ///
 /// Makes the assumption that there are two existing changelog entries that will be used to create a new coop score.
@@ -280,6 +309,45 @@ async fn coop_add(
     }
 }
 
+/// **PUT** method that updates existing changelog entries with their parent coop_bundled entry ID.
+///
+/// ## Parameters:
+/// - `cl_id`
+///     - **Required** - `i64` : The ID of the changelog entry to be updated.
+/// - `coop_id`
+///     - **Optional** - `i64` : The ID of the coop_bundled ID you want added to the changelog entry.
+///
+/// ## Example Endpoints
+/// - `/api/v1/coop/update_changelog/12213/124`
+///
+/// Makes a call to the underlying [CoopBundled::insert_coop_bundled]
+///
+/// ## Example JSON output: Returns the changelog in it's updated state.
+/// ```json
+/// {
+///     "id": 185404,
+///     "timestamp": "2022-01-20T19:35:53",
+///     "profile_number": "76561198039230536",
+///     "score": 2396,
+///     "map_id": "49347",
+///     "demo_id": 36899,
+///     "banned": false,
+///     "youtube_id": null,
+///     "previous_id": 185165,
+///     "coop_id": 37660,
+///     "post_rank": 1,
+///     "pre_rank": 1,
+///     "submission": 2,
+///     "note": ".3 slow at start .1 slow to button .1 slow at end ;-;",
+///     "category_id": 43,
+///     "score_delta": -5,
+///     "verified": true,
+///     "admin_note": null,
+///     "map_name": "Bridge Gels",
+///     "user_name": "Zypeh",
+///     "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/dc/dc4c1cfa8f0c5b0c85354825c7711f60c3714a41_full.jpg"
+/// }
+/// ```
 #[put("/coop/update_changelog/{cl_id}/{coop_id}")]
 async fn coop_update_changelog(pool: web::Data<PgPool>, path: web::Path<(i64, i64)>, cache: web::Data<CacheState>) -> impl Responder {
     match CoopBundled::update_changelog_with_coop_id(pool.get_ref(), path.0, path.1).await {
@@ -298,16 +366,5 @@ async fn coop_update_changelog(pool: web::Data<PgPool>, path: web::Path<(i64, i6
             eprintln!("Error changing coop_id on changelog entry -> {e}");
             HttpResponse::NotFound().body("Error changing coop_id on changelog entry.")
         },
-    }
-}
-
-#[get("/coop/temp/{map_id}")]
-async fn coop_temp(pool: web::Data<PgPool>, map_id: web::Path<String>) -> impl Responder {
-    match CoopBundled::get_temp_coop_changelog(pool.get_ref(), &map_id).await {
-        Ok(res) => HttpResponse::Ok().json(res),
-        Err(e) => {
-            eprintln!("Error finding temp score -> {}", e);
-            HttpResponse::NotFound().body("Cannot find temp score on given map.")
-        }
     }
 }

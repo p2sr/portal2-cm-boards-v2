@@ -332,6 +332,81 @@ async fn sp_history(
     }
 }
 
+
+
+// TODO: Potentially depricate this funciton. 
+/// **GET** method for validating an SP Score. Mainly used by our backend that pulls times from the Steam leaderboards.
+///
+/// Query parameters represented as [ScoreLookup]
+///
+/// ## Parameters:
+///    - `profile_number`           
+///         - **Required**: `String`, ID for the player.
+///    - `score`           
+///         - **Required**: `i32`, Time for the run.
+///    - `map_id`           
+///         - **Required**: `String`, ID for the map.
+///    - `cat_id`           
+///         - **Optional**: `i32`, ID for the cateogry. If left blank, will use the default for the map.
+///
+/// ## Example endpoints:
+///  - **With Required**           
+///     - `/api/v1/sp/validate?profile_number=76561198039230536&score=2346&map_id=47458`
+///  - **With cat_id**   
+///     - `/api/v1/sp/validate?profile_number=76561198039230536&score=2346&map_id=47458&?cat_id=1`
+///
+/// Makes a call to the underlying [check_for_valid_score]
+///
+/// ## Example JSON output where score is valid:
+///
+/// ```json
+/// {
+///     "previous_id": 102347,
+///     "post_rank": 500,
+///     "pre_rank": 3,
+///     "score_delta": 2,
+///     "banned": false
+/// }
+///
+/// ## Example JSON output where score is **not** valid:
+///
+/// ```json
+/// false
+/// ```
+#[get("/sp/validate")]
+pub async fn sp_validate(
+    pool: web::Data<PgPool>,
+    data: web::Query<ScoreLookup>,
+    cache: web::Data<CacheState>,
+    config: web::Data<Config>,
+) -> impl Responder {
+    match check_for_valid_score(
+        pool.get_ref(),
+        &SubmissionChangelog {
+            timestamp: "PLACEHOLDER".to_string(),
+            profile_number: data.profile_number.clone(),
+            score: data.score,
+            map_id: data.map_id.clone(),
+            category_id: Some(data.cat_id
+                .unwrap_or(cache.into_inner().default_cat_ids[&data.map_id])),
+            game_id: Some(data.game_id.unwrap_or(1)),
+            note: None,
+            youtube_id: None,
+        }, 
+        config.proof.results,
+
+    )
+    .await
+    {
+        Ok(details) => HttpResponse::Ok().json(details),
+        Err(e) => {
+            eprintln!("Error finding newscore details -> {:#?}", e);
+            HttpResponse::NotFound().json(false)
+        }
+    }
+}
+
+// TODO: Depricate this for changelog uploads.
 /// Receives a new score to add to the DB.
 #[post("/sp/post_score")]
 async fn sp_post_score(
@@ -408,82 +483,15 @@ async fn sp_post_score(
 /// true
 /// ```
 #[put("/sp/update")]
-async fn sp_update(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> impl Responder {
+async fn sp_update(params: web::Json<Changelog>, pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Responder {
     // TODO: Handle demo uploads.
     match Changelog::update_changelog(pool.get_ref(), params.0).await {
-        Ok(changelog_entry) => HttpResponse::Ok().json(changelog_entry),
+        Ok(changelog_entry) => {
+            let state_data = &mut cache.current_state.lock().await;
+            let is_cached = state_data.get_mut("sp_previews").unwrap();
+            *is_cached = false;
+            HttpResponse::Ok().json(changelog_entry)
+        },
         _ => HttpResponse::NotFound().body("Error updating score."),
-    }
-}
-
-// TODO: Potentially depricate this funciton. 
-/// **GET** method for validating an SP Score. Mainly used by our backend that pulls times from the Steam leaderboards.
-///
-/// Query parameters represented as [ScoreLookup]
-///
-/// ## Parameters:
-///    - `profile_number`           
-///         - **Required**: `String`, ID for the player.
-///    - `score`           
-///         - **Required**: `i32`, Time for the run.
-///    - `map_id`           
-///         - **Required**: `String`, ID for the map.
-///    - `cat_id`           
-///         - **Optional**: `i32`, ID for the cateogry. If left blank, will use the default for the map.
-///
-/// ## Example endpoints:
-///  - **With Required**           
-///     - `/api/v1/sp/validate?profile_number=76561198039230536&score=2346&map_id=47458`
-///  - **With cat_id**   
-///     - `/api/v1/sp/validate?profile_number=76561198039230536&score=2346&map_id=47458&?cat_id=1`
-///
-/// Makes a call to the underlying [check_for_valid_score]
-///
-/// ## Example JSON output where score is valid:
-///
-/// ```json
-/// {
-///     "previous_id": 102347,
-///     "post_rank": 500,
-///     "pre_rank": 3,
-///     "score_delta": 2,
-///     "banned": false
-/// }
-///
-/// ## Example JSON output where score is **not** valid:
-///
-/// ```json
-/// false
-/// ```
-#[get("/sp/validate")]
-pub async fn sp_validate(
-    pool: web::Data<PgPool>,
-    data: web::Query<ScoreLookup>,
-    cache: web::Data<CacheState>,
-    config: web::Data<Config>,
-) -> impl Responder {
-    match check_for_valid_score(
-        pool.get_ref(),
-        &SubmissionChangelog {
-            timestamp: "PLACEHOLDER".to_string(),
-            profile_number: data.profile_number.clone(),
-            score: data.score,
-            map_id: data.map_id.clone(),
-            category_id: Some(data.cat_id
-                .unwrap_or(cache.into_inner().default_cat_ids[&data.map_id])),
-            game_id: Some(data.game_id.unwrap_or(1)),
-            note: None,
-            youtube_id: None,
-        }, 
-        config.proof.results,
-
-    )
-    .await
-    {
-        Ok(details) => HttpResponse::Ok().json(details),
-        Err(e) => {
-            eprintln!("Error finding newscore details -> {:#?}", e);
-            HttpResponse::NotFound().json(false)
-        }
     }
 }

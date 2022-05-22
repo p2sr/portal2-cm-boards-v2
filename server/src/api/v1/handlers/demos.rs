@@ -3,7 +3,7 @@ use crate::models::demos::*;
 use crate::models::maps::Maps;
 use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
-use crate::tools::helpers::check_for_valid_score;
+use crate::tools::helpers::get_valid_changelog_insert;
 use actix_multipart::Multipart;
 use actix_web::{delete, get, post, web, HttpResponse, Responder};
 use anyhow::{bail, Result};
@@ -154,7 +154,7 @@ pub async fn demos_changelog(
     // This function heavily utilizes helper functions to make error propagation easier, and reduce the # of match arms
     let config = config.into_inner();
     let mut file_name = String::default();
-    let changelog_insert = match crate::api::v1::handlers::changelog::get_valid_changelog_insert(pool.get_ref(), &config, &cache.into_inner(), query.into_inner()).await {
+    let changelog_insert = match get_valid_changelog_insert(pool.get_ref(), &config, &cache.into_inner(), query.into_inner()).await {
         Ok(insert) => insert,
         Err(e) => {
             eprintln!("Error validating changelog -> {e}");

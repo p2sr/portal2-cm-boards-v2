@@ -7,6 +7,7 @@ use sqlx::{PgPool, Row};
 
 impl Users {
     // TODO: Testing for this
+    // TODO: Fix edge case parsing for steam user.
     pub async fn new_from_steam(steam_api_key: &str, profile_number: &str) -> Result<Users> {
         // http://steamcommunity.com/profiles/{}/?xml=1
         // GET https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/
