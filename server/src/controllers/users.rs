@@ -6,6 +6,29 @@ use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Row};
 
 impl Users {
+    // TODO: Testing for this
+    pub async fn new_from_steam(steam_api_key: &str, profile_number: &str) -> Result<Users> {
+        // http://steamcommunity.com/profiles/{}/?xml=1
+        // GET https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/
+        let steam_api_url = format!(
+            "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key={}&steamids={}",
+            steam_api_key, profile_number
+        );
+        let user = reqwest::get(&steam_api_url)
+            .await?
+            .json::<GetPlayerSummariesWrapper>()
+            .await?;
+
+        Ok(Users {
+            profile_number: profile_number.to_string(),
+            board_name: None,
+            steam_name: Some(user.response.players[0].personaname.clone()),
+            banned: false,
+            registered: 0,
+            avatar: Some(user.response.players[0].avatarfull.clone()),
+            ..Default::default()
+        })
+    }
     /// Returns user information
     #[allow(dead_code)]
     pub async fn get_user(pool: &PgPool, profile_number: String) -> Result<Option<Users>> {
@@ -78,7 +101,7 @@ impl Users {
         ))
     }
     /// Returns the boolean flag associated with the user in the boards, if Err, assumed User does not exist.
-    pub async fn check_banned(pool: &PgPool, profile_number: String) -> Result<bool> {
+    pub async fn check_banned(pool: &PgPool, profile_number: &str) -> Result<bool> {
         Ok(
             sqlx::query(r#"SELECT users.banned FROM users WHERE users.profile_number = $1"#)
                 .bind(profile_number)

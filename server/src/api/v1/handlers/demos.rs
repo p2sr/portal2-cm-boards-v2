@@ -156,7 +156,7 @@ pub async fn demos_changelog(
     let query = query.into_inner();
     let game_id = query.game_id.unwrap_or(1);
     let mut changelog_insert =
-        ChangelogInsert::new_from_submission(query, cache.into_inner().default_cat_ids.clone())
+        ChangelogInsert::new_from_submission(query, &cache.into_inner().default_cat_ids)
             .await;
     let res = check_for_valid_score(
         pool.get_ref(),

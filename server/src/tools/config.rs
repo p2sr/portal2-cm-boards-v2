@@ -23,12 +23,19 @@ pub struct BackBlazeConfig {
     pub bucket: String,
 }
 
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct SteamConfig {
+    pub api_key: String,
+}
+
 /// Wrapper for all other config variables.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     pub database_url: String,
     pub server: ServerConfig,
     pub proof: ProofConfig,
+    pub steam: SteamConfig,
     pub backblaze: BackBlazeConfig,
 }
 // Extracts the environment variables from the .env file at the src level.

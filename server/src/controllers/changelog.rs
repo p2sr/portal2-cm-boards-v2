@@ -313,11 +313,13 @@ impl Default for ChangelogQueryParams {
     }
 }
 
+// TODO: Handle Autosubmit
 impl ChangelogInsert {
     /// Create a [crate::models::models::ChangelogInsert] from a [crate::models::models::SubmissionChangelog]
     pub async fn new_from_submission(
         params: SubmissionChangelog,
-        cache: HashMap<String, i32>,
+        details: CalcValues,
+        cache: &HashMap<String, i32>,
     ) -> ChangelogInsert {
         ChangelogInsert {
             timestamp: match NaiveDateTime::parse_from_str(&params.timestamp, "%Y-%m-%d %H:%M:%S") {
@@ -331,6 +333,12 @@ impl ChangelogInsert {
             note: params.note,
             category_id: params.category_id.unwrap_or_else(|| cache[&params.map_id]),
             submission: 1,
+            previous_id: details.previous_id,
+            post_rank: details.post_rank,
+            pre_rank: details.pre_rank,
+            score_delta: details.score_delta,
+            banned: false,
+            verified: Some(false),
             ..Default::default()
         }
     }

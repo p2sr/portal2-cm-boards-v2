@@ -126,7 +126,7 @@ pub struct HistoryParams {
     pub game_id: Option<i32>,
 }
 
-/// All the accepted query parameters for the cSubmissionChangeloghangelog page.
+/// All the accepted query parameters for the SubmissionChangelog page.
 #[derive(Deserialize, Debug)]
 pub struct ChangelogQueryParams {
     pub limit: Option<u32>,

@@ -3,7 +3,7 @@ use num::pow;
 use sqlx::PgPool;
 use std::collections::{HashMap, HashSet};
 
-use crate::models::changelog::{CalcValues, Changelog};
+use crate::models::changelog::{CalcValues, Changelog, SubmissionChangelog};
 use crate::models::coop::{CoopMap, CoopRanked};
 use crate::models::maps::Maps;
 use crate::models::sp::SpMap;
@@ -78,15 +78,11 @@ pub async fn filter_coop_entries(coop_entries: Vec<CoopMap>, limit: usize) -> Ve
 /// Checks if a score is valid, if it is, returns post_rank, pre_rank, score_delta, previous_id
 pub async fn check_for_valid_score(
     pool: &PgPool,
-    profile_number: String,
-    score: i32,
-    map_id: String,
+    cl: &SubmissionChangelog,
     limit: i32,
-    cat_id: i32,
-    game_id: i32,
 ) -> Result<CalcValues> {
     let mut values = CalcValues::default();
-    match Users::check_banned(pool, profile_number.clone()).await {
+    match Users::check_banned(pool, &cl.profile_number).await {
         Ok(b) => {
             if b {
                 values.banned = true;
@@ -100,8 +96,8 @@ pub async fn check_for_valid_score(
             bail!("User does not exist");
         }
     }
-    let cl = Changelog::get_sp_pb_history(pool, &profile_number, &map_id, cat_id, game_id).await;
-    let cl = match cl {
+    let cl_res = Changelog::get_sp_pb_history(pool, &cl.profile_number, &cl.map_id, cl.category_id.unwrap(), cl.game_id.unwrap_or(1)).await;
+    let cl_res = match cl_res {
         Ok(x) => {
             if x.is_empty() {
                 return Ok(values);
@@ -116,20 +112,20 @@ pub async fn check_for_valid_score(
         }
     };
 
-    if cl[0].score <= score {
+    if cl_res[0].score <= cl.score {
         bail!("Current score is the same, or better.")
     }
-    values.score_delta = Some(cl[0].score - score);
-    values.previous_id = Some(cl[0].id);
+    values.score_delta = Some(cl_res[0].score - cl.score);
+    values.previous_id = Some(cl_res[0].id);
     // Assuming there is a PB History, there must be other scores, this should return a valid list of ranked maps.
-    let cl_ranked = SpMap::get_sp_map_page(pool, &map_id, limit, cat_id, game_id)
+    let cl_ranked = SpMap::get_sp_map_page(pool, &cl.map_id, limit, cl.category_id.unwrap(), cl.game_id.unwrap_or(1))
         .await
         .unwrap();
     for (i, entry) in cl_ranked.iter().enumerate() {
-        if entry.score >= score {
+        if entry.score >= cl.score {
             values.post_rank = Some(i as i32 + 1);
         }
-        if entry.profile_number == profile_number {
+        if entry.profile_number == cl.profile_number {
             values.pre_rank = Some(i as i32 + 1);
         }
     }

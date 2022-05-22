@@ -1,10 +1,12 @@
 use crate::models::changelog::*;
+use crate::models::users::Users;
 use crate::models::demos::DemoOptions;
 use crate::tools::cache::CacheState;
 use crate::tools::config::Config;
 use crate::tools::helpers::check_for_valid_score;
 use actix_web::{get, post, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
+use anyhow::{Result, bail};
 
 /// **GET** method for changelog entiries. Utilizes [ChangelogQueryParams] as an optional addition to the query
 ///
@@ -120,60 +122,137 @@ async fn changelog(
 ///     "game_id" : 1
 /// }
 /// ```
+// #[post("/changelog")]
+// async fn changelog_add(
+//     pool: web::Data<PgPool>,
+//     cache: web::Data<CacheState>,
+//     config: web::Data<Config>,
+//     params: web::Json<SubmissionChangelog>,
+// ) -> impl Responder {
+//     let cache = cache.into_inner();
+//     let params = params.into_inner();
+//     let game_id = params.game_id.unwrap_or(1);
+//     let mut cl_insert =
+//         ChangelogInsert::new_from_submission(params, &cache.default_cat_ids).await;
+//     let map_id = cl_insert.map_id.clone();
+//     match check_for_valid_score(
+//         pool.get_ref(),
+//         &params,
+//         config.proof.results,
+//     )
+//     .await
+//     {
+//         Ok(details) => {
+//             if !details.banned {
+//                 cl_insert.previous_id = details.previous_id;
+//                 cl_insert.post_rank = details.post_rank;
+//                 cl_insert.pre_rank = details.pre_rank;
+//                 cl_insert.score_delta = details.score_delta;
+//             } else {
+//                 eprintln!("USER IS BANNED, DO NOT ADD A TIME FOR THEM");
+//                 return HttpResponse::NotFound().body("User is banned");
+//             }
+//         }
+//         Err(e) => {
+//             eprintln!("Error finding newscore details -> {:#?}", e);
+//             return HttpResponse::NotFound().body("User not found, or better time exists.");
+//         }
+//     };
+//     match Changelog::insert_changelog(pool.get_ref(), cl_insert).await {
+//         Ok(id) => {
+//             // TODO: Add an endpoint to upload a coop time.
+//             cache
+//                 .reload_rank(pool.get_ref(), &map_id, config.get_ref(), true)
+//                 .await;
+//             HttpResponse::Ok().json(id)
+//         }
+//         Err(e) => {
+//             eprintln!("Error with adding changelog entry to database -> {}", e);
+//             HttpResponse::InternalServerError().body("Could not add user to databse")
+//         }
+//     }
+// }
+
+
 #[post("/changelog")]
-async fn changelog_add(
-    pool: web::Data<PgPool>,
-    cache: web::Data<CacheState>,
-    config: web::Data<Config>,
-    params: web::Json<SubmissionChangelog>,
-) -> impl Responder {
+pub async fn changelog_new(pool: web::Data<PgPool>, cl: web::Json<SubmissionChangelog>, cache: web::Data<CacheState>, config: web::Data<Config>) -> impl Responder {
+    let mut cl = cl.into_inner();
     let cache = cache.into_inner();
-    let params = params.into_inner();
-    let game_id = params.game_id.unwrap_or(1);
-    let mut cl_insert =
-        ChangelogInsert::new_from_submission(params, cache.default_cat_ids.clone()).await;
-    let map_id = cl_insert.map_id.clone();
-    match check_for_valid_score(
-        pool.get_ref(),
-        cl_insert.profile_number.clone(),
-        cl_insert.score,
-        cl_insert.map_id.clone(),
-        config.proof.results,
-        cl_insert.category_id,
-        game_id,
-    )
-    .await
-    {
+    let config = config.into_inner();
+    if cl.category_id.is_none() {
+        cl.category_id = Some(cache.default_cat_ids[&cl.map_id]);
+    } // Steps 1 & 2
+    let values = match check_for_valid_score(pool.get_ref(), &cl, config.proof.results).await {
         Ok(details) => {
-            if !details.banned {
-                cl_insert.previous_id = details.previous_id;
-                cl_insert.post_rank = details.post_rank;
-                cl_insert.pre_rank = details.pre_rank;
-                cl_insert.score_delta = details.score_delta;
+            if details.banned {
+                return HttpResponse::UnprocessableEntity().body("User is banned");
             } else {
-                eprintln!("USER IS BANNED, DO NOT ADD A TIME FOR THEM");
-                return HttpResponse::NotFound().body("User is banned");
+                details
             }
-        }
+        },
         Err(e) => {
-            eprintln!("Error finding newscore details -> {:#?}", e);
-            return HttpResponse::NotFound().body("User not found, or better time exists.");
-        }
+            // Step 3
+            eprintln!("Error checking valid score details -> {e}");
+            // Try to insert the user into the users table.
+            match Users::new_from_steam(&config.steam.api_key, &cl.profile_number).await {
+                Ok(user) => {
+                    match Users::insert_new_users(pool.get_ref(), user).await {
+                        Ok(true) => CalcValues::default(),
+                        _ => return HttpResponse::UnprocessableEntity().body("Could not add new user to database.")
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Could not get user from steam.");
+                    return HttpResponse::UnprocessableEntity().body("Invalid user steam_id provided.")
+                }
+            }
+        },
     };
-    match Changelog::insert_changelog(pool.get_ref(), cl_insert).await {
-        Ok(id) => {
-            // TODO: Add an endpoint to upload a coop time.
-            cache
-                .reload_rank(pool.get_ref(), &map_id, config.get_ref(), true)
-                .await;
-            HttpResponse::Ok().json(id)
-        }
+    // Step 4
+    let cl_i = ChangelogInsert::new_from_submission(cl, values, &cache.default_cat_ids).await;
+    match Changelog::insert_changelog(pool.get_ref(), cl_i).await {
+        Ok(id) => HttpResponse::Ok().json(id),
         Err(e) => {
-            eprintln!("Error with adding changelog entry to database -> {}", e);
-            HttpResponse::InternalServerError().body("Could not add user to databse")
+            eprintln!("Error inserting changelog entry into database -> {e}");
+            HttpResponse::UnprocessableEntity().body("Could not insert score into database.")
         }
     }
 }
+
+pub async fn get_valid_changelog_insert(pool: &PgPool, config: &Config, cache: &CacheState, mut cl: SubmissionChangelog) -> Result<ChangelogInsert> {
+    if cl.category_id.is_none() {
+        cl.category_id = Some(cache.default_cat_ids[&cl.map_id]);
+    } // Steps 1 & 2
+    let values = match check_for_valid_score(pool, &cl, config.proof.results).await {
+        Ok(details) => {
+            if details.banned {
+                bail!("User is banned");
+            } else {
+                details
+            }
+        },
+        Err(e) => {
+            // Step 3
+            eprintln!("Error checking valid score details -> {e}");
+            // Try to insert the user into the users table.
+            match Users::new_from_steam(&config.steam.api_key, &cl.profile_number).await {
+                Ok(user) => {
+                    match Users::insert_new_users(pool, user).await {
+                        Ok(true) => CalcValues::default(),
+                        _ => bail!("Could not add new user to database.")
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Could not get user from steam.");
+                    bail!("Invalid user steam_id provided.");
+                }
+            }
+        },
+    };
+    // Step 4
+    Ok(ChangelogInsert::new_from_submission(cl, values, &cache.default_cat_ids).await)
+}
+
 
 /// **GET** method for getting a hashmap of all default categories.
 ///

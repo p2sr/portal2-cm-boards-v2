@@ -1,7 +1,7 @@
 use sqlx::FromRow;
 
 /// One-to-one struct for user data.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Default)]
 pub struct Users {
     pub profile_number: String,
     pub board_name: Option<String>,
@@ -68,4 +68,29 @@ pub struct Socials {
 #[derive(Clone, Debug, Deserialize)]
 pub struct AvatarInsert {
     pub avatar: String,
+}
+
+
+/// Wrapper for our API call
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetPlayerSummariesWrapper {
+    pub response: Players,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Players {
+    pub players: Vec<GetPlayerSummaries>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GetPlayerSummaries {
+    pub steamid: String,
+    pub communityvisibilitystate: i32,
+    pub profilestate: i32,
+    pub personaname: String,
+    pub lastlogoff: i32,
+    pub profileurl: String,
+    pub avatar: String,
+    pub avatarmedium: String,
+    pub avatarfull: String,
 }
