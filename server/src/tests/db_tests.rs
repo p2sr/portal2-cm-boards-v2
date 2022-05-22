@@ -113,7 +113,7 @@ async fn test_db_users() {
     assert!(test_vec.len() != 0);
     let banned = Users::get_banned(&pool).await.unwrap();
     assert!(banned.len() > 148);
-    let banned = Users::check_banned(&pool, user.profile_number.clone()).await.unwrap();
+    let banned = Users::check_banned(&pool, &user.profile_number).await.unwrap();
     assert!(!banned);
     let title = Users::get_title(&pool, user.profile_number.clone()).await.unwrap();
     assert_eq!(user.title, title);

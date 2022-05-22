@@ -1,5 +1,5 @@
 use crate::models::changelog::{
-    Changelog, ChangelogInsert, HistoryParams, ScoreLookup, ScoreParams,
+    Changelog, ChangelogInsert, HistoryParams, ScoreLookup, ScoreParams, SubmissionChangelog,
 };
 use crate::models::chapters::OptIDs;
 use crate::models::sp::*;
@@ -416,6 +416,7 @@ async fn sp_update(params: web::Json<Changelog>, pool: web::Data<PgPool>) -> imp
     }
 }
 
+// TODO: Potentially depricate this funciton. 
 /// **GET** method for validating an SP Score. Mainly used by our backend that pulls times from the Steam leaderboards.
 ///
 /// Query parameters represented as [ScoreLookup]
@@ -463,13 +464,19 @@ pub async fn sp_validate(
 ) -> impl Responder {
     match check_for_valid_score(
         pool.get_ref(),
-        data.profile_number.clone(),
-        data.score,
-        data.map_id.clone(),
+        &SubmissionChangelog {
+            timestamp: "PLACEHOLDER".to_string(),
+            profile_number: data.profile_number.clone(),
+            score: data.score,
+            map_id: data.map_id.clone(),
+            category_id: Some(data.cat_id
+                .unwrap_or(cache.into_inner().default_cat_ids[&data.map_id])),
+            game_id: Some(data.game_id.unwrap_or(1)),
+            note: None,
+            youtube_id: None,
+        }, 
         config.proof.results,
-        data.cat_id
-            .unwrap_or(cache.into_inner().default_cat_ids[&data.map_id]),
-        data.game_id.unwrap_or(1),
+
     )
     .await
     {

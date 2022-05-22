@@ -93,7 +93,7 @@ async fn banned_user(
     profile_number: web::Query<String>,
     pool: web::Data<PgPool>,
 ) -> impl Responder {
-    let res = Users::check_banned(pool.get_ref(), profile_number.into_inner().clone()).await;
+    let res = Users::check_banned(pool.get_ref(), &profile_number).await;
     match res {
         Ok(banned_bool) => HttpResponse::Ok().json(banned_bool),
         _ => HttpResponse::NotFound().body("Error fetching banned users"),

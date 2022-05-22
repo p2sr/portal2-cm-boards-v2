@@ -118,7 +118,7 @@ async fn changelog(
 ///     "map_id" : "47763",
 ///     "youtube_id" : null,
 ///     "note" : null,
-///     "category_id" : 19,
+///     "category_id" : 67,
 ///     "game_id" : 1
 /// }
 /// ```
@@ -176,40 +176,13 @@ async fn changelog(
 
 #[post("/changelog")]
 pub async fn changelog_new(pool: web::Data<PgPool>, cl: web::Json<SubmissionChangelog>, cache: web::Data<CacheState>, config: web::Data<Config>) -> impl Responder {
-    let mut cl = cl.into_inner();
-    let cache = cache.into_inner();
-    let config = config.into_inner();
-    if cl.category_id.is_none() {
-        cl.category_id = Some(cache.default_cat_ids[&cl.map_id]);
-    } // Steps 1 & 2
-    let values = match check_for_valid_score(pool.get_ref(), &cl, config.proof.results).await {
-        Ok(details) => {
-            if details.banned {
-                return HttpResponse::UnprocessableEntity().body("User is banned");
-            } else {
-                details
-            }
-        },
+    let cl_i = match get_valid_changelog_insert(pool.get_ref(), &config.into_inner(), &cache.into_inner(), cl.into_inner()).await {
+        Ok(insert) => insert,
         Err(e) => {
-            // Step 3
-            eprintln!("Error checking valid score details -> {e}");
-            // Try to insert the user into the users table.
-            match Users::new_from_steam(&config.steam.api_key, &cl.profile_number).await {
-                Ok(user) => {
-                    match Users::insert_new_users(pool.get_ref(), user).await {
-                        Ok(true) => CalcValues::default(),
-                        _ => return HttpResponse::UnprocessableEntity().body("Could not add new user to database.")
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Could not get user from steam.");
-                    return HttpResponse::UnprocessableEntity().body("Invalid user steam_id provided.")
-                }
-            }
-        },
+            eprintln!("Error validating changelog -> {e}");
+            return HttpResponse::UnprocessableEntity().body("Could not validate changelog entry.")
+        }
     };
-    // Step 4
-    let cl_i = ChangelogInsert::new_from_submission(cl, values, &cache.default_cat_ids).await;
     match Changelog::insert_changelog(pool.get_ref(), cl_i).await {
         Ok(id) => HttpResponse::Ok().json(id),
         Err(e) => {
@@ -243,7 +216,7 @@ pub async fn get_valid_changelog_insert(pool: &PgPool, config: &Config, cache: &
                     }
                 }
                 Err(e) => {
-                    eprintln!("Could not get user from steam.");
+                    eprintln!("Could not get user from steam -> {e}");
                     bail!("Invalid user steam_id provided.");
                 }
             }

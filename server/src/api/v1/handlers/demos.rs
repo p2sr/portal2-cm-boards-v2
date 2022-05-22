@@ -152,40 +152,15 @@ pub async fn demos_changelog(
     pool: web::Data<PgPool>,
 ) -> impl Responder {
     // This function heavily utilizes helper functions to make error propagation easier, and reduce the # of match arms
+    let config = config.into_inner();
     let mut file_name = String::default();
-    let query = query.into_inner();
-    let game_id = query.game_id.unwrap_or(1);
-    let mut changelog_insert =
-        ChangelogInsert::new_from_submission(query, &cache.into_inner().default_cat_ids)
-            .await;
-    let res = check_for_valid_score(
-        pool.get_ref(),
-        changelog_insert.profile_number.clone(),
-        changelog_insert.score,
-        changelog_insert.map_id.clone(),
-        config.proof.results,
-        changelog_insert.category_id,
-        game_id,
-    )
-    .await;
-
-    match res {
-        Ok(details) => {
-            if !details.banned {
-                changelog_insert.previous_id = details.previous_id;
-                changelog_insert.post_rank = details.post_rank;
-                changelog_insert.pre_rank = details.pre_rank;
-                changelog_insert.score_delta = details.score_delta;
-            } else {
-                eprintln!("USER IS BANNED, DO NOT ADD A TIME FOR THEM");
-                return HttpResponse::NotFound().body("User is banned");
-            }
-        }
+    let changelog_insert = match crate::api::v1::handlers::changelog::get_valid_changelog_insert(pool.get_ref(), &config, &cache.into_inner(), query.into_inner()).await {
+        Ok(insert) => insert,
         Err(e) => {
-            eprintln!("Error finding newscore details -> {:#?}", e);
-            return HttpResponse::NotFound().body("User not found, or better time exists.");
+            eprintln!("Error validating changelog -> {e}");
+            return HttpResponse::UnprocessableEntity().body("Could not validate changelog entry.")
         }
-    }
+    };
     match parse_and_write_multipart(&mut payload, &mut file_name).await {
         Ok(_) => (),
         Err(e) => {

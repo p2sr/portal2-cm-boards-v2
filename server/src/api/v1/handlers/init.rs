@@ -15,7 +15,7 @@ pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/v1")
             .service(changelog)
-            .service(changelog_add)
+            .service(changelog_new)
             .service(changelog_demo_update)
             .service(default_categories_all)
             .service(sp)

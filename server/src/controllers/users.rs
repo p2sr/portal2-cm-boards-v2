@@ -1,7 +1,7 @@
 use crate::models::changelog::MapScoreDate;
 use crate::models::points::*;
 use crate::models::users::*;
-use anyhow::Result;
+use anyhow::{Result, bail};
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Row};
 
@@ -18,7 +18,10 @@ impl Users {
             .await?
             .json::<GetPlayerSummariesWrapper>()
             .await?;
-
+        println!("{user:#?}");
+        if user.response.players.is_empty() {
+            bail!("No valid steam user with given profile_number.")
+        }
         Ok(Users {
             profile_number: profile_number.to_string(),
             board_name: None,
