@@ -65,14 +65,14 @@ async fn main() -> Result<(), Error> {
     dotenv().ok();
     // Use config.rs to extract a configuration struct from .env (See documentation about changing .env.example)
     let config = crate::tools::config::Config::from_env().unwrap();
-    println!("{:#?}", config);
+    // println!("{:#?}", config);
     // Database pool, uses manager to build new database pool, saved in web::Data.
     // Reference Code: https://github.com/actix/examples/blob/master/database_interactions/diesel/src/main.rs
     let pool = PgPool::connect(&config.database_url).await?;
 
     // Initializes Logger with "default" format:  %a %t "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T
     // Remote-IP, Time, First line of request, Response status, Size of response in bytes, Referer, User-Agent, Time to serve
-    std::env::set_var("RUST_LOG", "actix_web=info");
+    // std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let host = config.server.host.clone();
     let port = config.server.port;

@@ -1,9 +1,13 @@
-use crate::models::changelog::*;
-use crate::models::demos::DemoOptions;
-use crate::tools::cache::CacheState;
-use crate::tools::config::Config;
-use crate::tools::helpers::get_valid_changelog_insert;
-use actix_web::{get, post, put, web, HttpResponse, Responder};
+use crate::{
+    models::{changelog::*, demos::DemoOptions},
+    tools::{
+        cache::{CacheState, COOP_PREVIEWS, SP_PREVIEWS},
+        config::Config,
+        error::Result,
+        helpers::get_valid_changelog_insert,
+    },
+};
+use actix_web::{get, post, put, web, Responder};
 use sqlx::PgPool;
 
 /// **GET** method for changelog entiries. Utilizes [ChangelogQueryParams] as an optional addition to the query
@@ -75,11 +79,10 @@ use sqlx::PgPool;
 async fn changelog(
     pool: web::Data<PgPool>,
     query_params: web::Query<ChangelogQueryParams>,
-) -> impl Responder {
-    match ChangelogPage::get_changelog_page(pool.get_ref(), query_params.into_inner()).await {
-        Ok(changelog_entries) => HttpResponse::Ok().json(changelog_entries),
-        _ => HttpResponse::NotFound().body("No changelog entries found."),
-    }
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        ChangelogPage::get_changelog_page(pool.get_ref(), query_params.into_inner()).await?,
+    ))
 }
 
 /// **POST** method for submitting a new changelog entry.
@@ -118,33 +121,28 @@ async fn changelog(
 ///     "note" : null,
 ///     "category_id" : 67,
 ///     "game_id" : 1
-/// } 
+/// }
 /// ```
 #[post("/changelog")]
-pub async fn changelog_new(pool: web::Data<PgPool>, cl: web::Json<SubmissionChangelog>, cache: web::Data<CacheState>, config: web::Data<Config>) -> impl Responder {
+pub async fn changelog_new(
+    pool: web::Data<PgPool>,
+    cl: web::Json<SubmissionChangelog>,
+    cache: web::Data<CacheState>,
+    config: web::Data<Config>,
+) -> Result<impl Responder> {
     let cache = cache.into_inner();
-    let cl_i = match get_valid_changelog_insert(pool.get_ref(), &config.into_inner(), &cache, cl.into_inner()).await {
-        Ok(insert) => insert,
-        Err(e) => {
-            eprintln!("Error validating changelog -> {e}");
-            return HttpResponse::UnprocessableEntity().body("Could not validate changelog entry.")
-        }
-    };
-    match Changelog::insert_changelog(pool.get_ref(), cl_i).await {
-        Ok(id) => {
-            // Invalidate both SP and coop caches
-            let state_data = &mut cache.current_state.lock().await;
-            let is_cached = state_data.get_mut("coop_previews").unwrap();
-            *is_cached = false;
-            let is_cached = state_data.get_mut("sp_previews").unwrap();
-            *is_cached = false;
-            HttpResponse::Ok().json(id)
-        },
-        Err(e) => {
-            eprintln!("Error inserting changelog entry into database -> {e}");
-            HttpResponse::UnprocessableEntity().body("Could not insert score into database.")
-        }
-    }
+    let cl_i = get_valid_changelog_insert(
+        pool.get_ref(),
+        &config.into_inner(),
+        &cache,
+        cl.into_inner(),
+    )
+    .await?;
+    let id = Changelog::insert_changelog(pool.get_ref(), cl_i).await?;
+    cache
+        .update_current_states(&[SP_PREVIEWS, COOP_PREVIEWS], &[false, false])
+        .await;
+    Ok(web::Json(id))
 }
 
 /// **GET** method for getting a hashmap of all default categories.
@@ -166,10 +164,10 @@ pub async fn default_categories_all(pool: web::Data<PgPool>) -> impl Responder {
 
 /// **PUT** method for updating the demo_id on a changelog entry.
 ///
-/// Accepts field values for a new [DemoOptions]. 
-/// 
-/// **Note** - [DemoOptions] was designed to be used to handle a choice between a demo/changelog ID. 
-/// It is reused here for the sake of reducing the number of redundant structs. 
+/// Accepts field values for a new [DemoOptions].
+///
+/// **Note** - [DemoOptions] was designed to be used to handle a choice between a demo/changelog ID.
+/// It is reused here for the sake of reducing the number of redundant structs.
 /// Both are optional in Rust, but required in this specific funciton.
 ///
 /// ## Parameters (expects valid JSON Object):
@@ -192,28 +190,17 @@ pub async fn default_categories_all(pool: web::Data<PgPool>) -> impl Responder {
 pub async fn changelog_demo_update(
     pool: web::Data<PgPool>,
     ids: web::Json<DemoOptions>,
-    cache: web::Data<CacheState>
-) -> impl Responder {
+    cache: web::Data<CacheState>,
+) -> Result<impl Responder> {
     let ids = ids.into_inner();
-    match Changelog::update_demo_id_in_changelog(
+    let id = Changelog::update_demo_id_in_changelog(
         pool.get_ref(),
         ids.cl_id.unwrap(),
         ids.demo_id.unwrap(),
     )
-    .await
-    {
-        Ok(b) => {
-            // Invalidate both SP and coop caches
-            let state_data = &mut cache.current_state.lock().await;
-            let is_cached = state_data.get_mut("coop_previews").unwrap();
-            *is_cached = false;
-            let is_cached = state_data.get_mut("sp_previews").unwrap();
-            *is_cached = false;
-            HttpResponse::Ok().json(b)
-        },
-        Err(e) => {
-            eprintln!("Error updating demo_id in changelog entry -> {e}");
-            HttpResponse::InternalServerError().body("Error updating changelog entry.")
-        }
-    }
+    .await?;
+    cache
+        .update_current_states(&[SP_PREVIEWS, COOP_PREVIEWS], &[false, false])
+        .await;
+    Ok(web::Json(id))
 }

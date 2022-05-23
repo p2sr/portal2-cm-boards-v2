@@ -1,5 +1,8 @@
-use crate::models::chapters::{ChapterQueryParams, Chapters};
-use actix_web::{get, web, HttpResponse, Responder};
+use crate::{
+    models::chapters::{ChapterQueryParams, Chapters},
+    tools::error::Result,
+};
+use actix_web::{get, web, Responder};
 use sqlx::PgPool;
 
 /// **GET** method for map_ids by chapter.
@@ -24,11 +27,13 @@ use sqlx::PgPool;
 /// ]
 /// ```
 #[get("/chapter/{chapter_id}/maps")]
-async fn maps_from_chapter(chapter_id: web::Path<i32>, pool: web::Data<PgPool>) -> impl Responder {
-    match Chapters::get_map_ids(pool.get_ref(), chapter_id.into_inner()).await {
-        Ok(Some(s)) => HttpResponse::Ok().json(s),
-        _ => HttpResponse::NotFound().body("No maps found for given chapter_id."),
-    }
+async fn maps_from_chapter(
+    chapter_id: web::Path<i32>,
+    pool: web::Data<PgPool>,
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        Chapters::get_map_ids(pool.get_ref(), chapter_id.into_inner()).await?,
+    ))
 }
 
 /// **GET** method to return all chapters that match a specific name
@@ -51,11 +56,10 @@ async fn maps_from_chapter(chapter_id: web::Path<i32>, pool: web::Data<PgPool>) 
 /// }
 /// ```
 #[get("/chapter/{chapter_id}")]
-async fn chapter(id: web::Path<i32>, pool: web::Data<PgPool>) -> impl Responder {
-    match Chapters::get_chapter_by_id(pool.get_ref(), id.into_inner()).await {
-        Ok(Some(s)) => HttpResponse::Ok().json(s),
-        _ => HttpResponse::NotFound().body("No maps found for given chapter_id."),
-    }
+async fn chapter(id: web::Path<i32>, pool: web::Data<PgPool>) -> Result<impl Responder> {
+    Ok(web::Json(
+        Chapters::get_chapter_by_id(pool.get_ref(), id.into_inner()).await?,
+    ))
 }
 
 /// **GET** method to return all chapters, can filter using parameters in [ChapterQueryParams].
@@ -89,9 +93,8 @@ async fn chapter(id: web::Path<i32>, pool: web::Data<PgPool>) -> impl Responder 
 async fn chapters_filtered(
     params: web::Query<ChapterQueryParams>,
     pool: web::Data<PgPool>,
-) -> impl Responder {
-    match Chapters::get_filtered_chapters(pool.get_ref(), params.into_inner()).await {
-        Ok(Some(s)) => HttpResponse::Ok().json(s),
-        _ => HttpResponse::NotFound().body("No maps found for given parameters."),
-    }
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        Chapters::get_filtered_chapters(pool.get_ref(), params.into_inner()).await?,
+    ))
 }

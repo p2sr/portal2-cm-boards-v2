@@ -1,6 +1,6 @@
+use crate::models::changelog::Changelog;
 use crate::models::coop::*;
 use crate::models::maps::Maps;
-use crate::models::changelog::Changelog;
 use anyhow::Result;
 use futures::future::try_join_all;
 use sqlx::postgres::PgRow;
@@ -31,24 +31,30 @@ impl CoopBundled {
             .fetch_one(pool)
             .await?)
     }
-    pub async fn update_changelog_with_coop_id(pool: &PgPool, cl_id: i64, coop_id: i64) -> Result<Option<Changelog>> {
-        Ok(sqlx::query_as::<_, Changelog>(r#"UPDATE changelog SET coop_id = $1 WHERE id = $2 RETURNING *"#)
-            .bind(coop_id)
-            .bind(cl_id)
-            .fetch_optional(pool)
-            .await?)
+    pub async fn update_changelog_with_coop_id(
+        pool: &PgPool,
+        cl_id: i64,
+        coop_id: i64,
+    ) -> Result<Option<Changelog>> {
+        Ok(sqlx::query_as::<_, Changelog>(
+            r#"UPDATE changelog SET coop_id = $1 WHERE id = $2 RETURNING *"#,
+        )
+        .bind(coop_id)
+        .bind(cl_id)
+        .fetch_optional(pool)
+        .await?)
     }
 }
 
 impl CoopMap {
     pub async fn get_coop_map_page(
         pool: &PgPool,
-        map_id: &String,
+        map_id: &str,
         limit: i32,
         cat_id: i32,
         game_id: i32,
     ) -> Result<Vec<CoopMap>> {
-        match sqlx::query_as::<_, CoopMap>(
+        let mut res = sqlx::query_as::<_, CoopMap>(
             r#"
                 SELECT c1.timestamp, 
                     c1.score, cb.p1_is_host, c1.note AS note1, c2.note AS note2,
@@ -87,17 +93,9 @@ impl CoopMap {
         .bind(cat_id)
         .bind(game_id)
         .fetch_all(pool)
-        .await
-        {
-            Ok(mut res) => {
-                res.truncate(limit as usize);
-                Ok(res)
-            }
-            Err(e) => {
-                eprintln!("{}", e);
-                Err(anyhow::Error::new(e).context("Error with Coop Maps"))
-            }
-        }
+        .await?;
+        res.truncate(limit as usize);
+        Ok(res)
     }
 }
 
@@ -172,7 +170,7 @@ impl CoopBanned {
     /// Currently returns two profile_numbers and a score associated with a coop_bundle where one or both times are either banned or unverifed.
     pub async fn get_coop_banned(
         pool: &PgPool,
-        map_id: String,
+        map_id: &str,
         cat_id: i32,
     ) -> Result<Vec<CoopBanned>> {
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.

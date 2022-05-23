@@ -23,6 +23,7 @@ pub struct Categories {
     pub updated: Option<NaiveDateTime>,
 }
 
+/// One-to-one struct for category rules.
 #[derive(Serialize, Deserialize, Debug, FromRow)]
 pub struct CategoryRules {
     pub id: i32,
@@ -30,4 +31,11 @@ pub struct CategoryRules {
     pub external_link: Option<String>,
     pub is_active: Option<bool>,
     pub updated: Option<NaiveDateTime>,
+}
+
+/// Handles game id and if the request is for a coop or singleplayer map.
+#[derive(Deserialize, Debug)]
+pub struct IsCoop {
+    pub is_coop: bool,
+    pub game_id: Option<i32>,
 }

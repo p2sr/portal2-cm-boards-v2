@@ -1,7 +1,7 @@
 use crate::models::changelog::MapScoreDate;
 use crate::models::points::*;
 use crate::models::users::*;
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Row};
 
@@ -192,10 +192,7 @@ impl Users {
             .await?,
         ))
     }
-    pub async fn get_profile(
-        pool: &PgPool,
-        profile_number: &String,
-    ) -> Result<Option<ProfileData>> {
+    pub async fn get_profile(pool: &PgPool, profile_number: &String) -> Result<ProfileData> {
         let s1 = r#"SELECT old.steam_id AS map, old.name AS map_name, old.score, old.timestamp FROM 
             (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM maps 
             INNER JOIN changelog ON (maps.steam_id = changelog.map_id) WHERE changelog.timestamp = (
@@ -237,12 +234,12 @@ impl Users {
             .bind(true)
             .fetch_one(pool)
             .await?;
-        Ok(Some(ProfileData {
+        Ok(ProfileData {
             oldest_sp,
             newest_sp,
             oldest_coop,
             newest_coop,
-        }))
+        })
     }
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
     /// Inserts a new user into the databse

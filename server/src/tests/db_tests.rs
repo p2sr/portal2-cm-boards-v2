@@ -279,10 +279,16 @@ async fn test_db_changelog() {
         verified: Some(true),
         admin_note: None,
     };
-
-    let banned_scores = Changelog::check_banned_scores(&pool, "47763".to_string(), 1763, "76561198040982247".to_string(), 19, 1).await.unwrap();
+    
+    let banned_scores = Changelog::check_banned_scores(&pool, ScoreLookup {
+        map_id: "47763".to_string(),
+        score: 1763,
+        profile_number: "76561198040982247".to_string(),
+        cat_id: Some(67),
+        game_id: Some(1)
+    }).await.unwrap();
     assert!(!banned_scores);
-    let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247", "47763", 19, 1).await.unwrap();
+    let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247", "47763", 67, 1).await.unwrap();
     assert_ne!(0, pb_history.len());
     let new_cl_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
     let mut new_cl = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
@@ -379,7 +385,7 @@ async fn test_db_pages() {
     assert_eq!(cooppres.len(), 48);
 
     let _spbanned = SpBanned::get_sp_banned(&pool, sp_map_id).await.unwrap();
-    let _coopbanned = CoopBanned::get_coop_banned(&pool, coop_map_id, 19).await.unwrap();
+    let _coopbanned = CoopBanned::get_coop_banned(&pool, &coop_map_id, 19).await.unwrap();
 }
 
 #[actix_web::test]

@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use std::collections::HashMap;
 use sqlx::postgres::PgRow;
 use sqlx::{Row, PgPool};
@@ -15,10 +15,9 @@ impl Changelog {
             .fetch_one(pool)
             .await?))
     }
-    // TODO: params in a [ScoreLookup]
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
-    pub async fn check_banned_scores(pool: &PgPool, map_id: String, score: i32, profile_number: String, cat_id: i32, game_id: i32) -> Result<bool> {
+    pub async fn check_banned_scores(pool: &PgPool, params: ScoreLookup) -> std::result::Result<bool, sqlx::Error> {
         // We don't care about the result, we only care if there is a result.
         let res = sqlx::query(r#" 
                 SELECT * 
@@ -31,12 +30,12 @@ impl Changelog {
                     AND changelog.banned = $4
                     AND changelog.category_id = $5
                     AND chapters.game_id = $6"#)
-            .bind(score)
-            .bind(map_id)
-            .bind(profile_number)
+            .bind(params.score)
+            .bind(params.map_id)
+            .bind(params.profile_number)
             .bind(true)
-            .bind(cat_id)
-            .bind(game_id)
+            .bind(params.cat_id.unwrap())
+            .bind(params.game_id.unwrap())
             .fetch_optional(pool)
             .await?;
         match res {

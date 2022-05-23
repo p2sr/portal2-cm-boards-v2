@@ -1,8 +1,12 @@
-use crate::models::points::{PointsProfileWrapper, ProfilePage};
-use crate::models::users::{AvatarInsert, Users};
-use crate::tools::cache::CacheState;
-use actix_web::{get, post, put, web, HttpResponse, Responder};
-use anyhow::Result;
+use crate::{
+    models::{
+        points::{PointsProfileWrapper, ProfilePage},
+        users::{AvatarInsert, Users},
+    },
+    tools::cache::CacheState,
+    tools::error::Result,
+};
+use actix_web::{get, post, put, web, Responder};
 use sqlx::PgPool;
 use std::collections::HashMap;
 
@@ -33,13 +37,13 @@ use std::collections::HashMap;
 /// }
 /// ```
 #[get("/user/{profile_number}")]
-async fn user(pool: web::Data<PgPool>, profile_number: web::Path<String>) -> impl Responder {
-    let res = Users::get_user(pool.get_ref(), profile_number.into_inner()).await;
-    match res {
-        Ok(Some(u)) => HttpResponse::Ok().json(u),
-        Ok(None) => HttpResponse::NotFound().body("User does not exist."),
-        _ => HttpResponse::NotFound().body("Error fetching Users"),
-    }
+async fn user(
+    pool: web::Data<PgPool>,
+    profile_number: web::Path<String>,
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        Users::get_user(pool.get_ref(), profile_number.into_inner()).await?,
+    ))
 }
 
 /// **GET** method to get all `profile_number`s of all banned users on the board.
@@ -63,12 +67,8 @@ async fn user(pool: web::Data<PgPool>, profile_number: web::Path<String>) -> imp
 ///     "76561197965946552",...]
 /// ```
 #[get("/banned_users_all")]
-async fn banned_users_all(pool: web::Data<PgPool>) -> impl Responder {
-    let res = Users::get_banned(pool.get_ref()).await;
-    match res {
-        Ok(profile_numbers) => HttpResponse::Ok().json(profile_numbers),
-        _ => HttpResponse::NotFound().body("Error fetching previews"),
-    }
+async fn banned_users_all(pool: web::Data<PgPool>) -> Result<impl Responder> {
+    Ok(web::Json(Users::get_banned(pool.get_ref()).await?))
 }
 
 /// **GET** method to return a bool based on if a user is banned or not.
@@ -92,12 +92,10 @@ async fn banned_users_all(pool: web::Data<PgPool>) -> impl Responder {
 async fn banned_user(
     profile_number: web::Query<String>,
     pool: web::Data<PgPool>,
-) -> impl Responder {
-    let res = Users::check_banned(pool.get_ref(), &profile_number).await;
-    match res {
-        Ok(banned_bool) => HttpResponse::Ok().json(banned_bool),
-        _ => HttpResponse::NotFound().body("Error fetching banned users"),
-    }
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        Users::check_banned(pool.get_ref(), &profile_number).await?,
+    ))
 }
 
 /// **POST** method to upload a new user to the boards.
@@ -151,20 +149,12 @@ async fn banned_user(
 ///     "discord_id": BigDaniel#9055
 /// }
 /// ```
+// TODO: Just return whole user, not boolean.
 #[post("/user")]
-async fn user_add(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> impl Responder {
-    let res = Users::insert_new_users(pool.get_ref(), new_user.0.clone()).await;
-    match res {
-        Ok(true) => HttpResponse::Ok().json(new_user.0),
-        Ok(false) => HttpResponse::InternalServerError().body("Could not add user to database"),
-        Err(e) => {
-            eprintln!(
-                "Adding user {:#?} to DB failed with error -> {}",
-                new_user.0, e
-            );
-            HttpResponse::InternalServerError().body("Could not add user to database.")
-        }
-    }
+async fn user_add(pool: web::Data<PgPool>, new_user: web::Json<Users>) -> Result<impl Responder> {
+    Ok(web::Json(
+        Users::insert_new_users(pool.get_ref(), new_user.0.clone()).await?,
+    ))
 }
 
 /// **PUT** method to update the avatar for a user in the database.
@@ -195,16 +185,12 @@ async fn avatar_update(
     pool: web::Data<PgPool>,
     profile_number: web::Path<String>,
     data: web::Json<AvatarInsert>,
-) -> impl Responder {
+) -> Result<impl Responder> {
     let avatar = data.into_inner().avatar;
     let profile_number = profile_number.into_inner();
-    match Users::update_avatar(pool.get_ref(), &profile_number, &avatar).await {
-        Ok(a) => HttpResponse::Ok().json(a),
-        Err(e) => {
-            eprintln!("Error updating avatar for user {} -> {}", profile_number, e);
-            HttpResponse::NotModified().body("Failure at updating avatar.")
-        }
-    }
+    Ok(web::Json(
+        Users::update_avatar(pool.get_ref(), &profile_number, &avatar).await?,
+    ))
 }
 
 /// **GET** method to return all user information for donators on the boards.
@@ -235,15 +221,8 @@ async fn avatar_update(
 ///     },...]
 /// ```
 #[get("/donators")]
-async fn donators(pool: web::Data<PgPool>) -> impl Responder {
-    match Users::get_donators(pool.get_ref()).await {
-        Ok(Some(res)) => HttpResponse::Ok().json(res),
-        Err(e) => {
-            eprintln!("Error getting donation stats -> {}", e);
-            HttpResponse::NotFound().body("Could not find donation stats.")
-        }
-        _ => HttpResponse::NotFound().body("Could not find donation stats."),
-    }
+async fn donators(pool: web::Data<PgPool>) -> Result<impl Responder> {
+    Ok(web::Json(Users::get_donators(pool.get_ref()).await?))
 }
 
 /// **GET** method to return [UsersDisplay](crate::models::models::UsersDisplay) for all banned users on the boards.
@@ -265,12 +244,8 @@ async fn donators(pool: web::Data<PgPool>) -> impl Responder {
 ///     },...]
 /// ```
 #[get("/wall_of_shame")]
-async fn wall_of_shame(pool: web::Data<PgPool>) -> impl Responder {
-    let res = Users::get_banned_display(pool.get_ref()).await;
-    match res {
-        Ok(Some(u)) => HttpResponse::Ok().json(u),
-        _ => HttpResponse::NotFound().body("Error fetching previews"),
-    }
+async fn wall_of_shame(pool: web::Data<PgPool>) -> Result<impl Responder> {
+    Ok(web::Json(Users::get_banned_display(pool.get_ref()).await?))
 }
 
 /// **GET** method for most of a given user's profile information.
@@ -337,37 +312,24 @@ async fn profile(
     pool: web::Data<PgPool>,
     profile_number: web::Path<String>,
     cache: web::Data<CacheState>,
-) -> impl Responder {
+) -> Result<impl Responder> {
     // TODO : Scores on drop down are queried individually by the frontend
     let profile_number = profile_number.into_inner();
-    match Users::get_profile(pool.get_ref(), &profile_number).await {
-        Ok(Some(data)) => match profile_from_cache(cache, &profile_number).await {
-            Ok((points, ranks)) => {
-                let profile_page = ProfilePage {
-                    points,
-                    ranks,
-                    data,
-                };
-                HttpResponse::Ok().json(profile_page)
-            }
-            Err(e) => {
-                eprintln!("Error creating profile page -> {:?}", e);
-                HttpResponse::NotFound().body("Could find profile page for user.")
-            }
-        },
-        Err(e) => {
-            eprintln!("Error creating profile page -> {:?}", e);
-            HttpResponse::NotFound().body("Could find profile page for user.")
-        }
-        _ => HttpResponse::NotFound().body("Could find profile page for user."),
-    }
+    let data = Users::get_profile(pool.get_ref(), &profile_number).await?;
+    let (points, ranks) = profile_from_cache(cache, &profile_number).await?;
+    let profile_page = ProfilePage {
+        points,
+        ranks,
+        data,
+    };
+    Ok(web::Json(profile_page))
 }
 
 /// Pulls & clones the data from the ranks cache to be used for the profile endpoint.
 pub async fn profile_from_cache(
     cache: web::Data<CacheState>,
     profile_number: &String,
-) -> Result<(Vec<PointsProfileWrapper>, HashMap<String, i32>)> {
+) -> anyhow::Result<(Vec<PointsProfileWrapper>, HashMap<String, i32>)> {
     let mut points: Vec<PointsProfileWrapper> = Vec::new();
     let points_hm = cache.points.lock().await;
     for i in 1..16 {

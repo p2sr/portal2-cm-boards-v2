@@ -1,7 +1,8 @@
-use crate::models::admin::*;
-use crate::models::changelog::ChangelogQueryParams;
-use crate::models::users::Users;
-use actix_web::{get, web, HttpResponse, Responder};
+use crate::{
+    models::{admin::*, changelog::ChangelogQueryParams, users::Users},
+    tools::error::Result,
+};
+use actix_web::{get, web, Responder};
 use sqlx::PgPool;
 
 /// **GET** method for admin-relevant entiries. Utilizes [ChangelogQueryParrams](crate::models::models::ChangelogQueryParams) as an optional addition to the query
@@ -72,11 +73,10 @@ use sqlx::PgPool;
 pub async fn admin_changelog(
     pool: web::Data<PgPool>,
     query_params: web::Query<ChangelogQueryParams>,
-) -> impl Responder {
-    match Admin::get_admin_page(pool.get_ref(), query_params.into_inner()).await {
-        Ok(changelog_entries) => HttpResponse::Ok().json(changelog_entries),
-        _ => HttpResponse::NotFound().body("No changelog entries found."),
-    }
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        Admin::get_admin_page(pool.get_ref(), query_params.into_inner()).await?,
+    ))
 }
 
 /// **GET** method for user statistics on total times, banned times and non-verified times.
@@ -102,15 +102,10 @@ pub async fn admin_changelog(
 ///     },...]
 /// ```
 #[get("/admin/banned_stats")]
-pub async fn admin_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
-    match Admin::get_user_banned_time_stats(pool.get_ref()).await {
-        Ok(Some(res)) => HttpResponse::Ok().json(res),
-        Err(e) => {
-            eprintln!("Error getting banned time stats -> {}", e);
-            HttpResponse::NotFound().body("Could not find banned stats.")
-        }
-        _ => HttpResponse::NotFound().body("Could not find banned stats."),
-    }
+pub async fn admin_banned_stats(pool: web::Data<PgPool>) -> Result<impl Responder> {
+    Ok(web::Json(
+        Admin::get_user_banned_time_stats(pool.get_ref()).await?,
+    ))
 }
 
 /// **GET** method that returns lists of admins
@@ -155,18 +150,12 @@ pub async fn admin_banned_stats(pool: web::Data<PgPool>) -> impl Responder {
 pub async fn admins_list(
     pool: web::Data<PgPool>,
     admin_level: web::Query<AdminLevel>,
-) -> impl Responder {
-    match Users::get_all_admins(
-        pool.get_ref(),
-        admin_level.into_inner().admin_level.unwrap_or(1),
-    )
-    .await
-    {
-        Ok(Some(res)) => HttpResponse::Ok().json(res),
-        Err(e) => {
-            eprintln!("Error getting Admins -> {}", e);
-            HttpResponse::NotFound().body("Could not find admins.")
-        }
-        _ => HttpResponse::NotFound().body("Could not find admins."),
-    }
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        Users::get_all_admins(
+            pool.get_ref(),
+            admin_level.into_inner().admin_level.unwrap_or(1),
+        )
+        .await?,
+    ))
 }

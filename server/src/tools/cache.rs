@@ -46,7 +46,6 @@
 //! }
 //! ```
 //!
-
 use crate::models::coop::CoopMap;
 use crate::models::maps::Maps;
 use crate::models::points::Points;
@@ -61,6 +60,27 @@ use std::io::BufReader;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+pub const SP_PREVIEWS: &'static str = "sp_previews";
+pub const COOP_PREVIEWS: &'static str = "coop_previews";
+pub const POINTS_1: &'static str = "points1";
+pub const POINTS_2: &'static str = "points2";
+pub const POINTS_3: &'static str = "points3";
+pub const POINTS_4: &'static str = "points4";
+pub const POINTS_5: &'static str = "points5";
+pub const POINTS_6: &'static str = "points6";
+pub const POINTS_7: &'static str = "points7";
+pub const POINTS_8: &'static str = "points8";
+pub const POINTS_9: &'static str = "points9";
+pub const POINTS_10: &'static str = "points10";
+pub const POINTS_11: &'static str = "points11";
+pub const POINTS_12: &'static str = "points12";
+pub const POINTS_13: &'static str = "points13";
+pub const POINTS_14: &'static str = "points14";
+pub const POINTS_15: &'static str = "points15";
+pub const POINTS_SP: &'static str = "points_sp";
+pub const POINTS_COOP: &'static str = "points_coop";
+pub const POINTS_OVERALL: &'static str = "points_overall";
 
 /// Cache for the current ranks all players have within the top X scores (defined by [crate::tools::config::ProofConfig])
 ///
@@ -101,26 +121,26 @@ impl CacheState {
         let mut hm = HashMap::new();
         let mut points = HashMap::new();
         let cached_endpoints: Vec<&'static str> = vec![
-            "sp_previews",
-            "coop_previews",
-            "points1",
-            "points2",
-            "points3",
-            "points4",
-            "points5",
-            "points6",
-            "points7",
-            "points8",
-            "points9",
-            "points10",
-            "points11",
-            "points12",
-            "points13",
-            "points14",
-            "points15",
-            "points_sp",
-            "points_coop",
-            "points_overall",
+            SP_PREVIEWS,
+            COOP_PREVIEWS,
+            POINTS_1,
+            POINTS_2,
+            POINTS_3,
+            POINTS_4,
+            POINTS_5,
+            POINTS_6,
+            POINTS_7,
+            POINTS_8,
+            POINTS_9,
+            POINTS_10,
+            POINTS_11,
+            POINTS_12,
+            POINTS_13,
+            POINTS_14,
+            POINTS_15,
+            POINTS_SP,
+            POINTS_COOP,
+            POINTS_OVERALL,
         ];
         for (i, x) in cached_endpoints.into_iter().enumerate() {
             if i >= 2 {
@@ -224,6 +244,7 @@ impl CacheState {
     }
     // TODO: Testing
     /// Refreshes map rank cache on a specific map. Especially slow for coop, but faster than refreshing all maps.
+    #[allow(dead_code)]
     pub async fn reload_rank(
         &self,
         pool: &PgPool,
@@ -287,6 +308,24 @@ impl CacheState {
                 user.insert(map_id.clone(), (i + 1) as i32);
             }
         }
+    }
+    #[allow(dead_code)]
+    pub async fn update_current_state(&self, update: &'static str, set_cache: bool) -> () {
+        let state_data = &mut self.current_state.lock().await;
+        let is_cached = state_data.get_mut(update).unwrap();
+        *is_cached = set_cache;
+    }
+    pub async fn update_current_states(&self, update: &[&'static str], set_cache: &[bool]) -> () {
+        assert_eq!(update.len(), set_cache.len());
+        let state_data = &mut self.current_state.lock().await;
+        for (i, x) in update.into_iter().enumerate() {
+            let is_cached = state_data.get_mut(x).unwrap();
+            *is_cached = set_cache[i];
+        }
+    }
+    pub async fn get_current_state(&self, value: &'static str) -> bool {
+        let state_data = &mut self.current_state.lock().await;
+        *state_data.get_mut(value).unwrap()
     }
 }
 

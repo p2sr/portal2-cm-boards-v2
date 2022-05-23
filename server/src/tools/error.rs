@@ -1,17 +1,16 @@
-use std::{io, fmt};
-use actix_web::{body::BoxBody, http::StatusCode, HttpResponse, ResponseError};
+use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use std::{fmt, io};
 
 #[derive(Debug)]
-enum ErrorType {
+pub enum ErrorType {
     DbError,
     Reqwest,
     Internal,
     Unknown,
 }
 
-
 #[derive(Debug)]
-struct ServerError {
+pub struct ServerError {
     pub error_message: String,
     pub error_type: ErrorType,
 }
@@ -20,6 +19,8 @@ struct ServerError {
 pub struct ErrResponse {
     pub error: String,
 }
+
+pub type Result<T, E = ServerError> = std::result::Result<T, E>;
 
 impl From<io::Error> for ServerError {
     fn from(error: io::Error) -> Self {
@@ -34,7 +35,7 @@ impl From<anyhow::Error> for ServerError {
     fn from(error: anyhow::Error) -> Self {
         ServerError {
             error_message: format!("{error}"),
-            error_type: ErrorType::Unknown,
+            error_type: ErrorType::Internal,
         }
     }
 }
@@ -44,6 +45,15 @@ impl From<reqwest::Error> for ServerError {
         ServerError {
             error_message: format!("{error}"),
             error_type: ErrorType::Reqwest,
+        }
+    }
+}
+
+impl From<sqlx::Error> for ServerError {
+    fn from(error: sqlx::Error) -> Self {
+        ServerError {
+            error_message: format!("{error}"),
+            error_type: ErrorType::DbError,
         }
     }
 }
@@ -64,6 +74,8 @@ impl ResponseError for ServerError {
         }
     }
     fn error_response(&self) -> HttpResponse {
-        HttpResponse::build(self.status_code()).json(ErrResponse{error: self.error_message.clone()})
+        HttpResponse::build(self.status_code()).json(ErrResponse {
+            error: self.error_message.clone(),
+        })
     }
 }

@@ -1,6 +1,11 @@
-use crate::models::chapters::GameID;
-use crate::models::maps::Maps;
-use actix_web::{get, web, HttpResponse, Responder};
+use crate::{
+    models::{
+        chapters::GameID,
+        maps::{IsCoop, Maps},
+    },
+    tools::error::Result,
+};
+use actix_web::{get, web, Responder};
 use sqlx::PgPool;
 
 /// **GET** method to return all map information for a given game.
@@ -33,14 +38,10 @@ use sqlx::PgPool;
 ///     },...]
 /// ```
 #[get("/maps")]
-async fn maps(pool: web::Data<PgPool>, query: web::Query<GameID>) -> impl Responder {
-    match Maps::get_maps(pool.get_ref(), query.into_inner().game_id.unwrap_or(1)).await {
-        Ok(m) => HttpResponse::Ok().json(m),
-        Err(e) => {
-            eprintln!("Error getting all maps -> {}", e);
-            HttpResponse::NotFound().body("Error retrieving all map information")
-        }
-    }
+async fn maps(pool: web::Data<PgPool>, query: web::Query<GameID>) -> Result<impl Responder> {
+    Ok(web::Json(
+        Maps::get_maps(pool.get_ref(), query.into_inner().game_id.unwrap_or(1)).await?,
+    ))
 }
 
 /// **GET** method to return the default category ID for a given map
@@ -57,17 +58,13 @@ async fn maps(pool: web::Data<PgPool>, query: web::Query<GameID>) -> impl Respon
 /// 49
 /// ```
 #[get("/default_category/{map}")]
-async fn default_category(params: web::Path<u64>, pool: web::Data<PgPool>) -> impl Responder {
-    match Maps::get_default_cat(pool.get_ref(), params.to_string()).await {
-        Ok(id) => HttpResponse::Ok().json(id),
-        _ => HttpResponse::NotFound().body("Error finding deafult cat_id"),
-    }
-}
-
-#[derive(Deserialize, Debug)]
-pub struct IsCoop {
-    pub is_coop: bool,
-    pub game_id: Option<i32>,
+async fn default_category(
+    params: web::Path<u64>,
+    pool: web::Data<PgPool>,
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        Maps::get_default_cat(pool.get_ref(), params.to_string()).await?,
+    ))
 }
 
 // TODO: Have this take an option<bool>? Somewhat more ergonomic in some places.
@@ -91,9 +88,8 @@ pub struct IsCoop {
 //     "47829",...]
 /// ```
 #[get("/map_ids")]
-async fn map_ids(pool: web::Data<PgPool>, query: web::Query<IsCoop>) -> impl Responder {
-    match Maps::get_steam_ids(pool.get_ref(), query.into_inner().is_coop).await {
-        Ok(ids) => HttpResponse::Ok().json(ids),
-        _ => HttpResponse::NotFound().body("Could not get steam_ids for maps"),
-    }
+async fn map_ids(pool: web::Data<PgPool>, query: web::Query<IsCoop>) -> Result<impl Responder> {
+    Ok(web::Json(
+        Maps::get_steam_ids(pool.get_ref(), query.into_inner().is_coop).await?,
+    ))
 }

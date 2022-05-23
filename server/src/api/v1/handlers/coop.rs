@@ -1,9 +1,17 @@
-use crate::models::changelog::{Changelog, ScoreParams};
-use crate::models::chapters::OptIDs;
-use crate::models::coop::*;
-use crate::tools::cache::{read_from_file, write_to_file, CacheState};
-use crate::tools::{config::Config, helpers::filter_coop_entries};
-use actix_web::{get, put, post, web, HttpResponse, Responder};
+use crate::{
+    models::{
+        changelog::{Changelog, ScoreLookup, ScoreParams},
+        chapters::OptIDs,
+        coop::*,
+    },
+    tools::{
+        cache::{read_from_file, write_to_file, CacheState, COOP_PREVIEWS},
+        config::Config,
+        error::Result,
+        helpers::filter_coop_entries,
+    },
+};
+use actix_web::{get, post, put, web, HttpResponse, Responder};
 use sqlx::PgPool;
 
 // TODO: Should use default cat_id
@@ -37,27 +45,19 @@ use sqlx::PgPool;
 ///             },...]},...}
 /// ```
 #[get("/coop")]
-async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> impl Responder {
-    let state_data = &mut cache.current_state.lock().await;
-    let is_cached = state_data.get_mut("coop_previews").unwrap();
-    if !*is_cached {
-        match CoopPreview::get_coop_previews(pool.get_ref()).await {
-            Ok(previews) => {
-                if write_to_file("coop_previews", &previews).await.is_ok() {
-                    *is_cached = true;
-                    HttpResponse::Ok().json(previews)
-                } else {
-                    eprintln!("Could not write cache for coop previews");
-                    HttpResponse::Ok().json(previews)
-                }
-            }
-            _ => HttpResponse::NotFound().body("Error fetching coop map previews."),
+async fn coop(pool: web::Data<PgPool>, cache: web::Data<CacheState>) -> Result<impl Responder> {
+    if !cache.get_current_state(COOP_PREVIEWS).await {
+        let previews = CoopPreview::get_coop_previews(pool.get_ref()).await?;
+        if write_to_file("coop_previews", &previews).await.is_ok() {
+            cache.update_current_state(COOP_PREVIEWS, true).await;
+        } else {
+            eprintln!("Could not write cache for coop previews");
         }
+        Ok(web::Json(previews))
     } else {
-        match read_from_file::<Vec<Vec<CoopPreview>>>("coop_previews").await {
-            Ok(previews) => HttpResponse::Ok().json(previews),
-            _ => HttpResponse::NotFound().body("Error fetching coop previews from cache"),
-        }
+        Ok(web::Json(
+            read_from_file::<Vec<Vec<CoopPreview>>>(COOP_PREVIEWS).await?,
+        ))
     }
 }
 
@@ -115,25 +115,22 @@ async fn coop_map(
     config: web::Data<Config>,
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
-) -> impl Responder {
+) -> Result<impl Responder> {
     let map_id = map_id.into_inner();
-    match CoopMap::get_coop_map_page(
+    let cat_id = ids
+        .cat_id
+        .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id]);
+    let coop_entries = CoopMap::get_coop_map_page(
         pool.get_ref(),
         &map_id,
         config.proof.results,
-        ids.cat_id
-            .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id]),
+        cat_id,
         ids.game_id.unwrap_or(1),
     )
-    .await
-    {
-        Ok(coop_entries) => {
-            let coop_entries_filtered =
-                filter_coop_entries(coop_entries, config.proof.results as usize).await;
-            HttpResponse::Ok().json(coop_entries_filtered)
-        }
-        _ => HttpResponse::NotFound().body("Error fetching Coop Map Page"),
-    }
+    .await?;
+    Ok(web::Json(
+        filter_coop_entries(coop_entries, config.proof.results as usize).await,
+    ))
 }
 
 /// **GET** method to return all banned scores on a map for a specific category.
@@ -165,19 +162,14 @@ async fn coop_banned_all(
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
     params: web::Query<OptIDs>,
-) -> impl Responder {
-    match CoopBanned::get_coop_banned(
-        pool.get_ref(),
-        map_id.clone(),
-        params
-            .cat_id
-            .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id.into_inner()]),
-    )
-    .await
-    {
-        Ok(banned_entries) => HttpResponse::Ok().json(banned_entries),
-        _ => HttpResponse::NotFound().body("Error fetching Coop banned information"),
-    }
+) -> Result<impl Responder> {
+    let map_id = map_id.into_inner();
+    let cat_id = params
+        .cat_id
+        .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id]);
+    Ok(web::Json(
+        CoopBanned::get_coop_banned(pool.get_ref(), &map_id, cat_id).await?,
+    ))
 }
 
 // TODO: Handle differently for coop?
@@ -213,41 +205,44 @@ async fn coop_banned(
     params: web::Query<ScoreParams>,
     cache: web::Data<CacheState>,
     pool: web::Data<PgPool>,
-) -> impl Responder {
-    match Changelog::check_banned_scores(
-        pool.get_ref(),
-        map_id.clone(),
-        params.score,
-        params.profile_number.clone(),
+) -> Result<impl Responder> {
+    let map_id = map_id.into_inner();
+    let cat_id = Some(
         params
             .cat_id
-            .unwrap_or_else(|| cache.into_inner().default_cat_ids[&map_id.into_inner()]),
-        params.game_id.unwrap_or(1),
+            .unwrap_or(cache.into_inner().default_cat_ids[&map_id]),
+    );
+    let is_banned = Changelog::check_banned_scores(
+        pool.get_ref(),
+        ScoreLookup {
+            map_id,
+            score: params.score,
+            profile_number: params.profile_number.clone(),
+            cat_id,
+            game_id: Some(params.game_id.unwrap_or(1)),
+        },
     )
-    .await
-    {
-        Ok(banned_bool) => HttpResponse::Ok().json(banned_bool),
-        Err(_) => HttpResponse::NotFound().body("Error checking ban information."),
-    }
+    .await?;
+    Ok(web::Json(is_banned))
 }
 
 /// **GET** method to get the temporary changelog entry used to bundle scores with only one changelog entry.
-/// 
+///
 /// ## Parameters:
 /// - `map_id`
 ///     - **Required** - `String` : The steam id for the map.
-/// 
+///
 /// ## Example Endpoints
 /// - `/api/v1/coop/temp/`
 ///
 /// Makes a call to the underlying [CoopBundled::get_temp_coop_changelog]
-/// 
+///
 /// ## Example JSON output:
 /// {
 ///    "cl_id": 200042,
 ///    "profile_number": "N/A"
 /// }
-/// 
+///
 #[get("/coop/temp/{map_id}")]
 async fn coop_temp(pool: web::Data<PgPool>, map_id: web::Path<String>) -> impl Responder {
     match CoopBundled::get_temp_coop_changelog(pool.get_ref(), &map_id).await {
@@ -259,7 +254,7 @@ async fn coop_temp(pool: web::Data<PgPool>, map_id: web::Path<String>) -> impl R
     }
 }
 
-
+// TODO: Have these update endpoints return the entire entry.
 /// **POST** method that accepts a new coop score.
 ///
 /// Makes the assumption that there are two existing changelog entries that will be used to create a new coop score.
@@ -296,17 +291,10 @@ async fn coop_add(
     params: web::Json<CoopBundledInsert>,
     pool: web::Data<PgPool>,
     cache: web::Data<CacheState>,
-) -> impl Responder {
-    match CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await {
-        Ok(id) => {
-            // Invalidate cache if this new score impacts the top 7 preview times.
-            let state_data = &mut cache.current_state.lock().await;
-            let is_cached = state_data.get_mut("coop_previews").unwrap();
-            *is_cached = false;
-            HttpResponse::Ok().json(id)
-        }
-        _ => HttpResponse::NotFound().body("Error adding new score to database."),
-    }
+) -> Result<impl Responder> {
+    let id = CoopBundled::insert_coop_bundled(pool.get_ref(), params.0).await?;
+    cache.update_current_state(COOP_PREVIEWS, false).await;
+    Ok(web::Json(id))
 }
 
 /// **PUT** method that updates existing changelog entries with their parent coop_bundled entry ID.
@@ -349,22 +337,12 @@ async fn coop_add(
 /// }
 /// ```
 #[put("/coop/update_changelog/{cl_id}/{coop_id}")]
-async fn coop_update_changelog(pool: web::Data<PgPool>, path: web::Path<(i64, i64)>, cache: web::Data<CacheState>) -> impl Responder {
-    match CoopBundled::update_changelog_with_coop_id(pool.get_ref(), path.0, path.1).await {
-        Ok(Some(id)) => {
-            // Invalidate cache if this new score impacts the top 7 preview times.
-            let state_data = &mut cache.current_state.lock().await;
-            let is_cached = state_data.get_mut("coop_previews").unwrap();
-            *is_cached = false;
-            HttpResponse::Ok().json(id)
-        }
-        Ok(None) => {
-            eprintln!("Did not get any return from the SQL statement.");
-            HttpResponse::NotFound().body("Error changing coop_id on changelog entry, changelog value not returned.")
-        }
-        Err(e) => {
-            eprintln!("Error changing coop_id on changelog entry -> {e}");
-            HttpResponse::NotFound().body("Error changing coop_id on changelog entry.")
-        },
-    }
+async fn coop_update_changelog(
+    pool: web::Data<PgPool>,
+    path: web::Path<(i64, i64)>,
+    cache: web::Data<CacheState>,
+) -> Result<impl Responder> {
+    let id = CoopBundled::update_changelog_with_coop_id(pool.get_ref(), path.0, path.1).await?;
+    cache.update_current_state(COOP_PREVIEWS, false).await;
+    Ok(web::Json(id))
 }
