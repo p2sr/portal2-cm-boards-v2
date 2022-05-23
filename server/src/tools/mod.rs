@@ -4,3 +4,5 @@ pub mod cache;
 pub mod config;
 /// Helper functions used accross different modules
 pub mod helpers;
+
+pub mod error;
