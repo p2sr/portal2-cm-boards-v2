@@ -32,7 +32,7 @@ async fn test_db_maps() {
     let chapter_id = Maps::get_chapter_from_map_id(&pool, sp[0].clone()).await.unwrap().unwrap();
     assert_eq!(chapter_id.id, 7);
     assert_eq!(chapter_id.chapter_name, Some("The Courtesy Call".to_string()));
-    let id = Maps::get_steam_id_by_name(&pool, pgun.clone()).await.unwrap().unwrap();
+    let id = Maps::get_steam_id_by_name(&pool, pgun.clone()).await.unwrap();
     assert_eq!(sp[0], id[0]);
     let public = Maps::get_is_public_by_steam_id(&pool, sp[0].clone()).await.unwrap().unwrap();
     assert!(public);
@@ -48,14 +48,14 @@ async fn test_db_chapters() {
         is_multiplayer: false,
         game_id: 1,
     };
-    let map_ids = Chapters::get_map_ids(&pool, chapter.id).await.unwrap().unwrap();
+    let map_ids = Chapters::get_map_ids(&pool, chapter.id).await.unwrap();
     assert_eq!(vec!["47458", "47455", "47452", "47106", "47735", "62761", "62758", "62763", "62759"], map_ids);
     let chapters_query_params = ChapterQueryParams {
         chapter_name: Some("the courtesy".to_string()),
         is_multiplayer: Some(false),
         game_id: Some(1),
     };
-    let ids = Chapters::get_filtered_chapters(&pool, chapters_query_params).await.unwrap().unwrap();
+    let ids = Chapters::get_filtered_chapters(&pool, chapters_query_params).await.unwrap();
     assert_eq!(7, ids[0].id);
     let new_chapter = Chapters::get_chapter_by_id(&pool, chapter.id).await.unwrap().unwrap();
     assert_eq!(chapter.id, new_chapter.id);
@@ -109,7 +109,7 @@ async fn test_db_users() {
     let test_user = Users::get_user_data(&pool, &user.profile_number).await.unwrap().unwrap();
     assert_eq!(user.board_name, Some(test_user.user_name));
     assert_eq!(user.avatar, Some(test_user.avatar));
-    let test_vec = Users::check_board_name(&pool, "Daniel".to_string()).await.unwrap().unwrap();
+    let test_vec = Users::check_board_name(&pool, "Daniel").await.unwrap();
     assert!(test_vec.len() != 0);
     let banned = Users::get_banned(&pool).await.unwrap();
     assert!(banned.len() > 148);
@@ -123,24 +123,24 @@ async fn test_db_users() {
     assert_eq!(user.discord_id, socials.discord_id);
     let admin = Users::get_admin_for_user(&pool, user.profile_number.clone()).await.unwrap().unwrap();
     assert_eq!(user.admin, admin);
-    let admin_vec = Users::get_all_admins(&pool, 1).await.unwrap().unwrap();
+    let admin_vec = Users::get_all_admins(&pool, 1).await.unwrap();
     assert_eq!(admin_vec.len(), 8);
     insert_user.profile_number = "0".to_string();
     
     // Test inserts/updates/deletes
-    assert!(Users::insert_new_users(&pool, insert_user.clone()).await.unwrap());
+    Users::insert_new_users(&pool, insert_user.clone()).await.unwrap();
     let insert_user_data = Users::get_user_data(&pool, &insert_user.profile_number).await.unwrap().unwrap();
     assert_eq!(insert_user.board_name, Some(insert_user_data.user_name));
     assert_eq!(insert_user.avatar, Some(insert_user_data.avatar));
     insert_user.board_name = Some("BigDaniel11AtlasPog".to_string());
-    assert!(Users::update_existing_user(&pool, insert_user.clone()).await.unwrap());
+    Users::update_existing_user(&pool, insert_user.clone()).await.unwrap();
     let new_avi = Users::update_avatar(&pool, &user.profile_number, user.avatar.as_ref().unwrap()).await.unwrap();
     assert_eq!(new_avi, user.avatar.unwrap());
-    assert!(Users::delete_user(&pool, insert_user.profile_number.clone()).await.unwrap());
+    Users::delete_user(&pool, insert_user.profile_number.clone()).await.unwrap();
     let _res = Users::get_user_data(&pool, &insert_user.profile_number).await;
 
     // Donations
-    let donators = Users::get_donators(&pool).await.unwrap().unwrap();
+    let donators = Users::get_donators(&pool).await.unwrap();
     assert!(!donators.is_empty());
 }
 
@@ -218,18 +218,17 @@ async fn test_db_demos() {
     let new_fid = "Hello World".to_string();
     check_insert.file_id = new_fid.clone();
     // Update the demo
-    assert!(Demos::update_demo(&pool, check_insert.clone()).await.unwrap());
+    Demos::update_demo(&pool, check_insert.clone()).await.unwrap();
     let check_updated = Demos::get_demo(&pool, check_insert.id).await.unwrap().unwrap();
     assert_eq!(check_updated.file_id, new_fid);
     // Delete references to the demo entry.
     let updated_cl = Changelog::delete_references_to_demo(&pool, clinsert.demo_id.unwrap()).await.unwrap();
     assert_eq!(updated_cl[0], new_cl_id);
     // Delete the demo entry
-    assert!(Demos::delete_demo(&pool, check_insert.id).await.unwrap());
+    Demos::delete_demo(&pool, check_insert.id).await.unwrap();
     let _res = Demos::get_demo(&pool, check_insert.id).await;
     // Delete the changelog entry
-    let deleted = Changelog::delete_changelog(&pool, new_cl_id).await.unwrap();
-    assert!(deleted);
+    let _ = Changelog::delete_changelog(&pool, new_cl_id).await.unwrap();
 }
 
 #[actix_web::test]
@@ -293,8 +292,7 @@ async fn test_db_changelog() {
     let new_cl_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
     let mut new_cl = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
     new_cl.note = Some("fat time".to_string());
-    let is_updated = Changelog::update_changelog(&pool, new_cl.clone()).await.unwrap();
-    assert!(is_updated);
+    let _ = Changelog::update_changelog(&pool, new_cl.clone()).await.unwrap();
     let updated_changelog = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
     assert_eq!(new_cl.id, updated_changelog.id);
     assert_eq!(new_cl.timestamp, updated_changelog.timestamp);
@@ -313,8 +311,7 @@ async fn test_db_changelog() {
     assert_eq!(new_cl.score_delta, updated_changelog.score_delta);
     assert_eq!(new_cl.verified, updated_changelog.verified);
     assert_eq!(new_cl.admin_note, updated_changelog.admin_note);
-    let deleted = Changelog::delete_changelog(&pool, new_cl_id).await.unwrap();
-    assert!(deleted);
+    let _ = Changelog::delete_changelog(&pool, new_cl_id).await.unwrap();
     let _res = Changelog::get_changelog(&pool, new_cl_id).await;
 
     let query_params = ChangelogQueryParams {
@@ -332,7 +329,7 @@ async fn test_db_changelog() {
     };
 
     // ChangelogPage
-    let cl_page = ChangelogPage::get_changelog_page(&pool, query_params).await.unwrap().unwrap();
+    let cl_page = ChangelogPage::get_changelog_page(&pool, query_params).await.unwrap();
     assert_eq!(cl_page.len(), DEFAULT_PAGE_SIZE);
     let filter = ChangelogQueryParams {
         limit: Some(200),
@@ -347,7 +344,7 @@ async fn test_db_changelog() {
         first: None,
         last: None,
     };
-    let filtered_cl_page = ChangelogPage::get_changelog_page(&pool, filter).await.unwrap().unwrap();
+    let filtered_cl_page = ChangelogPage::get_changelog_page(&pool, filter).await.unwrap();
     assert_eq!(filtered_cl_page.len(), 1);
     assert_eq!(filtered_cl_page[0].id, 127825);
 }

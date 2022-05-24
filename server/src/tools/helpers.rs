@@ -165,7 +165,7 @@ pub async fn get_valid_changelog_insert(pool: &PgPool, config: &Config, cache: &
             match Users::new_from_steam(&config.steam.api_key, &cl.profile_number).await {
                 Ok(user) => {
                     match Users::insert_new_users(pool, user).await {
-                        Ok(true) => CalcValues::default(),
+                        Ok(_) => CalcValues::default(),
                         _ => bail!("Could not add new user to database.")
                     }
                 }

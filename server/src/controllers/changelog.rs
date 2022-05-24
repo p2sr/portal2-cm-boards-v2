@@ -1,7 +1,5 @@
-use anyhow::{bail, Result};
 use std::collections::HashMap;
-use sqlx::postgres::PgRow;
-use sqlx::{Row, PgPool};
+use sqlx::PgPool;
 use chrono::NaiveDateTime;
 use crate::models::changelog::*;
 use crate::models::users::Users;
@@ -9,11 +7,11 @@ use crate::models::users::Users;
 // Implementations of associated functions for Changelog
 impl Changelog {
     /// Search for a [Changelog] by ID, return the entire [Changelog].
-    pub async fn get_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<Changelog>> {
-        Ok(Some(sqlx::query_as::<_, Changelog>(r#"SELECT * FROM changelog WHERE id = $1"#)
+    pub async fn get_changelog(pool: &PgPool, cl_id: i64) -> Result<Option<Changelog>, sqlx::Error> {
+        sqlx::query_as::<_, Changelog>(r#"SELECT * FROM changelog WHERE id = $1"#)
             .bind(cl_id)
-            .fetch_one(pool)
-            .await?))
+            .fetch_optional(pool)
+            .await
     }
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
@@ -47,8 +45,8 @@ impl Changelog {
     /// 
     /// The function does not check to make sure that the map_id is singleplayer, but it is returned as a changelog entry,
     /// and no special join is done to handle coop-specific personal best history.
-    pub async fn get_sp_pb_history(pool: &PgPool, profile_number: &str, map_id: &str, cat_id: i32, game_id: i32) -> Result<Vec<Changelog>> {
-        Ok(sqlx::query_as::<_, Changelog>(r#" 
+    pub async fn get_sp_pb_history(pool: &PgPool, profile_number: &str, map_id: &str, cat_id: i32, game_id: i32) -> Result<Vec<Changelog>, sqlx::Error> {
+        sqlx::query_as::<_, Changelog>(r#" 
                 SELECT changelog.* 
                 FROM changelog
                     INNER JOIN maps ON (maps.steam_id = changelog.map_id)
@@ -63,26 +61,26 @@ impl Changelog {
             .bind(cat_id)
             .bind(game_id)
             .fetch_all(pool)
-            .await?)
+            .await
     }
     /// Deletes all references to a `demo_id` in `changelog`.
-    pub async fn delete_references_to_demo(pool: &PgPool, demo_id: i64) -> Result<Vec<i64>> {
-        Ok(sqlx::query_scalar(r#"UPDATE changelog SET demo_id = NULL WHERE demo_id = $1 RETURNING id;"#)
+    pub async fn delete_references_to_demo(pool: &PgPool, demo_id: i64) -> Result<Vec<i64>, sqlx::Error> {
+        sqlx::query_scalar(r#"UPDATE changelog SET demo_id = NULL WHERE demo_id = $1 RETURNING id;"#)
             .bind(demo_id)
             .fetch_all(pool)
-            .await?)
+            .await
     }
     /// Deletes all references to a `coop_id` in `changelog`
     #[allow(dead_code)]
-    pub async fn delete_references_to_coop_id(pool: &PgPool, coop_id: i64) -> Result<Vec<i64>> {
-        Ok(sqlx::query_scalar(r#"UPDATE changelog SET coop_id NULL WHERE coop_id = $1 RETURNING id;"#)
+    pub async fn delete_references_to_coop_id(pool: &PgPool, coop_id: i64) -> Result<Vec<i64>, sqlx::Error> {
+        sqlx::query_scalar(r#"UPDATE changelog SET coop_id NULL WHERE coop_id = $1 RETURNING id;"#)
             .bind(coop_id)
             .fetch_all(pool)
-            .await?)
+            .await
     }
     /// Insert a new changelog entry.
-    pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64> {
-        let res: i64 = sqlx::query(r#"
+    pub async fn insert_changelog(pool: &PgPool, cl: ChangelogInsert) -> Result<i64, sqlx::Error> {
+        sqlx::query_scalar(r#"
                 INSERT INTO changelog 
                 (timestamp, profile_number, score, map_id, demo_id, banned, 
                 youtube_id, coop_id, post_rank, pre_rank, submission, note,
@@ -93,49 +91,38 @@ impl Changelog {
             .bind(cl.demo_id).bind(cl.banned).bind(cl.youtube_id).bind(cl.coop_id).bind(cl.post_rank)
             .bind(cl.pre_rank).bind(cl.submission).bind(cl.note).bind(cl.category_id)
             .bind(cl.score_delta).bind(cl.verified).bind(cl.admin_note)
-            .map(|row: PgRow|{row.get(0)})
             .fetch_one(pool)
-            .await?;
-        Ok(res)
+            .await
     }
     /// Updates all fields (except ID) for a given changelog entry. Returns the updated Changelog struct.
-    pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<bool> {
-        let _ = sqlx::query(r#"UPDATE changelog 
+    pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<Changelog, sqlx::Error> {
+        sqlx::query_as::<_, Changelog>(r#"UPDATE changelog 
                 SET timestamp = $1, profile_number = $2, score = $3, map_id = $4, demo_id = $5, banned = $6, 
                 youtube_id = $7, coop_id = $8, post_rank = $9, pre_rank = $10, submission = $11, note = $12,
                 category_id = $13, score_delta = $14, verified = $15, admin_note = $16
-                WHERE id = $17"#)
+                WHERE id = $17 RETURNING *"#)
             .bind(update.timestamp).bind(update.profile_number).bind(update.score).bind(update.map_id) 
             .bind(update.demo_id).bind(update.banned).bind(update.youtube_id).bind(update.coop_id)
             .bind(update.post_rank).bind(update.pre_rank).bind(update.submission).bind(update.note)
             .bind(update.category_id).bind(update.score_delta).bind(update.verified).bind(update.admin_note)
             .bind(update.id)
-            .fetch_optional(pool)
-            .await?;
-        Ok(true)
+            .fetch_one(pool)
+            .await
     }
     /// Updates demo_id
-    pub async fn update_demo_id_in_changelog(pool: &PgPool, cl_id: i64, demo_id: i64) -> Result<bool> {
-        let _ = sqlx::query(r#"UPDATE changelog 
-                SET demo_id = $1 WHERE id = $2;"#)
+    pub async fn update_demo_id_in_changelog(pool: &PgPool, cl_id: i64, demo_id: i64) -> Result<Changelog, sqlx::Error> {
+        sqlx::query_as::<_, Changelog>(r#"UPDATE changelog 
+                SET demo_id = $1 WHERE id = $2 RETURNING *;"#)
             .bind(demo_id)
             .bind(cl_id)
-            .fetch_optional(pool)
-            .await?;
-        Ok(true)
+            .fetch_one(pool)
+            .await
     }
-    pub async fn delete_changelog(pool: &PgPool, cl_id: i64) -> Result<bool> {
-        let res = sqlx::query_as::<_, Changelog>(r#"DELETE FROM changelog WHERE id = $1 RETURNING *"#)
+    pub async fn delete_changelog(pool: &PgPool, cl_id: i64) -> Result<Changelog, sqlx::Error> {
+        sqlx::query_as::<_, Changelog>(r#"DELETE FROM changelog WHERE id = $1 RETURNING *"#)
             .bind(cl_id)
             .fetch_one(pool)
-            .await;
-        match res {
-            Ok(_) => Ok(true),
-            Err(e) => {
-                eprintln!("Error deleting changelog -> {}", e);
-                Ok(false)
-            },
-        }
+            .await
     }  
 }
 
@@ -148,12 +135,12 @@ impl ChangelogPage {
     pub async fn get_changelog_page(
         pool: &PgPool,
         params: ChangelogQueryParams,
-    ) -> Result<Option<Vec<ChangelogPage>>> {        
+    ) -> Result<Vec<ChangelogPage>, sqlx::Error> {        
         let query_string = build_filtered_changelog(pool, params, None).await?;
         let res = sqlx::query_as::<_, ChangelogPage>(&query_string)
             .fetch_all(pool)
             .await?;
-        Ok(Some(res))
+        Ok(res)
     }
 }
 
@@ -169,7 +156,7 @@ impl ChangelogPage {
 /// let query_string = build_filtered_changelog(pool, params, Some(&mut additional_filters)).await.unwrap();
 /// ```
 /// 
-pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParams, additional_filters: Option<&mut Vec<String>>) -> Result<String> {
+pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParams, additional_filters: Option<&mut Vec<String>>) -> Result<String, sqlx::Error> {
     let mut query_string: String = String::from(
         r#" 
         SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
@@ -217,9 +204,8 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
     if let Some(profile_number) = params.profile_number {
         filters.push(format!("cl.profile_number = {}\n", &profile_number));
     } else if let Some(nick_name) = params.nick_name {
-        if let Some(profile_numbers) = Users::check_board_name(pool, nick_name.clone())
-            .await?
-            .as_mut()
+        let mut profile_numbers = Users::check_board_name(pool, &nick_name).await?;
+        if !profile_numbers.is_empty()
         {
             if profile_numbers.len() == 1 {
                 filters.push(format!(
@@ -239,7 +225,7 @@ pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParam
                 filters.push(profile_str);
             }
         } else {
-            bail!("No users found with specified username pattern.");
+            return Err(sqlx::Error::RowNotFound);
         }
     }
     if let Some(first) = params.first {

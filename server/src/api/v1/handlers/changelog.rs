@@ -193,7 +193,7 @@ pub async fn changelog_demo_update(
     cache: web::Data<CacheState>,
 ) -> Result<impl Responder> {
     let ids = ids.into_inner();
-    let id = Changelog::update_demo_id_in_changelog(
+    let return_changelog = Changelog::update_demo_id_in_changelog(
         pool.get_ref(),
         ids.cl_id.unwrap(),
         ids.demo_id.unwrap(),
@@ -202,5 +202,5 @@ pub async fn changelog_demo_update(
     cache
         .update_current_states(&[SP_PREVIEWS, COOP_PREVIEWS], &[false, false])
         .await;
-    Ok(web::Json(id))
+    Ok(web::Json(return_changelog))
 }

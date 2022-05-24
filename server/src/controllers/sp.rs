@@ -1,6 +1,5 @@
-use crate::models::maps::Maps;
-use crate::models::sp::*;
-use anyhow::Result;
+use crate::models::{maps::Maps, sp::*};
+
 use futures::future::try_join_all;
 use sqlx::PgPool;
 
@@ -11,8 +10,8 @@ impl SpMap {
         limit: i32,
         cat_id: i32,
         game_id: i32,
-    ) -> Result<Vec<SpMap>> {
-        match sqlx::query_as::<_, SpMap>(
+    ) -> Result<Vec<SpMap>, sqlx::Error> {
+        sqlx::query_as::<_, SpMap>(
             r#" 
                 SELECT t.timestamp,
                     t.CL_profile_number,
@@ -49,20 +48,13 @@ impl SpMap {
         .bind(limit)
         .fetch_all(pool)
         .await
-        {
-            Ok(res) => Ok(res),
-            Err(e) => {
-                eprintln!("{}", e);
-                Err(anyhow::Error::new(e).context("Error with SP Maps"))
-            }
-        }
     }
 }
 
 impl SpPreview {
     /// Gets preview information for top 7 on an SP Map.
-    pub async fn get_sp_preview(pool: &PgPool, map_id: &str) -> Result<Vec<SpPreview>> {
-        Ok(sqlx::query_as::<_, SpPreview>(
+    pub async fn get_sp_preview(pool: &PgPool, map_id: &str) -> Result<Vec<SpPreview>, sqlx::Error> {
+        sqlx::query_as::<_, SpPreview>(
             r#"
                 SELECT t.CL_profile_number, t.score, t.youtube_id, t.category_id,
                 COALESCE(t.board_name, t.steam_name) AS user_name, t.map_id
@@ -82,10 +74,10 @@ impl SpPreview {
         )
         .bind(map_id)
         .fetch_all(pool)
-        .await?)
+        .await
     }
     /// Collects the top 7 preview data for all SP maps.
-    pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<Vec<SpPreview>>> {
+    pub async fn get_sp_previews(pool: &PgPool) -> Result<Vec<Vec<SpPreview>>, sqlx::Error> {
         let map_id_vec = Maps::get_steam_ids(pool, false).await?;
         let futures: Vec<_> = map_id_vec
             .iter()
@@ -97,8 +89,8 @@ impl SpPreview {
 
 impl SpBanned {
     // Returns all profile_numbers and scores associated with banned times on a given map
-    pub async fn get_sp_banned(pool: &PgPool, map_id: String) -> Result<Vec<SpBanned>> {
-        Ok(sqlx::query_as::<_, SpBanned>(
+    pub async fn get_sp_banned(pool: &PgPool, map_id: String) -> Result<Vec<SpBanned>, sqlx::Error> {
+        sqlx::query_as::<_, SpBanned>(
             r#"
                 SELECT changelog.profile_number, changelog.score 
                     FROM changelog
@@ -109,6 +101,6 @@ impl SpBanned {
         )
         .bind(map_id)
         .fetch_all(pool)
-        .await?)
+        .await
     }
 }

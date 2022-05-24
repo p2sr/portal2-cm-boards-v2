@@ -1,48 +1,43 @@
-use crate::models::changelog::Changelog;
-use crate::models::coop::*;
-use crate::models::maps::Maps;
-use anyhow::Result;
+use crate::models::{changelog::Changelog, coop::*, maps::Maps};
 use futures::future::try_join_all;
-use sqlx::postgres::PgRow;
-use sqlx::{PgPool, Row};
+use sqlx::PgPool;
 use std::collections::HashSet;
 
 impl CoopBundled {
-    pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64> {
-        Ok(sqlx::query(
+    pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64, sqlx::Error> {
+        sqlx::query_scalar(
             r#"
                 INSERT INTO coop_bundled 
                 (p_id1, p_id2, p1_is_host, cl_id1, cl_id2) VALUES 
                 ($1, $2, $3, $4, $5)
                 RETURNING id"#,
         )
-        .bind(cl.p_id1)
-        .bind(cl.p_id2)
-        .bind(cl.p1_is_host)
-        .bind(cl.cl_id1)
-        .bind(cl.cl_id2)
-        .map(|row: PgRow| row.get(0))
-        .fetch_one(pool)
-        .await?)
-    }
-    pub async fn get_temp_coop_changelog(pool: &PgPool, map_id: &str) -> Result<CoopTempUser> {
-        Ok(sqlx::query_as::<_, CoopTempUser>(r#"SELECT id AS cl_id, profile_number FROM changelog WHERE profile_number = 'N/A' AND map_id = $1"#)
-            .bind(map_id)
+            .bind(cl.p_id1)
+            .bind(cl.p_id2)
+            .bind(cl.p1_is_host)
+            .bind(cl.cl_id1)
+            .bind(cl.cl_id2)
             .fetch_one(pool)
-            .await?)
+            .await
+    }
+    pub async fn get_temp_coop_changelog(pool: &PgPool, map_id: &str) -> Result<Option<CoopTempUser>, sqlx::Error> {
+        sqlx::query_as::<_, CoopTempUser>(r#"SELECT id AS cl_id, profile_number FROM changelog WHERE profile_number = 'N/A' AND map_id = $1"#)
+            .bind(map_id)
+            .fetch_optional(pool)
+            .await
     }
     pub async fn update_changelog_with_coop_id(
         pool: &PgPool,
         cl_id: i64,
         coop_id: i64,
-    ) -> Result<Option<Changelog>> {
-        Ok(sqlx::query_as::<_, Changelog>(
+    ) -> Result<Changelog, sqlx::Error> {
+        sqlx::query_as::<_, Changelog>(
             r#"UPDATE changelog SET coop_id = $1 WHERE id = $2 RETURNING *"#,
         )
         .bind(coop_id)
         .bind(cl_id)
-        .fetch_optional(pool)
-        .await?)
+        .fetch_one(pool)
+        .await
     }
 }
 
@@ -53,7 +48,7 @@ impl CoopMap {
         limit: i32,
         cat_id: i32,
         game_id: i32,
-    ) -> Result<Vec<CoopMap>> {
+    ) -> Result<Vec<CoopMap>, sqlx::Error> {
         let mut res = sqlx::query_as::<_, CoopMap>(
             r#"
                 SELECT c1.timestamp, 
@@ -102,7 +97,7 @@ impl CoopMap {
 impl CoopPreview {
     // TODO: Filter by default cat_id
     /// Gets the top 7 (unique on player) times on a given Coop Map.
-    pub async fn get_coop_preview(pool: &PgPool, map_id: &str) -> Result<Vec<CoopPreview>> {
+    pub async fn get_coop_preview(pool: &PgPool, map_id: &str) -> Result<Vec<CoopPreview>, sqlx::Error> {
         // TODO: Open to PRs to contain all this functionality in the SQL statement.
         let res = sqlx::query_as::<_, CoopPreview>(
             r#"
@@ -156,7 +151,7 @@ impl CoopPreview {
         Ok(vec_final)
     }
     // Collects the top 7 preview data for all Coop maps.
-    pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<Vec<CoopPreview>>> {
+    pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<Vec<CoopPreview>>, sqlx::Error> {
         let map_id_vec = Maps::get_steam_ids(pool, true).await?;
         let futures: Vec<_> = map_id_vec
             .iter()
@@ -172,10 +167,10 @@ impl CoopBanned {
         pool: &PgPool,
         map_id: &str,
         cat_id: i32,
-    ) -> Result<Vec<CoopBanned>> {
+    ) -> Result<Vec<CoopBanned>, sqlx::Error> {
         // TODO: Handle verified and handle if one is banned/not verified but the other isn't.
         // TODO: How to handle one player in coop not-being banned/unverified but the other is.
-        Ok(sqlx::query_as::<_, CoopBanned>(r#"
+        sqlx::query_as::<_, CoopBanned>(r#"
                 SELECT c1.score, c1.profile_number AS profile_number1, c2.profile_number AS profile_number2
                 FROM (SELECT * FROM 
                     coop_bundled 
@@ -193,6 +188,6 @@ impl CoopBanned {
             .bind(map_id)
             .bind(cat_id)
             .fetch_all(pool)
-            .await?)
+            .await
     }
 }

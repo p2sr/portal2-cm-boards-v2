@@ -392,7 +392,7 @@ async fn delete_demo_file(
 }
 
 /// Once the file has been removed, delete the demo entry.
-async fn delete_demo_db(pool: &PgPool, demo_id: i64) -> Result<bool> {
+async fn delete_demo_db(pool: &PgPool, demo_id: i64) -> std::result::Result<Demos, sqlx::Error> {
     // Delete references to the demo_id in the changelog table.
     Changelog::delete_references_to_demo(pool, demo_id).await?;
     // Delete the demo entry.
