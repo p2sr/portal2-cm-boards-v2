@@ -3,6 +3,7 @@ use sqlx::PgPool;
 use chrono::NaiveDateTime;
 use crate::models::changelog::*;
 use crate::models::users::Users;
+use crate::tools::helpers::Transaction;
 
 // Implementations of associated functions for Changelog
 impl Changelog {
@@ -123,7 +124,44 @@ impl Changelog {
             .bind(cl_id)
             .fetch_one(pool)
             .await
-    }  
+    }
+    
+    pub async fn transaction_insert_changelog(transaction: &mut Transaction<'_>, cl: ChangelogInsert) -> Result<Changelog, sqlx::Error> {
+        sqlx::query_as::<_, Changelog>(r#"
+            INSERT INTO changelog 
+                (timestamp, profile_number, score, map_id, demo_id, banned, 
+                youtube_id, coop_id, post_rank, pre_rank, submission, note,
+                category_id, score_delta, verified, admin_note) VALUES 
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+            RETURNING *"#)
+            .bind(cl.timestamp).bind(cl.profile_number).bind(cl.score).bind(cl.map_id) // TODO: There has GOT to be a better way to do this... https://crates.io/crates/sqlxinsert ?
+            .bind(cl.demo_id).bind(cl.banned).bind(cl.youtube_id).bind(cl.coop_id).bind(cl.post_rank)
+            .bind(cl.pre_rank).bind(cl.submission).bind(cl.note).bind(cl.category_id)
+            .bind(cl.score_delta).bind(cl.verified).bind(cl.admin_note)
+            .fetch_one(&mut *transaction)
+            .await
+    }
+    pub async fn transaction_update_changelog(transaction: &mut Transaction<'_>, update: Changelog) -> Result<Changelog, sqlx::Error> {
+        sqlx::query_as::<_, Changelog>(r#"UPDATE changelog 
+                SET timestamp = $1, profile_number = $2, score = $3, map_id = $4, demo_id = $5, banned = $6, 
+                youtube_id = $7, coop_id = $8, post_rank = $9, pre_rank = $10, submission = $11, note = $12,
+                category_id = $13, score_delta = $14, verified = $15, admin_note = $16
+                WHERE id = $17 RETURNING *"#)
+            .bind(update.timestamp).bind(update.profile_number).bind(update.score).bind(update.map_id) 
+            .bind(update.demo_id).bind(update.banned).bind(update.youtube_id).bind(update.coop_id)
+            .bind(update.post_rank).bind(update.pre_rank).bind(update.submission).bind(update.note)
+            .bind(update.category_id).bind(update.score_delta).bind(update.verified).bind(update.admin_note)
+            .bind(update.id)
+            .fetch_one(&mut *transaction)
+            .await
+    }
+    pub async fn transaction_delete_changelog(transaction: &mut Transaction<'_>, cl_id: i64) -> Result<Changelog, sqlx::Error> {
+        sqlx::query_as::<_, Changelog>(r#"DELETE FROM changelog WHERE id = $1 RETURNING *"#)
+            .bind(cl_id)
+            .fetch_one(&mut *transaction)
+            .await
+    }
+    
 }
 
 impl ChangelogPage {

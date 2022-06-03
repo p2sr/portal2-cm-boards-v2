@@ -3,7 +3,7 @@ use num::pow;
 use sqlx::PgPool;
 use std::collections::{HashMap, HashSet};
 
-use crate::models::changelog::{CalcValues, Changelog, SubmissionChangelog, ChangelogInsert};
+use crate::models::changelog::{CalcValues, Changelog, ChangelogInsert, SubmissionChangelog};
 use crate::models::coop::{CoopMap, CoopRanked};
 use crate::models::maps::Maps;
 use crate::models::sp::SpMap;
@@ -11,6 +11,8 @@ use crate::models::users::Users;
 
 use super::cache::CacheState;
 use super::config::Config;
+
+pub type Transaction<'a> = sqlx::Transaction<'a, sqlx::Postgres>;
 
 /// Calcultes the score using the pre-existing iVerb point formula.
 #[inline(always)]
@@ -99,7 +101,14 @@ pub async fn check_for_valid_score(
             bail!("User does not exist");
         }
     }
-    let cl_res = Changelog::get_sp_pb_history(pool, &cl.profile_number, &cl.map_id, cl.category_id.unwrap(), cl.game_id.unwrap_or(1)).await;
+    let cl_res = Changelog::get_sp_pb_history(
+        pool,
+        &cl.profile_number,
+        &cl.map_id,
+        cl.category_id.unwrap(),
+        cl.game_id.unwrap_or(1),
+    )
+    .await;
     let cl_res = match cl_res {
         Ok(x) => {
             if x.is_empty() {
@@ -121,9 +130,15 @@ pub async fn check_for_valid_score(
     values.score_delta = Some(cl_res[0].score - cl.score);
     values.previous_id = Some(cl_res[0].id);
     // Assuming there is a PB History, there must be other scores, this should return a valid list of ranked maps.
-    let cl_ranked = SpMap::get_sp_map_page(pool, &cl.map_id, limit, cl.category_id.unwrap(), cl.game_id.unwrap_or(1))
-        .await
-        .unwrap();
+    let cl_ranked = SpMap::get_sp_map_page(
+        pool,
+        &cl.map_id,
+        limit,
+        cl.category_id.unwrap(),
+        cl.game_id.unwrap_or(1),
+    )
+    .await
+    .unwrap();
     for (i, entry) in cl_ranked.iter().enumerate() {
         if entry.score >= cl.score {
             values.post_rank = Some(i as i32 + 1);
@@ -135,18 +150,22 @@ pub async fn check_for_valid_score(
     Ok(values)
 }
 
-
 /// Returns a ChangelogInsert that should be valid to insert.
-/// 
+///
 /// Checks for a past score on the map for the user.
-/// 
+///
 /// Score is invalid if any of the following are true
 /// 1. The user is banned.
 /// 2. The user has a time on the same map, with the same score (time).
 /// 3. The user does not exist (and cannot be added from Steam).
-/// 
+///
 /// This function handles the error case where the user is valid on steam, but does not currently exist in our database.
-pub async fn get_valid_changelog_insert(pool: &PgPool, config: &Config, cache: &CacheState, mut cl: SubmissionChangelog) -> Result<ChangelogInsert> {
+pub async fn get_valid_changelog_insert(
+    pool: &PgPool,
+    config: &Config,
+    cache: &CacheState,
+    mut cl: SubmissionChangelog,
+) -> Result<ChangelogInsert> {
     if cl.category_id.is_none() {
         cl.category_id = Some(cache.default_cat_ids[&cl.map_id]);
     } // Steps 1 & 2
@@ -157,24 +176,22 @@ pub async fn get_valid_changelog_insert(pool: &PgPool, config: &Config, cache: &
             } else {
                 details
             }
-        },
+        }
         Err(e) => {
             // Step 3
             eprintln!("Error checking valid score details -> {e}");
             // Try to insert the user into the users table.
             match Users::new_from_steam(&config.steam.api_key, &cl.profile_number).await {
-                Ok(user) => {
-                    match Users::insert_new_users(pool, user).await {
-                        Ok(_) => CalcValues::default(),
-                        _ => bail!("Could not add new user to database.")
-                    }
-                }
+                Ok(user) => match Users::insert_new_users(pool, user).await {
+                    Ok(_) => CalcValues::default(),
+                    _ => bail!("Could not add new user to database."),
+                },
                 Err(e) => {
                     eprintln!("Could not get user from steam -> {e}");
                     bail!("Invalid user steam_id provided.");
                 }
             }
-        },
+        }
     };
     // Step 4
     Ok(ChangelogInsert::new_from_submission(cl, values, &cache.default_cat_ids).await)

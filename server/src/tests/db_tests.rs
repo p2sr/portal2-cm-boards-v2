@@ -236,6 +236,7 @@ async fn test_db_changelog() {
     use crate::models::changelog::*;
     use chrono::NaiveDateTime;
     let (_, pool) = get_config().await.expect("Error getting config and DB pool");
+    let mut transaction = pool.begin().await.unwrap();
     #[allow(unused_variables)]
     let changelog = Changelog {
         id: 127825,
@@ -289,30 +290,12 @@ async fn test_db_changelog() {
     assert!(!banned_scores);
     let pb_history = Changelog::get_sp_pb_history(&pool, "76561198040982247", "47763", 67, 1).await.unwrap();
     assert_ne!(0, pb_history.len());
-    let new_cl_id = Changelog::insert_changelog(&pool, clinsert.clone()).await.unwrap();
-    let mut new_cl = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
-    new_cl.note = Some("fat time".to_string());
-    let _ = Changelog::update_changelog(&pool, new_cl.clone()).await.unwrap();
-    let updated_changelog = Changelog::get_changelog(&pool, new_cl_id).await.unwrap().unwrap();
-    assert_eq!(new_cl.id, updated_changelog.id);
-    assert_eq!(new_cl.timestamp, updated_changelog.timestamp);
-    assert_eq!(new_cl.score, updated_changelog.score);
-    assert_eq!(new_cl.map_id, updated_changelog.map_id);
-    assert_eq!(new_cl.demo_id, updated_changelog.demo_id);
-    assert_eq!(new_cl.banned, updated_changelog.banned);
-    assert_eq!(new_cl.youtube_id, updated_changelog.youtube_id);
-    assert_eq!(new_cl.previous_id, updated_changelog.previous_id);
-    assert_eq!(new_cl.coop_id, updated_changelog.coop_id);
-    assert_eq!(new_cl.post_rank, updated_changelog.post_rank);
-    assert_eq!(new_cl.pre_rank, updated_changelog.pre_rank);
-    assert_eq!(new_cl.submission, updated_changelog.submission);
-    assert_eq!(Some("fat time".to_string()), updated_changelog.note);
-    assert_eq!(new_cl.category_id, updated_changelog.category_id);
-    assert_eq!(new_cl.score_delta, updated_changelog.score_delta);
-    assert_eq!(new_cl.verified, updated_changelog.verified);
-    assert_eq!(new_cl.admin_note, updated_changelog.admin_note);
-    let _ = Changelog::delete_changelog(&pool, new_cl_id).await.unwrap();
-    let _res = Changelog::get_changelog(&pool, new_cl_id).await;
+    let mut new_cl_insert = Changelog::transaction_insert_changelog(&mut transaction, clinsert.clone()).await.unwrap();
+    new_cl_insert.note = Some("fat time".to_string());
+    let _ = Changelog::transaction_update_changelog(&mut transaction, new_cl_insert.clone()).await.unwrap();
+    // let updated_changelog = Changelog::get_changelog(&pool, new_cl_insert.id).await.unwrap().unwrap();
+    let _ = Changelog::transaction_delete_changelog(&mut transaction, new_cl_insert.id).await.unwrap();
+    let _res = Changelog::get_changelog(&pool, new_cl_insert.id).await;
 
     let query_params = ChangelogQueryParams {
         limit: Some(500),
@@ -347,6 +330,7 @@ async fn test_db_changelog() {
     let filtered_cl_page = ChangelogPage::get_changelog_page(&pool, filter).await.unwrap();
     assert_eq!(filtered_cl_page.len(), 1);
     assert_eq!(filtered_cl_page[0].id, 127825);
+    transaction.rollback().await.unwrap();
 }
 
 #[actix_web::test]
