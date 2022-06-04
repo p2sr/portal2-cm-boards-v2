@@ -1,6 +1,8 @@
 use chrono::NaiveDateTime;
 use sqlx::FromRow;
 
+use super::users::UsersDisplayCount;
+
 /// One-to-one struct for changelog data.
 #[derive(Serialize, Deserialize, FromRow, Debug, Clone)]
 pub struct Changelog {
@@ -181,4 +183,43 @@ pub struct MapScoreDate {
     pub map_name: String,
     pub score: i32,
     pub timestamp: Option<NaiveDateTime>,
+}
+
+/// Used to count the number of scores per-user.
+#[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
+pub struct NumScores {
+    pub count: i32,
+    pub profile_number: String,
+    pub user_name: String,
+    pub avatar: String,
+}
+
+/// Used to represent users and their score deltas on a given map.
+#[derive(Serialize, Deserialize, Clone, Debug, FromRow)]
+pub struct ScoreDeltaComparison {
+    pub profile_number: String,
+    pub user_name: String,
+    pub avatar: String,
+    pub score_delta: i32,
+    pub map_id: String,
+    pub map_name: String,
+}
+
+/// Representation of the number of World Records per Map for a given map.
+#[derive(Serialize, Deserialize, Clone, Debug, FromRow)]
+pub struct NumWrsPerMap {
+    pub map_id: String,
+    pub map_name: String,
+    pub count: i32,
+}
+
+/// Struct for the "Recap", taken from NeKz's recap bot on the Discord server.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Recap {
+    pub num_wrs: Vec<UsersDisplayCount>,
+    pub num_demos: Vec<UsersDisplayCount>,
+    pub top_pb_diff: Vec<ScoreDeltaComparison>,
+    pub most_updates: Vec<UsersDisplayCount>,
+    pub top_videos: Vec<UsersDisplayCount>,
+    pub top_wrs_by_map: Vec<NumWrsPerMap>,
 }

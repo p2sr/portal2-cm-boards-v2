@@ -1,14 +1,9 @@
 use actix_web::web;
 
-use crate::api::v1::handlers::admin::*;
-use crate::api::v1::handlers::changelog::*;
-use crate::api::v1::handlers::chapters::*;
-use crate::api::v1::handlers::coop::*;
-use crate::api::v1::handlers::demos::*;
-use crate::api::v1::handlers::maps::*;
-use crate::api::v1::handlers::points::*;
-use crate::api::v1::handlers::sp::*;
-use crate::api::v1::handlers::users::*;
+use crate::api::v1::handlers::{
+    admin::*, changelog::*, chapters::*, coop::*, demos::*, maps::*, points::*, sp::*, stats::*,
+    users::*,
+};
 
 /// Mounts the routes to /api/..
 pub fn init(cfg: &mut web::ServiceConfig) {
@@ -61,6 +56,9 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(demos_add)
             .service(admin_changelog)
             .service(admin_banned_stats)
-            .service(admins_list),
+            .service(admins_list)
+            .service(count_scores)
+            .service(count_scores_by_map)
+            .service(recap),
     );
 }

@@ -56,6 +56,14 @@ pub struct UsersDisplay {
     pub avatar: String,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, FromRow)]
+pub struct UsersDisplayCount {
+    pub profile_number: String,
+    pub user_name: String,
+    pub avatar: String,
+    pub count: i32,
+}
+
 /// Social media accounts from `Users`
 #[derive(Serialize, Deserialize, Debug, FromRow)]
 pub struct Socials {
@@ -69,7 +77,6 @@ pub struct Socials {
 pub struct AvatarInsert {
     pub avatar: String,
 }
-
 
 /// Wrapper for our API call
 #[derive(Serialize, Deserialize, Debug, Clone)]

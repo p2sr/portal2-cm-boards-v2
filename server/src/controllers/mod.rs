@@ -12,5 +12,7 @@ pub mod demos;
 pub mod maps;
 /// Controllers for sp
 pub mod sp;
+/// Controllers for stats
+pub mod stats;
 /// Controllers for users
 pub mod users;
