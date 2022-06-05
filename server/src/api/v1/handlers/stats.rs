@@ -20,7 +20,17 @@ pub async fn count_scores_by_map(
     ))
 }
 
+#[derive(Deserialize, Clone, Debug)]
+pub struct LimitQuery {
+    pub limit: Option<i32>,
+}
+
 #[get("/recap")]
-pub async fn recap(pool: web::Data<PgPool>) -> Result<impl Responder> {
-    Ok(web::Json(Recap::collect_recap(pool.get_ref()).await?))
+pub async fn recap(
+    pool: web::Data<PgPool>,
+    query: web::Query<LimitQuery>,
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        Recap::collect_recap(pool.get_ref(), query.into_inner().limit).await?,
+    ))
 }

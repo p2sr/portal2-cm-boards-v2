@@ -31,27 +31,38 @@ impl NumScores {
 }
 
 impl Recap {
-    pub async fn get_num_wrs(pool: &PgPool) -> Result<Vec<UsersDisplayCount>, sqlx::Error> {
+    pub async fn get_num_wrs(
+        pool: &PgPool,
+        limit: i32,
+    ) -> Result<Vec<UsersDisplayCount>, sqlx::Error> {
         sqlx::query_as::<_, UsersDisplayCount>(r#"SELECT changelog.profile_number,
         COALESCE(board_name, steam_name) AS user_name, avatar, COUNT(*) AS count
             FROM changelog INNER JOIN users ON (changelog.profile_number = users.profile_number)
                 WHERE post_rank = 1 AND users.banned = false AND changelog.banned = false AND changelog.verified = true
                 AND timestamp > current_date - interval '7 days'
-            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC;"#)
+            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC LIMIT $1;"#)
+        .bind(limit)
         .fetch_all(pool)
         .await
     }
-    pub async fn get_num_demos(pool: &PgPool) -> Result<Vec<UsersDisplayCount>, sqlx::Error> {
+    pub async fn get_num_demos(
+        pool: &PgPool,
+        limit: i32,
+    ) -> Result<Vec<UsersDisplayCount>, sqlx::Error> {
         sqlx::query_as::<_, UsersDisplayCount>(r#"SELECT changelog.profile_number, 
         COALESCE(board_name, steam_name) AS user_name, avatar, COUNT(*) AS count
             FROM changelog INNER JOIN users ON (changelog.profile_number = users.profile_number)
                 WHERE demo_id IS NOT NULL AND users.banned = false AND changelog.banned = false AND changelog.verified = true
                 AND timestamp > current_date - interval '7 days'
-            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC;"#)
+            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC LIMIT $1;"#)
+        .bind(limit)
         .fetch_all(pool)
         .await
     }
-    pub async fn get_top_pb_diff(pool: &PgPool) -> Result<Vec<ScoreDeltaComparison>, sqlx::Error> {
+    pub async fn get_top_pb_diff(
+        pool: &PgPool,
+        limit: i32,
+    ) -> Result<Vec<ScoreDeltaComparison>, sqlx::Error> {
         sqlx::query_as::<_, ScoreDeltaComparison>(r#"SELECT changelog.profile_number,
         COALESCE(board_name, steam_name) AS user_name, avatar, score_delta, map_id, maps.name AS map_name 
             FROM changelog
@@ -59,21 +70,29 @@ impl Recap {
             INNER JOIN maps ON (changelog.map_id = maps.steam_id)
                 WHERE score_delta IS NOT NULL AND users.banned = false AND changelog.banned = false AND changelog.verified = true
                 AND timestamp > current_date - interval '30 days'
-            GROUP BY changelog.profile_number, user_name, avatar, score_delta, map_id, map_name ORDER BY score_delta ASC;"#)
+            GROUP BY changelog.profile_number, user_name, avatar, score_delta, map_id, map_name ORDER BY score_delta ASC LIMIT $1;"#)
+        .bind(limit)
         .fetch_all(pool)
         .await
     }
-    pub async fn get_most_updates(pool: &PgPool) -> Result<Vec<UsersDisplayCount>, sqlx::Error> {
+    pub async fn get_most_updates(
+        pool: &PgPool,
+        limit: i32,
+    ) -> Result<Vec<UsersDisplayCount>, sqlx::Error> {
         sqlx::query_as::<_, UsersDisplayCount>(r#"SELECT changelog.profile_number,
         COALESCE(board_name, steam_name) AS user_name, avatar, COUNT(*) AS count
             FROM changelog INNER JOIN users ON (changelog.profile_number = users.profile_number)
                 WHERE users.banned = false AND changelog.banned = false AND changelog.verified = true
                 AND timestamp > current_date - interval '7 days'
-            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC;"#)
+            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC LIMIT $1;"#)
+        .bind(limit)
         .fetch_all(pool)
         .await
     }
-    pub async fn get_top_videos(pool: &PgPool) -> Result<Vec<UsersDisplayCount>, sqlx::Error> {
+    pub async fn get_top_videos(
+        pool: &PgPool,
+        limit: i32,
+    ) -> Result<Vec<UsersDisplayCount>, sqlx::Error> {
         sqlx::query_as::<_, UsersDisplayCount>(
             r#"SELECT changelog.profile_number,
         COALESCE(board_name, steam_name) AS user_name, avatar, COUNT(*) AS count
@@ -81,30 +100,36 @@ impl Recap {
                 WHERE youtube_id IS NOT NULL AND users.banned = false AND changelog.banned = false
                 AND changelog.verified = true
                 AND timestamp > current_date - interval '7 days'
-            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC;"#,
+            GROUP BY changelog.profile_number, user_name, avatar ORDER BY COUNT(*) DESC LIMIT $1;"#,
         )
+        .bind(limit)
         .fetch_all(pool)
         .await
     }
-    pub async fn get_top_wrs_by_map(pool: &PgPool) -> Result<Vec<NumWrsPerMap>, sqlx::Error> {
+    pub async fn get_top_wrs_by_map(
+        pool: &PgPool,
+        limit: i32,
+    ) -> Result<Vec<NumWrsPerMap>, sqlx::Error> {
         sqlx::query_as::<_, NumWrsPerMap>(r#"SELECT map_id, maps.name AS map_name, COUNT(*) AS count
             FROM changelog
             INNER JOIN users ON (changelog.profile_number = users.profile_number)
             INNER JOIN maps ON (maps.steam_id = changelog.map_id)
                 WHERE users.banned = false AND changelog.banned = false AND changelog.verified = true
                 AND timestamp > current_date - interval '7 days'
-            GROUP BY map_id, map_name ORDER BY count DESC;"#)
+            GROUP BY map_id, map_name ORDER BY count DESC LIMIT $1;"#)
+        .bind(limit)
         .fetch_all(pool)
         .await
     }
-    pub async fn collect_recap(pool: &PgPool) -> Result<Recap, sqlx::Error> {
+    // TODO: Truncate results
+    pub async fn collect_recap(pool: &PgPool, limit: Option<i32>) -> Result<Recap, sqlx::Error> {
         Ok(Recap {
-            num_wrs: Recap::get_num_wrs(pool).await?,
-            num_demos: Recap::get_num_demos(pool).await?,
-            top_pb_diff: Recap::get_top_pb_diff(pool).await?,
-            most_updates: Recap::get_most_updates(pool).await?,
-            top_videos: Recap::get_top_videos(pool).await?,
-            top_wrs_by_map: Recap::get_top_wrs_by_map(pool).await?,
+            num_wrs: Recap::get_num_wrs(pool, limit.unwrap_or(5)).await?,
+            num_demos: Recap::get_num_demos(pool, limit.unwrap_or(5)).await?,
+            top_pb_diff: Recap::get_top_pb_diff(pool, limit.unwrap_or(5)).await?,
+            most_updates: Recap::get_most_updates(pool, limit.unwrap_or(5)).await?,
+            top_videos: Recap::get_top_videos(pool, limit.unwrap_or(5)).await?,
+            top_wrs_by_map: Recap::get_top_wrs_by_map(pool, limit.unwrap_or(5)).await?,
         })
     }
 }

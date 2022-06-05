@@ -188,7 +188,7 @@ pub struct MapScoreDate {
 /// Used to count the number of scores per-user.
 #[derive(Serialize, Deserialize, FromRow, Clone, Debug)]
 pub struct NumScores {
-    pub count: i32,
+    pub count: i64,
     pub profile_number: String,
     pub user_name: String,
     pub avatar: String,
@@ -210,7 +210,7 @@ pub struct ScoreDeltaComparison {
 pub struct NumWrsPerMap {
     pub map_id: String,
     pub map_name: String,
-    pub count: i32,
+    pub count: i64,
 }
 
 /// Struct for the "Recap", taken from NeKz's recap bot on the Discord server.

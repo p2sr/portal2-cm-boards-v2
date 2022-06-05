@@ -61,7 +61,7 @@ pub struct UsersDisplayCount {
     pub profile_number: String,
     pub user_name: String,
     pub avatar: String,
-    pub count: i32,
+    pub count: i64,
 }
 
 /// Social media accounts from `Users`
