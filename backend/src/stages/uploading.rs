@@ -1,4 +1,4 @@
-use crate::models::AvatarInsert;
+use crate::models::{AvatarInsert, Changelog};
 use crate::models::{ChangelogInsert, DemoInsert, DemoOptions, GetPlayerSummariesWrapper, Users};
 use crate::update_image;
 use anyhow::Result;
@@ -79,7 +79,7 @@ pub async fn upload_changelog_and_demo(cl: &ChangelogInsert, demo: &DemoInsert) 
         })
         .send()
         .await?
-        .json::<bool>()
+        .json::<Changelog>()
         .await?;
     Ok(new_id)
 }

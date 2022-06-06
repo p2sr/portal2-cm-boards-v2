@@ -59,7 +59,10 @@ impl Recap {
         .fetch_all(pool)
         .await
     }
-    pub async fn get_top_pb_diff(
+    // Note: This is left to treat SP/Coop as the same because nothing gaurentees that the score delta
+    // for both players on a coop time will be the same, so we treat these like single entries, even if coop
+    // entries share a score delta.
+    pub async fn get_top_wr_diff(
         pool: &PgPool,
         limit: i32,
     ) -> Result<Vec<ScoreDeltaComparison>, sqlx::Error> {
@@ -68,8 +71,8 @@ impl Recap {
             FROM changelog
             INNER JOIN users ON (changelog.profile_number = users.profile_number)
             INNER JOIN maps ON (changelog.map_id = maps.steam_id)
-                WHERE score_delta IS NOT NULL AND users.banned = false AND changelog.banned = false AND changelog.verified = true
-                AND timestamp > current_date - interval '30 days'
+                WHERE score_delta IS NOT NULL AND post_rank = 1 AND users.banned = false AND changelog.banned = false 
+                AND changelog.verified = true AND timestamp > current_date - interval '30 days'
             GROUP BY changelog.profile_number, user_name, avatar, score_delta, map_id, map_name ORDER BY score_delta ASC LIMIT $1;"#)
         .bind(limit)
         .fetch_all(pool)
@@ -106,11 +109,11 @@ impl Recap {
         .fetch_all(pool)
         .await
     }
-    pub async fn get_top_wrs_by_map(
+    pub async fn get_top_update_by_map(
         pool: &PgPool,
         limit: i32,
-    ) -> Result<Vec<NumWrsPerMap>, sqlx::Error> {
-        sqlx::query_as::<_, NumWrsPerMap>(r#"SELECT map_id, maps.name AS map_name, COUNT(*) AS count
+    ) -> Result<Vec<NumUpdatePerMap>, sqlx::Error> {
+        sqlx::query_as::<_, NumUpdatePerMap>(r#"SELECT map_id, maps.name AS map_name, COUNT(*) AS count
             FROM changelog
             INNER JOIN users ON (changelog.profile_number = users.profile_number)
             INNER JOIN maps ON (maps.steam_id = changelog.map_id)
@@ -121,15 +124,15 @@ impl Recap {
         .fetch_all(pool)
         .await
     }
-    // TODO: Truncate results
     pub async fn collect_recap(pool: &PgPool, limit: Option<i32>) -> Result<Recap, sqlx::Error> {
+        let limit = limit.unwrap_or(5);
         Ok(Recap {
-            num_wrs: Recap::get_num_wrs(pool, limit.unwrap_or(5)).await?,
-            num_demos: Recap::get_num_demos(pool, limit.unwrap_or(5)).await?,
-            top_pb_diff: Recap::get_top_pb_diff(pool, limit.unwrap_or(5)).await?,
-            most_updates: Recap::get_most_updates(pool, limit.unwrap_or(5)).await?,
-            top_videos: Recap::get_top_videos(pool, limit.unwrap_or(5)).await?,
-            top_wrs_by_map: Recap::get_top_wrs_by_map(pool, limit.unwrap_or(5)).await?,
+            num_wrs: Recap::get_num_wrs(pool, limit).await?,
+            num_demos: Recap::get_num_demos(pool, limit).await?,
+            top_wr_diff: Recap::get_top_wr_diff(pool, limit).await?,
+            most_updates: Recap::get_most_updates(pool, limit).await?,
+            top_videos: Recap::get_top_videos(pool, limit).await?,
+            top_score_by_map: Recap::get_top_update_by_map(pool, limit).await?,
         })
     }
 }

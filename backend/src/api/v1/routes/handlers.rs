@@ -202,9 +202,13 @@ pub async fn update_from_legacy_boards(cat_ids: web::Data<HashMap<String, i32>>)
                 entry_buffer.push_back((cl, demo)); // Handle the coop cases after we've gone through all entries.
             } else if let Some(d) = demo {
                 // Add the changelog entry, then add the demo insert, then update the changelog entry.
-                crate::stages::uploading::upload_changelog_and_demo(&cl, &d)
-                    .await
-                    .unwrap();
+                match crate::stages::uploading::upload_changelog_and_demo(&cl, &d).await {
+                    Ok(_) => (),
+                    Err(e) => {
+                        eprintln!("{e}");
+                        panic!();
+                    }
+                }
             } else {
                 // SP no demo
                 let new_id = cl_no_demo(&cl).await.unwrap();
@@ -272,7 +276,7 @@ pub async fn create_coop_bundled(v: Vec<(ChangelogInsert, Option<DemoInsert>)>) 
                     update_changelog_with_coop_id(ids[0], id).await.unwrap();
                     // Update the changelog entry.
                     println!("Successfully uploaded coop bundled with single id: {id}")
-                },
+                }
                 Err(e) => eprintln!("Could not upload single coop bundled. -> {e}"),
             }
         }
@@ -292,7 +296,7 @@ pub async fn create_coop_bundled(v: Vec<(ChangelogInsert, Option<DemoInsert>)>) 
                     update_changelog_with_coop_id(ids[1], id).await.unwrap();
                     // Update both the changelog entries.
                     println!("Successfully uploaded coop bundled with two ids: {id}")
-                },
+                }
                 Err(e) => eprintln!("Could not upload coop bundled. -> {e}"),
             }
         }
@@ -311,7 +315,6 @@ pub async fn update_changelog_with_coop_id(cl_id: i64, coop_id: i64) -> Result<(
         .await?;
     Ok(())
 }
-
 
 pub async fn cl_no_demo(cl: &ChangelogInsert) -> Result<i64> {
     Ok(reqwest::Client::new()

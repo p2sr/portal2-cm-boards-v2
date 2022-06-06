@@ -207,19 +207,18 @@ pub struct ScoreDeltaComparison {
 
 /// Representation of the number of World Records per Map for a given map.
 #[derive(Serialize, Deserialize, Clone, Debug, FromRow)]
-pub struct NumWrsPerMap {
+pub struct NumUpdatePerMap {
     pub map_id: String,
     pub map_name: String,
     pub count: i64,
 }
-
 /// Struct for the "Recap", taken from NeKz's recap bot on the Discord server.
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Recap {
     pub num_wrs: Vec<UsersDisplayCount>,
     pub num_demos: Vec<UsersDisplayCount>,
-    pub top_pb_diff: Vec<ScoreDeltaComparison>,
+    pub top_wr_diff: Vec<ScoreDeltaComparison>,
     pub most_updates: Vec<UsersDisplayCount>,
     pub top_videos: Vec<UsersDisplayCount>,
-    pub top_wrs_by_map: Vec<NumWrsPerMap>,
+    pub top_score_by_map: Vec<NumUpdatePerMap>,
 }
