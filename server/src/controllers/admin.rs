@@ -21,7 +21,7 @@ impl Admin {
                 .await?,
         ))
     }
-    /// Returns a [crate::models::models::BannedTimeDetails] to display information on specific users and their problematic scores.
+    /// Returns a [BannedTimeDetails] to display information on specific users and their problematic scores.
     pub async fn get_user_banned_time_stats(
         pool: &PgPool,
     ) -> Result<Option<Vec<BannedTimeDetails>>, sqlx::Error> {

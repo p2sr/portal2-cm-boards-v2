@@ -26,7 +26,7 @@
 //!     }
 //!
 //!     // Check points which maps as follows:
-//!     // Points descriptor str -> profile_number -> [crate::models::models::Points]
+//!     // Points descriptor str -> profile_number -> [crate::models::points::Points]
 //!     let points_id = "points_sp";
 //!     let points_hm = &mut cache.points.lock().await;
 //!     // This gives us a &mut HashMap that maps profile_number to Points struct
@@ -46,19 +46,20 @@
 //! }
 //! ```
 //!
-use crate::models::coop::CoopMap;
-use crate::models::maps::Maps;
-use crate::models::points::Points;
-use crate::models::sp::SpMap;
-use crate::tools::config::Config;
+use crate::{
+    models::{coop::CoopMap, maps::Maps, points::Points, sp::SpMap},
+    tools::config::Config,
+};
 use anyhow::Result;
 use serde::Serialize;
 use sqlx::PgPool;
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+    io::BufReader,
+    path::Path,
+    sync::Arc,
+};
 use tokio::sync::Mutex;
 
 pub const SP_PREVIEWS: &'static str = "sp_previews";

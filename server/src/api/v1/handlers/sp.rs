@@ -28,7 +28,7 @@ use sqlx::PgPool;
 ///  - **Default**           
 ///     - `/api/v1/sp`
 ///
-/// Makes a call to the underlying [SpPreviews::get_sp_previews]
+/// Makes a call to the underlying [SpPreview::get_sp_previews]
 /// **or** uses a cached value.
 ///
 /// ## Example JSON output

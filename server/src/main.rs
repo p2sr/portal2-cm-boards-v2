@@ -14,16 +14,16 @@
 //!  
 //! ### Controllers
 //! The [controllers] source code contains the code for Database Interactions. The documentation here is virtually non-existant however, as
-//! the code is written as methods implemented on models. So view individual modules in [models](models::models), or check
+//! the code is written as methods implemented on models. So view individual modules in [models], or check
 //! the API documention to see what underlying calls the API endpoints make.
 //!
 //! ### Models
-//! The [models](models::models) that represent the data we extract from the database, and most modules used internally in the code. These have good information
+//! The [models] that represent the data we extract from the database, and most modules used internally in the code. These have good information
 //! on high-level purpose and any implementations on those models. This is where you would go to see what db interactions exist for a given
 //! data model.
 //!
 //! ### Tests
-//! The [testing](tests) module does not contain any useful documentation, and is used for testing development.
+//! The tests module does not contain any useful documentation, and is used for testing development.
 //!
 //! ### Tools
 //!

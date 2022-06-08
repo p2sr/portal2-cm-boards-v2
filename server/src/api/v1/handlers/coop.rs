@@ -24,7 +24,7 @@ use sqlx::PgPool;
 /// - **Default**
 ///     - `/api/v1/coop`
 ///
-/// Makes a call to the underlying [CoopPreviews::get_coop_previews]
+/// Makes a call to the underlying [CoopPreview::get_coop_previews]
 ///
 /// ## Example JSON output
 ///

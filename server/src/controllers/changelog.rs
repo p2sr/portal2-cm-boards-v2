@@ -182,16 +182,20 @@ impl ChangelogPage {
     }
 }
 
-/// Build a query String based off a pre-defined string. You pass in a [crate::models::models::ChangelogQueryParams], and an optional vector of additional filers.
+/// Build a query String based off a pre-defined string. You pass in a [crate::models::changelog::ChangelogQueryParams], and an optional vector of additional filers.
 /// 
 /// Each element of the vector of additional filters will be assigned the correct "WHERE" or "AND", as appropriate.
 /// 
 /// ## Exanple use
-/// ``` rust
-/// let mut additional_filters: Vec<String> =
-///     vec![("cl.banned = 'true' OR cl.verified = 'false' OR u.banned = 'true'".to_string(),
-///     "u.profile_number = '76561198135023038')".to_string()];
-/// let query_string = build_filtered_changelog(pool, params, Some(&mut additional_filters)).await.unwrap();
+/// ```rust
+/// use crate::controllers::changelog::build_filtered_changelog;
+/// 
+/// async fn test_adding_filters() {
+///     let mut additional_filters: Vec<String> =
+///         vec!["(cl.banned = 'true' OR cl.verified = 'false' OR u.banned = 'true')".to_string(),
+///         "u.profile_number = '76561198135023038'".to_string()];
+///     let query_string = build_filtered_changelog(pool, params, Some(&mut additional_filters)).await.unwrap();
+/// }
 /// ```
 /// 
 pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParams, additional_filters: Option<&mut Vec<String>>) -> Result<String, sqlx::Error> {
@@ -313,7 +317,7 @@ impl Default for ChangelogQueryParams {
 
 // TODO: Handle Autosubmit
 impl ChangelogInsert {
-    /// Create a [crate::models::models::ChangelogInsert] from a [crate::models::models::SubmissionChangelog]
+    /// Create a [crate::models::changelog::ChangelogInsert] from a [crate::models::changelog::SubmissionChangelog]
     pub async fn new_from_submission(
         params: SubmissionChangelog,
         details: CalcValues,

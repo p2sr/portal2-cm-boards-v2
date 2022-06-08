@@ -225,7 +225,7 @@ async fn donators(pool: web::Data<PgPool>) -> Result<impl Responder> {
     Ok(web::Json(Users::get_donators(pool.get_ref()).await?))
 }
 
-/// **GET** method to return [UsersDisplay](crate::models::models::UsersDisplay) for all banned users on the boards.
+/// **GET** method to return [UsersDisplay](crate::models::users::UsersDisplay) for all banned users on the boards.
 ///
 /// ## Example endpoints:
 ///  - **Default**

@@ -5,7 +5,7 @@ use crate::{
 use actix_web::{get, web, Responder};
 use sqlx::PgPool;
 
-/// **GET** method for admin-relevant entiries. Utilizes [ChangelogQueryParrams](crate::models::models::ChangelogQueryParams) as an optional addition to the query
+/// **GET** method for admin-relevant entiries. Utilizes [ChangelogQueryParams] as an optional addition to the query
 ///
 /// ## Parameters:
 ///    - `limit`           
