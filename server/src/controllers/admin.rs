@@ -6,7 +6,7 @@ use sqlx::PgPool;
 impl Admin {
     /// Returns a changelog page that filtered to information for ease of use for admins.
     ///
-    /// Uses [crate::controllers::changelog::build_filtered_changelog] to build the filtered query.
+    /// Uses [build_filtered_changelog] to build the filtered query.
     pub async fn get_admin_page(
         pool: &PgPool,
         params: ChangelogQueryParams,

@@ -15,6 +15,7 @@ impl Changelog {
             .await
     }
     /// Check for if a given score already exists in the database, but is banned. Used for the auto-updating from Steam leaderboards.
+    /// 
     /// Returns `true` if there is a value found, `false` if no value, or returns an error.
     pub async fn check_banned_scores(pool: &PgPool, params: ScoreLookup) -> std::result::Result<bool, sqlx::Error> {
         // We don't care about the result, we only care if there is a result.
@@ -95,7 +96,7 @@ impl Changelog {
             .fetch_one(pool)
             .await
     }
-    /// Updates all fields (except ID) for a given changelog entry. Returns the updated Changelog struct.
+    /// Updates all fields (except ID) for a given changelog entry. Returns the updated [Changelog].
     pub async fn update_changelog(pool: &PgPool, update: Changelog) -> Result<Changelog, sqlx::Error> {
         sqlx::query_as::<_, Changelog>(r#"UPDATE changelog 
                 SET timestamp = $1, profile_number = $2, score = $3, map_id = $4, demo_id = $5, banned = $6, 
@@ -110,7 +111,7 @@ impl Changelog {
             .fetch_one(pool)
             .await
     }
-    /// Updates demo_id
+    /// Updates `demo_id` in a given changelog entry, returns the new [Changelog].
     pub async fn update_demo_id_in_changelog(pool: &PgPool, cl_id: i64, demo_id: i64) -> Result<Changelog, sqlx::Error> {
         sqlx::query_as::<_, Changelog>(r#"UPDATE changelog 
                 SET demo_id = $1 WHERE id = $2 RETURNING *;"#)
@@ -119,13 +120,15 @@ impl Changelog {
             .fetch_one(pool)
             .await
     }
+    /// Deletes a changelog entry on the give ID.
     pub async fn delete_changelog(pool: &PgPool, cl_id: i64) -> Result<Changelog, sqlx::Error> {
         sqlx::query_as::<_, Changelog>(r#"DELETE FROM changelog WHERE id = $1 RETURNING *"#)
             .bind(cl_id)
             .fetch_one(pool)
             .await
     }
-    
+    #[allow(dead_code)]
+    /// WIP: Testing Transactions in SQLX.
     pub async fn transaction_insert_changelog(transaction: &mut Transaction<'_>, cl: ChangelogInsert) -> Result<Changelog, sqlx::Error> {
         sqlx::query_as::<_, Changelog>(r#"
             INSERT INTO changelog 
@@ -141,6 +144,8 @@ impl Changelog {
             .fetch_one(&mut *transaction)
             .await
     }
+    #[allow(dead_code)]
+    /// WIP: Testing Transactions in SQLX.
     pub async fn transaction_update_changelog(transaction: &mut Transaction<'_>, update: Changelog) -> Result<Changelog, sqlx::Error> {
         sqlx::query_as::<_, Changelog>(r#"UPDATE changelog 
                 SET timestamp = $1, profile_number = $2, score = $3, map_id = $4, demo_id = $5, banned = $6, 
@@ -155,6 +160,8 @@ impl Changelog {
             .fetch_one(&mut *transaction)
             .await
     }
+    #[allow(dead_code)]
+    /// WIP: Testing Transactions in SQLX.
     pub async fn transaction_delete_changelog(transaction: &mut Transaction<'_>, cl_id: i64) -> Result<Changelog, sqlx::Error> {
         sqlx::query_as::<_, Changelog>(r#"DELETE FROM changelog WHERE id = $1 RETURNING *"#)
             .bind(cl_id)

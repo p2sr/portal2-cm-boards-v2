@@ -4,6 +4,7 @@ use sqlx::PgPool;
 impl Users {
     // TODO: Testing for this
     // TODO: Fix edge case parsing for steam user.
+    /// Fetch a [Users] from the official Steam API.
     pub async fn new_from_steam(steam_api_key: &str, profile_number: &str) -> Result<Users, ServerError> {
         // http://steamcommunity.com/profiles/{}/?xml=1
         // GET https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/
@@ -32,7 +33,7 @@ impl Users {
             ..Default::default()
         })
     }
-    /// Returns user information
+    /// Returns a [Users] from the given `profile_number`.
     #[allow(dead_code)]
     pub async fn get_user(pool: &PgPool, profile_number: String) -> Result<Option<Users>, sqlx::Error> {
         sqlx::query_as::<_, Users>(r#"SELECT * FROM users WHERE profile_number = $1"#)
@@ -40,7 +41,9 @@ impl Users {
             .fetch_optional(pool)
             .await
     }
-    /// Gets a user's avatar and user_name/board_name (favors board_name)
+    /// Gets a [UsersPage] from a given `profile_number`.
+    /// 
+    /// Will favor `board_name` over `steam_name`.
     pub async fn get_user_data(pool: &PgPool, profile_number: &str) -> Result<Option<UsersPage>, sqlx::Error> {
         sqlx::query_as::<_, UsersPage>(
             r#"
@@ -53,7 +56,7 @@ impl Users {
         .fetch_optional(pool)
         .await
     }
-    // TODO: There are faster ways to do this.
+    // TODO: There are faster ways to do this. <-----
     /// Pattern match on a given string to find similar names (supports board/steam names).
     pub async fn check_board_name(pool: &PgPool, nick_name: &str) -> std::result::Result<Vec<String>, sqlx::Error> {
         // Limitation to how SQLX inserts strings.
@@ -74,13 +77,13 @@ impl Users {
         .fetch_all(pool)
         .await
     }
-    /// Returns a list of all banned player's profile_numbers.
+    /// Returns a list of all banned player's `profile_numbers`.
     pub async fn get_banned(pool: &PgPool) -> Result<Vec<String>, sqlx::Error> {
         sqlx::query_scalar(r#"SELECT users.profile_number FROM users WHERE users.banned = True"#)
             .fetch_all(pool)
             .await
     }
-    /// Returns a list of all banned player's as a UsersDisplay object.
+    /// Returns a list of all banned player's as a [UsersDisplay].
     pub async fn get_banned_display(pool: &PgPool) -> Result<Vec<UsersDisplay>, sqlx::Error> {
         sqlx::query_as::<_, UsersDisplay>(
             r#" SELECT users.profile_number,
@@ -99,7 +102,7 @@ impl Users {
             .await
     }
     #[allow(dead_code)]
-    /// Returns the title associated with the user (CAN BE NONE)
+    /// Returns the title associated with the user.
     pub async fn get_title(pool: &PgPool, profile_number: String) -> Result<Option<String>, sqlx::Error> {
         sqlx::query_scalar(r#"SELECT title FROM users WHERE users.profile_number = $1"#)
             .bind(profile_number)
@@ -107,7 +110,7 @@ impl Users {
             .await
     }
     #[allow(dead_code)]
-    /// Returns the social media informatio associated with a given user's profile_number
+    /// Returns a [Socials] associated with a given user's `profile_number`.
     pub async fn get_socials(pool: &PgPool, profile_number: String) -> Result<Option<Socials>, sqlx::Error> {
         sqlx::query_as::<_, Socials>(
             r#"
@@ -127,7 +130,7 @@ impl Users {
             .fetch_optional(pool)
             .await
     }
-    /// Returns UsersDisplay for all admins
+    /// Returns [UsersDisplay] for all admins.
     /// Usage:  admin_value = 0     -> Non-admin user
     ///         admin_value = 1     -> Standard admin
     ///         admin_value = 2     -> Shadow admin
@@ -163,6 +166,7 @@ impl Users {
         .fetch_all(pool)
         .await
     }
+    /// Returns a [ProfileData] for the given `profile_number`.
     pub async fn get_profile(pool: &PgPool, profile_number: &String) -> Result<ProfileData, sqlx::Error> {
         let s1 = r#"SELECT old.steam_id AS map, old.name AS map_name, old.score, old.timestamp FROM 
             (SELECT maps.steam_id, maps.name, changelog.score, changelog.timestamp FROM maps 
@@ -213,7 +217,7 @@ impl Users {
         })
     }
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
-    /// Inserts a new user into the databse
+    /// Inserts a new user into the databse from a given [Users]. Returns the [Users] object.
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<Users, sqlx::Error> {
         // let mut res = String::new();
         // We do not care about the returning profile_number. As it is not generated and we already have it
@@ -241,6 +245,7 @@ impl Users {
         .await
     }
     #[allow(dead_code)]
+    /// Update a given user with a new [Users] object.
     pub async fn update_existing_user(pool: &PgPool, updated_user: Users) -> Result<Users, sqlx::Error> {
         // TODO: Check to make sure user has correct AUTH to update specific items
         // (board_name should only be changed by the backend, admin should only be updated by admin etc)
@@ -267,7 +272,7 @@ impl Users {
         .fetch_one(pool)
         .await
     }
-    /// Returns the PREVIOUS avatar after updating.
+    /// Returns the **PREVIOUS** `avatar` after updating.
     pub async fn update_avatar(
         pool: &PgPool,
         profile_number: &str,
@@ -286,6 +291,7 @@ impl Users {
         .await
     }
     #[allow(dead_code)]
+    /// Deletion for a given `profile_number`.
     pub async fn delete_user(pool: &PgPool, profile_number: String) -> Result<Users, sqlx::Error> {
         sqlx::query_as::<_, Users>(
             r#"DELETE FROM users 

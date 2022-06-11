@@ -4,6 +4,7 @@ use sqlx::PgPool;
 use std::collections::HashSet;
 
 impl CoopBundled {
+    /// Inserts a [CoopBundledInsert], returns the `id` if operation was successful.
     pub async fn insert_coop_bundled(pool: &PgPool, cl: CoopBundledInsert) -> Result<i64, sqlx::Error> {
         sqlx::query_scalar(
             r#"
@@ -20,12 +21,16 @@ impl CoopBundled {
             .fetch_one(pool)
             .await
     }
+    /// Grabs the temporary changelog entry for a given `map_id`. 
+    /// 
+    /// This is used for scores that have no partner so that filtering works correctly.
     pub async fn get_temp_coop_changelog(pool: &PgPool, map_id: &str) -> Result<Option<CoopTempUser>, sqlx::Error> {
         sqlx::query_as::<_, CoopTempUser>(r#"SELECT id AS cl_id, profile_number FROM changelog WHERE profile_number = 'N/A' AND map_id = $1"#)
             .bind(map_id)
             .fetch_optional(pool)
             .await
     }
+    /// Updates the the changelog entry on the given `cl_id` with a given `coop_id`.
     pub async fn update_changelog_with_coop_id(
         pool: &PgPool,
         cl_id: i64,
@@ -42,14 +47,23 @@ impl CoopBundled {
 }
 
 impl CoopMap {
+    // NOTE: We don't use limit here because results need to be filtered out after we have the vector of CoopMap.
+    /// Returns a coop map page.
+    /// 
+    /// ### Params
+    /// - `map_id` :
+    ///     - Which map we generate the page for.
+    /// - `cat_id` :
+    ///     - The category we want results for.
+    /// - `game_id` :
+    ///     - The game we restrict to.
     pub async fn get_coop_map_page(
         pool: &PgPool,
         map_id: &str,
-        limit: i32,
         cat_id: i32,
         game_id: i32,
     ) -> Result<Vec<CoopMap>, sqlx::Error> {
-        let mut res = sqlx::query_as::<_, CoopMap>(
+        sqlx::query_as::<_, CoopMap>(
             r#"
                 SELECT c1.timestamp, 
                     c1.score, cb.p1_is_host, c1.note AS note1, c2.note AS note2,
@@ -88,9 +102,7 @@ impl CoopMap {
         .bind(cat_id)
         .bind(game_id)
         .fetch_all(pool)
-        .await?;
-        res.truncate(limit as usize);
-        Ok(res)
+        .await
     }
 }
 
@@ -150,7 +162,7 @@ impl CoopPreview {
         vec_final.truncate(7);
         Ok(vec_final)
     }
-    // Collects the top 7 preview data for all Coop maps.
+    /// Collects the top 7 preview data for all Coop maps.
     pub async fn get_coop_previews(pool: &PgPool) -> Result<Vec<Vec<CoopPreview>>, sqlx::Error> {
         let map_id_vec = Maps::get_steam_ids(pool, true).await?;
         let futures: Vec<_> = map_id_vec

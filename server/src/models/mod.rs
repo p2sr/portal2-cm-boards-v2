@@ -1,3 +1,8 @@
+//! # Overview
+//! 
+//! Data models that handle interactions both with the database, and for internal use in the code-base.
+//! 
+//! 
 /// Admin-specific models.
 pub mod admin;
 /// Changelog-specific models.

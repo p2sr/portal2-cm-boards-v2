@@ -3,6 +3,7 @@ use crate::models::users::UsersDisplayCount;
 use sqlx::PgPool;
 
 impl NumScores {
+    /// Returns a Vec of [NumScores] for total number of valid changelog entries across the entire boards.
     pub async fn most_cl_enries_overall(pool: &PgPool) -> Result<Vec<NumScores>, sqlx::Error> {
         sqlx::query_as::<_, NumScores>(r#"SELECT COUNT(*), changelog.profile_number, COALESCE(board_name, steam_name) AS user_name, avatar
             FROM changelog INNER JOIN users ON (users.profile_number = changelog.profile_number)
@@ -12,6 +13,8 @@ impl NumScores {
         .fetch_all(pool)
         .await
     }
+    // TODO: game_id/cat_id.
+    /// Returns a Vec of [NumScores] for total number of valid changelog entries for a given map.
     pub async fn most_cl_entries_by_map(
         pool: &PgPool,
         map_id: &str,
@@ -30,7 +33,9 @@ impl NumScores {
     }
 }
 
+// TODO: Allow changing the day interval.
 impl Recap {
+    /// Returns a Vec of [UsersDisplayCount] to display the users with the most WRs for the given time period.
     pub async fn get_num_wrs(
         pool: &PgPool,
         limit: i32,
@@ -45,6 +50,7 @@ impl Recap {
         .fetch_all(pool)
         .await
     }
+    /// Returns a Vec of [UsersDisplayCount] to display the users who have the most demos for the given time period.
     pub async fn get_num_demos(
         pool: &PgPool,
         limit: i32,
@@ -62,6 +68,7 @@ impl Recap {
     // Note: This is left to treat SP/Coop as the same because nothing gaurentees that the score delta
     // for both players on a coop time will be the same, so we treat these like single entries, even if coop
     // entries share a score delta.
+    /// Returns a Vec of [ScoreDeltaComparison] to display the users who have the largest score deltas in a given time period.
     pub async fn get_top_wr_diff(
         pool: &PgPool,
         limit: i32,
@@ -78,6 +85,7 @@ impl Recap {
         .fetch_all(pool)
         .await
     }
+    /// Returns a Vec of [UsersDisplayCount] to display the users who have the most changelog entries for the given time period.
     pub async fn get_most_updates(
         pool: &PgPool,
         limit: i32,
@@ -92,6 +100,7 @@ impl Recap {
         .fetch_all(pool)
         .await
     }
+    /// Returns a Vec of [UsersDisplayCount] to display the users who have the most youtube links for the given time period.
     pub async fn get_top_videos(
         pool: &PgPool,
         limit: i32,
@@ -109,6 +118,7 @@ impl Recap {
         .fetch_all(pool)
         .await
     }
+    /// Returns a Vec of [NumUpdatePerMap] to display the maps with the most changelog entries in a given time period.
     pub async fn get_top_update_by_map(
         pool: &PgPool,
         limit: i32,
@@ -124,6 +134,8 @@ impl Recap {
         .fetch_all(pool)
         .await
     }
+    // TODO: Maybe there's a way to `join_all` this? The futures are different which could be c.
+    /// Collection method to generate a [Recap] from all of the individual fetching methods.
     pub async fn collect_recap(pool: &PgPool, limit: Option<i32>) -> Result<Recap, sqlx::Error> {
         let limit = limit.unwrap_or(5);
         Ok(Recap {

@@ -123,7 +123,6 @@ async fn coop_map(
     let coop_entries = CoopMap::get_coop_map_page(
         pool.get_ref(),
         &map_id,
-        config.proof.results,
         cat_id,
         ids.game_id.unwrap_or(1),
     )

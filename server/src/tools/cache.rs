@@ -217,7 +217,6 @@ impl CacheState {
             let res = CoopMap::get_coop_map_page(
                 pool,
                 &map,
-                config.proof.results,
                 default_cat_ids[&map],
                 1,
             )
@@ -257,7 +256,6 @@ impl CacheState {
             let res = CoopMap::get_coop_map_page(
                 pool,
                 map_id,
-                config.proof.results,
                 self.default_cat_ids[map_id],
                 1,
             )

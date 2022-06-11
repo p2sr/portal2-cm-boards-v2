@@ -2,14 +2,14 @@ use crate::models::chapters::{ChapterQueryParams, Chapters, Games};
 use sqlx::PgPool;
 
 impl Chapters {
-    /// Returns the maps for a given chapter.
+    /// Returns the map ids for a given chapter.
     pub async fn get_map_ids(pool: &PgPool, chapter_id: i32) -> Result<Vec<String>, sqlx::Error> {
         sqlx::query_scalar(r#"SELECT maps.steam_id FROM maps WHERE chapter_id=$1"#)
             .bind(chapter_id)
             .fetch_all(pool)
             .await
     }
-    /// Returns a chapter's data by the ID given.
+    /// Returns a [Chapters] by the ID given.
     pub async fn get_chapter_by_id(pool: &PgPool, chapter_id: i32) -> Result<Option<Chapters>, sqlx::Error> {
         sqlx::query_as::<_, Chapters>(r#"SELECT * FROM chapters WHERE id=$1;"#)
             .bind(chapter_id)
@@ -17,7 +17,7 @@ impl Chapters {
             .await
     }
     #[allow(dead_code)]
-    /// Returns true if the map is multiplayer, false if the map is singleplayer
+    /// Returns `true` if the map is multiplayer, `false` if the map is singleplayer
     pub async fn get_chapter_is_multiplayer(
         pool: &PgPool,
         chapter_id: i32,
@@ -28,6 +28,7 @@ impl Chapters {
             .await
     }
     #[allow(dead_code)]
+    /// Gets the [Games] by the given `chapter_id`.
     pub async fn get_chapter_game(pool: &PgPool, chapter_id: i32) -> Result<Option<Games>, sqlx::Error> {
         sqlx::query_as::<_, Games>(
             r#"SELECT games.id, games.game_name 
@@ -39,6 +40,7 @@ impl Chapters {
             .fetch_optional(pool)
             .await
     }
+    /// Makes a call to [build_filtered_chapter] with the [ChapterQueryParams] to returned a filtered list of chapters.
     pub async fn get_filtered_chapters(
         pool: &PgPool,
         params: ChapterQueryParams,
@@ -50,7 +52,7 @@ impl Chapters {
 }
 
 // TODO: Do we want to return a chapter/map bundled information?
-///
+/// Helper function to build out a query string based on [ChapterQueryParams] passed by the user.
 pub async fn build_filtered_chapter(params: ChapterQueryParams) -> String {
     let mut query_string: String = String::from(r#"SELECT * FROM chapters"#);
     let mut filters: Vec<String> = Vec::new();

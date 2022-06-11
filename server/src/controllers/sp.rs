@@ -4,6 +4,17 @@ use futures::future::try_join_all;
 use sqlx::PgPool;
 
 impl SpMap {
+    /// Returns a Single Player Map Page.
+    /// 
+    /// ### Params
+    /// - `map_id`
+    ///     - The map returned.
+    /// - `limit`
+    ///     - The max number of entries returned.
+    /// - `cat_id`
+    ///     - The category the runs have to be from.
+    /// - `game_id`
+    ///     - The game thee runs have to be from.
     pub async fn get_sp_map_page(
         pool: &PgPool,
         map_id: &String,
@@ -88,7 +99,7 @@ impl SpPreview {
 }
 
 impl SpBanned {
-    // Returns all profile_numbers and scores associated with banned times on a given map
+    /// Returns all profile_numbers and scores associated with banned times on a given map
     pub async fn get_sp_banned(pool: &PgPool, map_id: String) -> Result<Vec<SpBanned>, sqlx::Error> {
         sqlx::query_as::<_, SpBanned>(
             r#"

@@ -99,6 +99,8 @@ impl Demos {
 }
 
 impl Mtriggers {
+    #[allow(dead_code)]
+    /// Returns [MtriggerBundle] for a given changelog entry.
     pub async fn get_mtriggers_from_cl_id(
         pool: &PgPool,
         cl_id: i64,
