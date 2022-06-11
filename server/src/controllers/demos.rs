@@ -1,6 +1,5 @@
 use crate::models::demos::*;
-use sqlx::postgres::PgRow;
-use sqlx::{PgPool, Row};
+use sqlx::PgPool;
 
 impl Demos {
     /// Gets Demo information for a given demo_id

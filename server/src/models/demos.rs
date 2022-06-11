@@ -1,5 +1,4 @@
 use chrono::NaiveDateTime;
-use sqlx::types::Json;
 use sqlx::FromRow;
 
 /// One-to-one struct for demo data.

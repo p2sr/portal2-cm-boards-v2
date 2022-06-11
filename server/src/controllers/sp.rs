@@ -51,7 +51,7 @@ impl SpMap {
                     ORDER BY changelog.profile_number, changelog.score ASC
                 ) t
                 ORDER BY score
-                LIMIT $3"#,
+                LIMIT $4"#,
         )
         .bind(map_id)
         .bind(cat_id)
