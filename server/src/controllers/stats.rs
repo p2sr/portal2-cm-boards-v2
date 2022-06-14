@@ -1,5 +1,4 @@
-use crate::models::changelog::*;
-use crate::models::users::UsersDisplayCount;
+use crate::models::{changelog::*, stats::*, users::UsersDisplayCount};
 use sqlx::PgPool;
 
 impl NumScores {
@@ -146,5 +145,79 @@ impl Recap {
             top_videos: Recap::get_top_videos(pool, limit).await?,
             top_score_by_map: Recap::get_top_update_by_map(pool, limit).await?,
         })
+    }
+}
+
+impl Badges {
+    /// Returns a vec of all [Badges] on the boards.
+    pub async fn get_bages(pool: &PgPool) -> Result<Vec<Badges>, sqlx::Error> {
+        sqlx::query_as::<_, Badges>(r#"SELECT * FROM badges;"#)
+            .fetch_all(pool)
+            .await
+    }
+    /// Get a badge by ID.
+    pub async fn get_badge_by_id(
+        pool: &PgPool,
+        badge_id: i32,
+    ) -> Result<Option<Badges>, sqlx::Error> {
+        sqlx::query_as::<_, Badges>(r#"SELECT * FROM badges WHERE id = $1;"#)
+            .bind(badge_id)
+            .fetch_optional(pool)
+            .await
+    }
+    pub async fn search_badge(pool: &PgPool, search_str: &str) -> Result<Vec<Badges>, sqlx::Error> {
+        // Build in `%` for match wildcard front and back for search string.
+        let search_str = format!("%{}%", &search_str);
+        sqlx::query_as::<_, Badges>(r#"SELECT * FROM badges WHERE name LIKE LOWER($1);"#)
+            .bind(search_str)
+            .fetch_all(pool)
+            .await
+    }
+    pub async fn insert_badge(
+        pool: &PgPool,
+        new_badge: BadgeInsert,
+    ) -> Result<Badges, sqlx::Error> {
+        sqlx::query_as::<_, Badges>(
+            r#"INSERT INTO badges 
+            (name, image, description, tier) VALUES ($1, $2, $3, $4)
+            RETURNING *;"#,
+        )
+        .bind(new_badge.name)
+        .bind(new_badge.image)
+        .bind(new_badge.description)
+        .bind(new_badge.tier)
+        .fetch_one(pool)
+        .await
+    }
+    pub async fn update_badge(pool: &PgPool, badge: Badges) -> Result<Badges, sqlx::Error> {
+        sqlx::query_as::<_, Badges>(
+            r#"UPDATE badges SET name = $2, image = $3, description = $4, tier = $5 WHERE id = $1 RETURNING *;"#,
+        )
+        .bind(badge.id)
+        .fetch_one(pool)
+        .await
+    }
+    pub async fn delete_badge(pool: &PgPool, badge_id: i32) -> Result<Badges, sqlx::Error> {
+        sqlx::query_as::<_, Badges>(
+            r#"DELETE FROM badges 
+            WHERE id = $1 RETURNING *"#,
+        )
+        .bind(badge_id)
+        .fetch_one(pool)
+        .await
+    }
+}
+
+impl BadgeEntries {
+    pub async fn get_badge_by_user(
+        pool: &PgPool,
+        profile_number: &str,
+    ) -> Result<Vec<BadgeEntries>, sqlx::Error> {
+        sqlx::query_as::<_, BadgeEntries>(
+            r#"SELECT * FROM badge_entries WHERE profile_number = $1;"#,
+        )
+        .bind(profile_number)
+        .fetch_all(pool)
+        .await
     }
 }

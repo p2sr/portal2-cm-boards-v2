@@ -120,6 +120,7 @@ impl Changelog {
             .fetch_one(pool)
             .await
     }
+    #[allow(dead_code)]
     /// Deletes a changelog entry on the give ID.
     pub async fn delete_changelog(pool: &PgPool, cl_id: i64) -> Result<Changelog, sqlx::Error> {
         sqlx::query_as::<_, Changelog>(r#"DELETE FROM changelog WHERE id = $1 RETURNING *"#)

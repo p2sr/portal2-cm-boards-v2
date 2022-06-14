@@ -59,6 +59,8 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(admins_list)
             .service(count_scores)
             .service(count_scores_by_map)
-            .service(recap),
+            .service(recap)
+            .service(badges)
+            .service(users_badges),
     );
 }

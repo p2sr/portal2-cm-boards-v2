@@ -1,5 +1,4 @@
-use crate::models::changelog::*;
-use crate::tools::error::Result;
+use crate::{models::changelog::*, models::stats::*, tools::error::Result};
 use actix_web::{get, web, Responder};
 use sqlx::PgPool;
 
@@ -154,5 +153,20 @@ pub async fn recap(
 ) -> Result<impl Responder> {
     Ok(web::Json(
         Recap::collect_recap(pool.get_ref(), query.into_inner().limit).await?,
+    ))
+}
+
+#[get("/stats/badges")]
+pub async fn badges(pool: web::Data<PgPool>) -> Result<impl Responder> {
+    Ok(web::Json(Badges::get_bages(pool.get_ref()).await?))
+}
+
+#[get("/stats/badges/{profile_number}")]
+pub async fn users_badges(
+    pool: web::Data<PgPool>,
+    profile_number: web::Path<String>,
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        BadgeEntries::get_badge_by_user(pool.get_ref(), &profile_number).await?,
     ))
 }

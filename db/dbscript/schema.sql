@@ -480,6 +480,73 @@ CREATE TABLE users (
 );
 
 --
+-- Name: badges; Type: TABLE;
+--
+
+CREATE TABLE badges (
+    id integer NOT NULL,
+    name character varying(100) DEFAULT ''::character varying NOT NULL,
+    image character varying(200) DEFAULT ''::character varying NOT NULL,
+    description character varying(500) DEFAULT ''::character varying NOT NULL,
+    tier integer NOT NULL DEFAULT 1
+);
+
+--
+-- Name: badges_id_seq; Type: SEQUENCE;
+--
+
+CREATE SEQUENCE badges_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: badges_id_seq; Type: SEQUENCE OWNED BY;
+--
+
+ALTER SEQUENCE badges_id_seq OWNED BY badges.id;
+
+--
+-- Name: badge_entries; Type: TABLE;
+--
+
+CREATE TABLE badge_entries (
+    id integer NOT NULL,
+    badge_id integer NOT NULL,
+    profile_number character varying(50) DEFAULT ''::character varying NOT NULL,
+    note character varying(100),
+    updated timestamp(6) without time zone,
+    "timestamp" timestamp(6) without time zone
+);
+
+--
+-- Name: badge_entries_id_seq; Type: SEQUENCE;
+--
+
+CREATE SEQUENCE badge_entries_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: badge_entries_id_seq; Type: SEQUENCE OWNED BY;
+--
+
+ALTER SEQUENCE badge_entries_id_seq OWNED BY badge_entries.id;
+
+-- Trigger to update `updated` when a row is updated.
+ 
+    CREATE TRIGGER update_badge_entries_updated BEFORE UPDATE
+    ON badge_entries FOR EACH ROW EXECUTE PROCEDURE 
+    update_updated_column();
+
+--
 -- Name: evidence_requirements id; Type: DEFAULT;
 --
 
