@@ -50,7 +50,7 @@ pub async fn fetch_all(
             .into_par_iter()
             .map(|map_id| {
                 fetch_entries(FetchingData {
-                    id: map_id,
+                    id: *map_id,
                     start: 0,
                     end: *limit * LIMIT_MULT_SP,
                     timestamp,
@@ -64,7 +64,7 @@ pub async fn fetch_all(
             .into_par_iter()
             .map(|map_id| {
                 fetch_entries(FetchingData {
-                    id: map_id,
+                    id: *map_id,
                     start: 0,
                     end: *limit * LIMIT_MULT_COOP,
                     timestamp,
