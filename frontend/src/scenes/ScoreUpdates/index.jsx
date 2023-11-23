@@ -106,19 +106,26 @@ const ScoreUpdates = () => {
                 </Box>
 
                 {/* Scores */}
-                <Box
+                <div
                 display="flex"
-                padding="10px"
+                padding="20px"
                 flexGrow="1"
                 backgroundColor={colors.primary[600]}
-                style={{borderBottomLeftRadius:"10px", borderBottomRightRadius:"10px"}}
+                style={{
+                    borderBottomLeftRadius:"10px",
+                    backgroundColor:colors.primary[600],
+                    borderBottomRightRadius:"10px",
+                    width:"100%",
+                    padding:"20px",
+                    backgroundClip:"padding-box"
+                }}
                 alignItems="center"
                 justifyContent="center"
                 >
                     <ScoreEntries
                         changelogData={changelogData}
                     />
-                </Box>
+                </div>
             </Box>
         </Box>
     </div>

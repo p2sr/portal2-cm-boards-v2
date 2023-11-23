@@ -1,15 +1,32 @@
-import { Box, Typography, useTheme } from "@mui/material"
+import { Box, Typography, useTheme, Grid, Icon } from "@mui/material"
 import { tokens } from "../theme"
 import { useEffect, useState } from "react";
 import mapInfo from "./MapInfo"
+import { makeStyles } from '@material-ui/styles';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import DownloadIcon from '@mui/icons-material/Download';
 import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 
-const ENDPOINT = "http://localhost:8080/api/v1/coop_bundles"
+const ENDPOINT = "http://localhost:8080/api/v1/coop"
+
+const useStyles = makeStyles((theme) => ({
+    customRow: {
+      height: 46, // Set your desired height here
+      display: 'flex',
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+    },
+    customRowEnd: {
+        height: 46, // Set your desired height here
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+      },
+}));
 
 const ScoreEntries = props => {
     const theme = useTheme();
+    const classes = useStyles();
     const colors = tokens(theme.palette.mode);
     const [coopData, setCoopData] = useState([])
 
@@ -30,69 +47,24 @@ const ScoreEntries = props => {
     return <div flexDirection="column" justifyContent="flex-start">
         {
             props.changelogData.map(submission => {
-                console.log(props)
                 var mapID = JSON.parse(submission.map_id)
-                var time = JSON.stringify(submission.score)
+                var time = timeToText(submission.score)
 
-                if (time.length > 4) {
-                    time = time.slice(0, time.length - 4) + ":" + time.slice(time.length - 4, time.length - 2) + "." + time.slice(time.length - 2)
-                }
-                else {
-                    time = time.slice(0, time.length - 2) + "." + time.slice(time.length - 2)
-                }
                 index++
-
                 return <Box
                 display="flex"
                 style={{
                     backgroundColor:
                       index % 2 === 0
-                        ? colors.gray[600]
-                        : colors.gray[500]
+                        ? colors.gray[700]
+                        : colors.gray[600]
                   }}
                 >
-                    {/* Map image and name */}
-                    <Box display="flex" alignItems="center" width="400px">
-                        <img src={mapInfo[mapID].image} height="40px" alt="P2CM"/>
-                        <Typography
-                            variant="h4"
-                            color={colors.gray[100]}
-                            fontWeight="regular"
-                            sx={{m : "0 0 0 10px" }}
-                            >
-                            {mapInfo[mapID].title}
-                        </Typography>
-                    </Box>
-
-                    {/* Player profile picture and name */}
-                    <Box display="flex" alignItems="center" width="250px">
-                        <img src={submission.avatar} width="30px" alt="P2CM"/>
-                        <Typography
-                            variant="h5"
-                            color={colors.gray[100]}
-                            fontWeight="regular"
-                            sx={{m : "0 0 0 10px" }}
-                            >
-                            {submission.user_name}
-                        </Typography>
-                    </Box>
-
-                    {/* Partner profile picture and name */}
-                    <Box display="flex" alignItems="center" width="250px">
-                        <img src={submission.avatar} width="30px" alt="P2CM"/>
-                        <Typography
-                            variant="h5"
-                            color={colors.gray[100]}
-                            fontWeight="regular"
-                            sx={{m : "0 0 0 10px" }}
-                            >
-                            {submission.user_name}
-                        </Typography>
-                    </Box>
-
                     {/* Data points */}
-                    <Box display="flex">
-                        <Box display="flex" width="100px" style={{backgroundColor:"#8296c9"}} height="100%" alignItems="center" justifyContent="center">
+                    <Grid container spacing={0}>
+                        <Grid item xs={0.75} display="flex" justifyContent="center" alignItems="center" style={{
+                            backgroundColor:'rgba(20, 180, 10, 0.3)'
+                        }}>
                             <Typography
                                 variant="h5"
                                 color={colors.gray[100]}
@@ -100,8 +72,10 @@ const ScoreEntries = props => {
                                 >
                                 {submission.pre_rank}
                             </Typography>
-                        </Box>
-                        <Box display="flex" width="112px" style={{backgroundColor:"#7dba76"}} height="100%" alignItems="center" justifyContent="center">
+                        </Grid>
+                        <Grid item xs={0.75} display="flex" justifyContent="center" alignItems="center" style={{
+                            backgroundColor:'rgba(100, 20, 208, 0.3)'
+                        }}>
                             <Typography
                                 variant="h5"
                                 color={colors.gray[100]}
@@ -109,59 +83,98 @@ const ScoreEntries = props => {
                                 >
                                 {submission.post_rank}
                             </Typography>
-                        </Box>
-                        <Box display="flex" width="112px" height="100%" alignItems="center" justifyContent="center">
+                        </Grid>
+                        <Grid item xs={2} overflow="hidden" whiteSpace="nowrap">
+                            <Typography
+                                variant="h6"
+                                color={colors.gray[100]}
+                                fontWeight="regular"
+                                sx={{m : "0 0 0 10px" }}
+                                >
+                                {mapInfo[mapID].title}
+                            </Typography>
+                            <Typography
+                                variant="h6"
+                                color={colors.gray[300]}
+                                fontWeight="light"
+                                sx={{m : "0 0 0 10px" }}
+                                >
+                                {mapInfo[mapID].chapter_name}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={2} className={classes.customRow}>
+                            {/* Player profile picture and name */}
+                            <img src={submission.avatar} height="100%" alt="P2CM"/>
+                            <Typography
+                                variant="h5"
+                                color={colors.gray[100]}
+                                fontWeight="regular"
+                                sx={{m : "0 0 0 10px" }}
+                                >
+                                {submission.user_name}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={2} className={classes.customRow}>
+                            {/* Partner profile picture and name */}
+                            <img src={submission.avatar} height="100%" alt="P2CM"/>
+                            <Typography
+                                variant="h5"
+                                color={colors.gray[100]}
+                                fontWeight="regular"
+                                sx={{m : "0 0 0 10px" }}
+                                >
+                                {console.log(coopData[1][0].user_name1)}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={0.75} className={classes.customRowEnd}>
                             <Typography
                                 variant="h5"
                                 color={colors.gray[100]}
                                 fontWeight="regular"
                                 >
-                                {submission.score_delta}
+                                {time}
                             </Typography>
-                        </Box>
-                        <Box display="flex" width="112px" height="100%" alignItems="center" justifyContent="center">
+                        </Grid>
+                        <Grid item xs={0.75} className={classes.customRowEnd}>
                             <Typography
-                                variant="h6"
+                                variant="h5"
+                                color={colors.gray[100]}
+                                fontWeight="regular"
+                                >
+                                {submission.score_delta === null ? "" : "-" + timeToText(submission.score_delta) + "s"}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={0.75} className={classes.customRowEnd}>
+                            <Typography
+                                variant="h5"
                                 color={colors.gray[100]}
                                 fontWeight="regular"
                                 >
                                 {time}
                             </Typography>
-                        </Box>
-                        <Box display="flex" width="112px" height="100%" alignItems="center" justifyContent="center">
+                        </Grid>
+                        <Grid item xs={1.5}>
                             <Typography
-                                variant="h6"
+                                variant="h5"
                                 color={colors.gray[100]}
                                 fontWeight="regular"
+                                textAlign="right"
                                 >
                                 {timeSince(submission.timestamp)}
                             </Typography>
-                        </Box>
-                        <Box display="flex" width="112px" height="100%" alignItems="center" justifyContent="center">
                             <Typography
                                 variant="h6"
                                 color={colors.gray[100]}
-                                fontWeight="regular"
+                                fontWeight="light"
+                                textAlign="right"
                                 >
                                 {JSON.stringify(submission.timestamp).slice(1,11)}
                             </Typography>
-                        </Box>
-                        <Box display="flex" alignItems="center" padding="10px">
-                            {submission.note && (
-                                <ChatBubbleIcon />
-                            )}
-                        </Box>
-                        <Box display="flex" alignItems="center" padding="10px">
-                            {submission.has_demo && (
-                                <DownloadIcon />
-                            )}
-                        </Box>
-                        <Box display="flex" alignItems="center" padding="10px">
-                            {submission.youtube_id && (
-                                <YouTubeIcon />
-                            )}
-                        </Box>
-                    </Box>
+                        </Grid>
+                        <Grid item xs={0.75} display="flex" alignItems="center" justifyContent="center">
+                            <YouTubeIcon/>
+                        </Grid>
+                    </Grid>
                 </Box>
             })
         }
@@ -174,7 +187,6 @@ function timeSince (timestamp) {
     let second_diff = ((current_date.getTime() - previous_date.getTime()) / 1000)
     let message = "a"
 
-    console.log(second_diff)
     if (second_diff < 60) {
         message = second_diff + " seconds ago";
     } else if (second_diff < 3600) {
@@ -189,6 +201,24 @@ function timeSince (timestamp) {
         message = Math.round(second_diff / 31449600) + " years ago";
     }
     return message
+}
+
+function timeToText (timeBefore) {
+    if (timeBefore != null) {
+        var time = JSON.stringify(timeBefore)
+        time = time.replace("-","")
+
+        if (time.length > 4) {
+            time = time.slice(0, time.length - 4) + ":" + time.slice(time.length - 4, time.length - 2) + "." + time.slice(time.length - 2)
+        } else if (time.length > 2){
+            time = time.slice(0, time.length - 2) + "." + time.slice(time.length - 2)
+        } else if (time.length === 2){
+            time = "0." + time
+        } else {
+            time = "0.0" + time
+        }
+    }
+    return time
 }
 
 export default ScoreEntries
