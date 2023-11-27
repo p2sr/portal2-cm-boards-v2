@@ -1,6 +1,5 @@
 import { Box, Typography, useTheme, Grid, Icon } from "@mui/material"
 import { tokens, ranks } from "../theme"
-import { useEffect, useState } from "react";
 import mapInfo from "./MapInfo"
 import { makeStyles } from '@material-ui/styles';
 import YouTubeIcon from '@mui/icons-material/YouTube';
