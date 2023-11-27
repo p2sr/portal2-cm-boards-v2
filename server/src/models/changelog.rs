@@ -85,6 +85,10 @@ pub struct ChangelogPage {
     pub map_name: String,
     pub user_name: String,
     pub avatar: String,
+    pub blue_name: Option<String>,
+    pub orange_name: Option<String>,
+    pub blue_avatar: Option<String>,
+    pub orange_avatar: Option<String>,
 }
 
 // Helpers

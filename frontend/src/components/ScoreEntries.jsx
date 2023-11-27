@@ -1,5 +1,5 @@
 import { Box, Typography, useTheme, Grid, Icon } from "@mui/material"
-import { tokens } from "../theme"
+import { tokens, ranks } from "../theme"
 import { useEffect, useState } from "react";
 import mapInfo from "./MapInfo"
 import { makeStyles } from '@material-ui/styles';
@@ -7,17 +7,16 @@ import YouTubeIcon from '@mui/icons-material/YouTube';
 import DownloadIcon from '@mui/icons-material/Download';
 import ChatBubbleIcon from '@mui/icons-material/ChatBubble';
 
-const ENDPOINT = "http://localhost:8080/api/v1/coop"
 
 const useStyles = makeStyles((theme) => ({
     customRow: {
-      height: 46, // Set your desired height here
+      height: 40, // Set your desired height here
       display: 'flex',
       justifyContent: 'flex-start',
       alignItems: 'center',
     },
     customRowEnd: {
-        height: 46, // Set your desired height here
+        height: 40, // Set your desired height here
         display: 'flex',
         justifyContent: 'flex-end',
         alignItems: 'center',
@@ -28,21 +27,9 @@ const ScoreEntries = props => {
     const theme = useTheme();
     const classes = useStyles();
     const colors = tokens(theme.palette.mode);
-    const [coopData, setCoopData] = useState([])
 
     var index = 0
-
-        //fetching changelog data on first component load
-        useEffect(() => {
-            const fetchData = async () => {
-                let response = await fetch(ENDPOINT)
-                return response.json()
-            }
-    
-            fetchData()
-            .then(data => setCoopData(data))
-            .catch(error => console.log(error))
-        }, [])
+    var coopIDList = []
 
     return <div flexDirection="column" justifyContent="flex-start">
         {
@@ -50,7 +37,9 @@ const ScoreEntries = props => {
                 var mapID = JSON.parse(submission.map_id)
                 var time = timeToText(submission.score)
 
+                if (!coopIDList.includes(submission.coop_id) || submission.coop_id === null){
                 index++
+                coopIDList.push(submission.coop_id)
                 return <Box
                 display="flex"
                 style={{
@@ -63,7 +52,8 @@ const ScoreEntries = props => {
                     {/* Data points */}
                     <Grid container spacing={0}>
                         <Grid item xs={0.75} display="flex" justifyContent="center" alignItems="center" style={{
-                            backgroundColor:'rgba(20, 180, 10, 0.3)'
+                            backgroundColor: submission.pre_rank === null ? "#00000000" :
+                            submission.pre_rank > 200 ? ranks[10] : ranks[Math.round((submission.pre_rank)/20)]
                         }}>
                             <Typography
                                 variant="h5"
@@ -74,7 +64,8 @@ const ScoreEntries = props => {
                             </Typography>
                         </Grid>
                         <Grid item xs={0.75} display="flex" justifyContent="center" alignItems="center" style={{
-                            backgroundColor:'rgba(100, 20, 208, 0.3)'
+                            backgroundColor: submission.post_rank === null ? "#00000000" :
+                            submission.post_rank > 200 ? ranks[10] : ranks[Math.round((submission.post_rank)/20)]
                         }}>
                             <Typography
                                 variant="h5"
@@ -84,23 +75,23 @@ const ScoreEntries = props => {
                                 {submission.post_rank}
                             </Typography>
                         </Grid>
-                        <Grid item xs={2} overflow="hidden" whiteSpace="nowrap">
+                        <Grid item xs={2} overflow="hidden" whiteSpace="nowrap" className={classes.customRow}>
                             <Typography
                                 variant="h6"
                                 color={colors.gray[100]}
-                                fontWeight="regular"
+                                fontWeight="medium"
                                 sx={{m : "0 0 0 10px" }}
                                 >
                                 {mapInfo[mapID].title}
                             </Typography>
-                            <Typography
+                            {/* <Typography
                                 variant="h6"
                                 color={colors.gray[300]}
                                 fontWeight="light"
                                 sx={{m : "0 0 0 10px" }}
                                 >
                                 {mapInfo[mapID].chapter_name}
-                            </Typography>
+                            </Typography> */}
                         </Grid>
                         <Grid item xs={2} className={classes.customRow}>
                             {/* Player profile picture and name */}
@@ -108,7 +99,7 @@ const ScoreEntries = props => {
                             <Typography
                                 variant="h5"
                                 color={colors.gray[100]}
-                                fontWeight="regular"
+                                fontWeight="medium"
                                 sx={{m : "0 0 0 10px" }}
                                 >
                                 {submission.user_name}
@@ -116,21 +107,27 @@ const ScoreEntries = props => {
                         </Grid>
                         <Grid item xs={2} className={classes.customRow}>
                             {/* Partner profile picture and name */}
-                            <img src={submission.avatar} height="100%" alt="P2CM"/>
+                            { submission.coop_id !== null && 
+                                <img src={submission.blue_name === submission.user_name ?
+                                submission.orange_avatar : submission.blue_avatar}
+                                height="100%"
+                                alt="P2CM"/>
+                            }
                             <Typography
                                 variant="h5"
                                 color={colors.gray[100]}
-                                fontWeight="regular"
+                                fontWeight="medium"
                                 sx={{m : "0 0 0 10px" }}
                                 >
-                                {console.log(coopData[1][0].user_name1)}
+                                {submission.coop_id === null ? "" :
+                                submission.blue_name === submission.user_name ? submission.orange_name : submission.blue_name}
                             </Typography>
                         </Grid>
                         <Grid item xs={0.75} className={classes.customRowEnd}>
                             <Typography
                                 variant="h5"
                                 color={colors.gray[100]}
-                                fontWeight="regular"
+                                fontWeight="medium"
                                 >
                                 {time}
                             </Typography>
@@ -139,7 +136,7 @@ const ScoreEntries = props => {
                             <Typography
                                 variant="h5"
                                 color={colors.gray[100]}
-                                fontWeight="regular"
+                                fontWeight="thin"
                                 >
                                 {submission.score_delta === null ? "" : "-" + timeToText(submission.score_delta) + "s"}
                             </Typography>
@@ -148,12 +145,13 @@ const ScoreEntries = props => {
                             <Typography
                                 variant="h5"
                                 color={colors.gray[100]}
-                                fontWeight="regular"
+                                fontWeight="thin"
                                 >
-                                {time}
+                                {submission.pre_rank === null || submission.post_rank === null ?
+                                "" : "-" + (submission.pre_rank - submission.post_rank)}
                             </Typography>
                         </Grid>
-                        <Grid item xs={1.5}>
+                        <Grid item xs={1.5} className={classes.customRowEnd}>
                             <Typography
                                 variant="h5"
                                 color={colors.gray[100]}
@@ -162,20 +160,24 @@ const ScoreEntries = props => {
                                 >
                                 {timeSince(submission.timestamp)}
                             </Typography>
-                            <Typography
+                            {/* <Typography
                                 variant="h6"
                                 color={colors.gray[100]}
                                 fontWeight="light"
                                 textAlign="right"
                                 >
                                 {JSON.stringify(submission.timestamp).slice(1,11)}
-                            </Typography>
+                            </Typography> */}
                         </Grid>
                         <Grid item xs={0.75} display="flex" alignItems="center" justifyContent="center">
                             <YouTubeIcon/>
                         </Grid>
                     </Grid>
                 </Box>
+                }
+                else {
+                    return <Box></Box>
+                }
             })
         }
     </div>

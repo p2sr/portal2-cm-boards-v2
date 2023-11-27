@@ -192,6 +192,20 @@ export const themeSettings = (mode) => {
     };
 };
 
+export const ranks = [
+    "#5A50C87D",
+    "#3B60C97D",
+    "#3975BB7D",
+    "#6A91987D",
+    "#9AAC757D",
+    "#C4C4577D",
+    "#F2DA367D",
+    "#EDB73D7D",
+    "#E894447D",
+    "#E5744A7D",
+    "#E051517D",
+]
+
 //context for color mode
 export const ColorModeContext = createContext({
     toggleColorMode: () => {}
