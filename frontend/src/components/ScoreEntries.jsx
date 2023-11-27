@@ -39,6 +39,7 @@ const ScoreEntries = props => {
                 if (!coopIDList.includes(submission.coop_id) || submission.coop_id === null){
                 index++
                 coopIDList.push(submission.coop_id)
+
                 return <Box
                 display="flex"
                 style={{
@@ -168,8 +169,20 @@ const ScoreEntries = props => {
                                 {JSON.stringify(submission.timestamp).slice(1,11)}
                             </Typography> */}
                         </Grid>
-                        <Grid item xs={0.75} display="flex" alignItems="center" justifyContent="center">
+                        <Grid item xs={0.25} display="flex" alignItems="center" justifyContent="center">
+                            {submission.demo_id !== null &&
+                            <DownloadIcon/>
+                            }
+                        </Grid>
+                        <Grid item xs={0.25} display="flex" alignItems="center" justifyContent="center">
+                            {submission.youtube_id !== null &&
                             <YouTubeIcon/>
+                            }
+                        </Grid>
+                        <Grid item xs={0.25} display="flex" alignItems="center" justifyContent="center">
+                            {submission.note !== null &&
+                             <ChatBubbleIcon/>
+                            }
                         </Grid>
                     </Grid>
                 </Box>
