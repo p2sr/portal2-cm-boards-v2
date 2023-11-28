@@ -15,26 +15,39 @@ const GRAPH_ENDPOINT = "http://localhost:8080/api/v1/graph"
 
 
 const ScoreUpdates = () => {
-    const [changelogData, setChangelogData] = useState([])
-    const [graphData, setGraphData] = useState([])
-
+    const [changelogData, setChangelogData] = useState([]);
+    const [graphData, setGraphData] = useState([]); 
+    const [loading, setLoading] = useState(true)
+    
     //fetching changelog data on first component load
     useEffect(() => {
         const fetchData = async () => {
             try {
-              const [changelogResponse, graphResponse] = await Promise.all([
-                fetch(CHANGELOG_ENDPOINT).then(response => response.json()),
-                fetch(GRAPH_ENDPOINT).then(response => response.json())
-              ]);
-      
-              setChangelogData(changelogResponse);
-              setGraphData(graphResponse);
+                const [changelogResponse, graphResponse] = await Promise.all([
+                    fetch(CHANGELOG_ENDPOINT).then(response => {
+                        if (!response.ok) {
+                            throw new Error('Changelog response not OK');
+                        }
+                        return response.json();
+                    }),
+                    fetch(GRAPH_ENDPOINT).then(response => {
+                        if (!response.ok) {
+                            throw new Error('Graph response not OK');
+                        }
+                        return response.json();
+                    })
+                ]);
+    
+                setChangelogData(changelogResponse);
+                setGraphData(graphResponse);
+                setLoading(false)
             } catch (error) {
-              console.error('Error fetching data:', error);
+                console.error('Error fetching data:', error);
             }
         };
         fetchData();
-    }, [])
+    }, []);
+    
 
     const theme = useTheme();
     const colors = tokens(theme.palette.mode);
@@ -135,9 +148,11 @@ const ScoreUpdates = () => {
                         alignItems="center"
                         justifyContent="center"
                         >
-                            <ScoreGraph
+                            {loading ? null :
+                                <ScoreGraph
                                 graphData={graphData}
-                            />
+                                />
+                            }
                         </div>
                     </Box>
                 </Box>
