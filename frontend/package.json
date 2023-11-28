@@ -8,6 +8,7 @@
     "@material-ui/styles": "^4.11.5",
     "@mui/icons-material": "^5.14.18",
     "@mui/material": "^5.14.18",
+    "@mui/x-charts": "^6.18.2",
     "@mui/x-data-grid": "^6.18.2",
     "@nivo/core": "^0.84.0",
     "@nivo/line": "^0.84.0",

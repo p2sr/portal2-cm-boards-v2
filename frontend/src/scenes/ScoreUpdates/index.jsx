@@ -8,23 +8,32 @@ import PersonIcon from '@mui/icons-material/Person';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import HistoryIcon from '@mui/icons-material/History';
 import ScoreEntries from '../../components/ScoreEntries'
+import ScoreGraph from '../../components/ScoreGraph'
 
-const ENDPOINT = "http://localhost:8080/api/v1/changelog"
+const CHANGELOG_ENDPOINT = "http://localhost:8080/api/v1/changelog"
+const GRAPH_ENDPOINT = "http://localhost:8080/api/v1/graph"
 
 
 const ScoreUpdates = () => {
     const [changelogData, setChangelogData] = useState([])
+    const [graphData, setGraphData] = useState([])
 
     //fetching changelog data on first component load
     useEffect(() => {
         const fetchData = async () => {
-            let response = await fetch(ENDPOINT)
-            return response.json()
-        }
-
-        fetchData()
-        .then(data => setChangelogData(data))
-        .catch(error => console.log(error))
+            try {
+              const [changelogResponse, graphResponse] = await Promise.all([
+                fetch(CHANGELOG_ENDPOINT).then(response => response.json()),
+                fetch(GRAPH_ENDPOINT).then(response => response.json())
+              ]);
+      
+              setChangelogData(changelogResponse);
+              setGraphData(graphResponse);
+            } catch (error) {
+              console.error('Error fetching data:', error);
+            }
+        };
+        fetchData();
     }, [])
 
     const theme = useTheme();
@@ -32,49 +41,107 @@ const ScoreUpdates = () => {
     return <div id="main" flexDirection="column" justifyContent="flex-start" style={{"--bgcolor": theme.palette.background.default}}>
         <Topbar />
         {/* Info boxes */}
-        <Box display="flex" justifyContent="center">
-        <Box display="flex" justifyContent="center" width="93%">
-            {/* Title: Following */}
-            <Box
-            display="flex"
-            padding="10px"
-            flexGrow="0.25"
-            backgroundColor={colors.primary[700]}
-            style={{borderRadius:"10px"}}
-            alignItems="center"
-            sx={{ m: "0 15px 15px 15px" }}
-            >
-                <PersonIcon style={{fontSize:"200%"}}/>
-                <Typography
-                    variant="h5"
-                    color={colors.gray[100]}
-                    fontWeight="regular"
-                    sx={{m : "0 0 0 10px" }}
+        <Box display="flex" justifyContent="center" padding="15px">
+            <Box display="flex" justifyContent="center" width="93%" gap="30px">
+                {/* Following*/}
+                <Box display="flex" justifyContent="center" flexGrow="0.25">
+                    <Box display="flex"
+                    justifyContent="center"
+                    flexDirection="column"
+                    width="100%"
                     >
-                    FOLLOWING
-                </Typography>
-            </Box>
-            {/* Title: Daily Activity */}
-            <Box
-            display="flex"
-            padding="10px"
-            flexGrow="0.75"
-            backgroundColor={colors.primary[700]}
-            style={{borderRadius:"10px"}}
-            alignItems="center"
-            sx={{ m: "0 15px 15px 15px" }}
-            >
-                <TimelineIcon style={{fontSize:"200%"}}/>
-                <Typography
-                    variant="h5"
-                    color={colors.gray[100]}
-                    fontWeight="regular"
-                    sx={{m : "0 0 0 10px" }}
+                        {/* Title: FOLLOWING */}
+                        <Box
+                        display="flex"
+                        padding="10px"
+                        flexGrow="1"
+                        backgroundColor={colors.primary[700]}
+                        style={{borderTopLeftRadius:"10px", borderTopRightRadius:"10px"}}
+                        alignItems="center"
+                        >
+                            <HistoryIcon style={{fontSize:"200%"}}/>
+                            <Typography
+                                variant="h5"
+                                color={colors.gray[100]}
+                                fontWeight="regular"
+                                sx={{m : "0 0 0 10px" }}
+                                >
+                                FOLLOWING
+                            </Typography>
+                        </Box>
+
+                        {/* Following Scores */}
+                        <div
+                        display="flex"
+                        padding="20px"
+                        flexGrow="1"
+                        backgroundColor={colors.primary[600]}
+                        style={{
+                            borderBottomLeftRadius:"10px",
+                            backgroundColor:colors.primary[600],
+                            borderBottomRightRadius:"10px",
+                            width:"100%",
+                            padding:"20px",
+                            backgroundClip:"padding-box"
+                        }}
+                        alignItems="center"
+                        justifyContent="center"
+                        >
+                        </div>
+                    </Box>
+                </Box>
+                {/* Title: Daily Activity */}
+                <Box display="flex" justifyContent="center" flexGrow="0.75">
+                    <Box display="flex"
+                    justifyContent="center"
+                    flexDirection="column"
+                    width="100%"
+                    style={{borderRadius:"10px"}}
                     >
-                    DAILY ACTIVITY
-                </Typography>
+                        {/* Title: DAILY ACTIVITY */}
+                        <Box
+                        display="flex"
+                        padding="10px"
+                        flexGrow="1"
+                        backgroundColor={colors.primary[700]}
+                        style={{borderTopLeftRadius:"10px", borderTopRightRadius:"10px"}}
+                        alignItems="center"
+                        >
+                            <HistoryIcon style={{fontSize:"200%"}}/>
+                            <Typography
+                                variant="h5"
+                                color={colors.gray[100]}
+                                fontWeight="regular"
+                                sx={{m : "0 0 0 10px" }}
+                                >
+                                DAILY ACTIVITY
+                            </Typography>
+                        </Box>
+
+                        {/* Graph */}
+                        <div
+                        display="flex"
+                        padding="20px"
+                        flexGrow="0.75"
+                        backgroundColor={colors.primary[600]}
+                        style={{
+                            borderBottomLeftRadius:"10px",
+                            backgroundColor:colors.primary[600],
+                            borderBottomRightRadius:"10px",
+                            width:"100%",
+                            padding:"20px",
+                            backgroundClip:"padding-box"
+                        }}
+                        alignItems="center"
+                        justifyContent="center"
+                        >
+                            <ScoreGraph
+                                graphData={graphData}
+                            />
+                        </div>
+                    </Box>
+                </Box>
             </Box>
-        </Box>
         </Box>
 
         {/* Score Updates */}

@@ -190,6 +190,26 @@ impl ChangelogPage {
     }
 }
 
+impl Graph {
+    /// Return all [Maps] on a given `game_id`.
+    pub async fn get_graph_data(
+        pool: &PgPool
+    ) -> Result<Vec<Graph>, sqlx::Error> {
+        let res = sqlx::query_as::<_, Graph>(
+            r#"
+            SELECT DATE(timestamp) AS date, COUNT(*) AS count
+            FROM changelog
+            GROUP BY DATE(timestamp)
+            ORDER BY DATE(timestamp) 
+            DESC
+            "#
+        )
+            .fetch_all(pool)
+            .await?;
+        Ok(res)
+    }
+}
+
 /// Build a query String based off a pre-defined string. You pass in a [crate::models::changelog::ChangelogQueryParams], and an optional vector of additional filers.
 /// 
 /// Each element of the vector of additional filters will be assigned the correct "WHERE" or "AND", as appropriate.
