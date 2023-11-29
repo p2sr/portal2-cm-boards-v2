@@ -57,7 +57,7 @@ const ScoreUpdates = () => {
         <Box display="flex" justifyContent="center" padding="15px">
             <Box display="flex" justifyContent="center" width="93%" gap="30px">
                 {/* Following*/}
-                <Box display="flex" justifyContent="center" flexGrow="0.25">
+                <Box display="flex" justifyContent="center" flexGrow={0.3}>
                     <Box display="flex"
                     justifyContent="center"
                     flexDirection="column"
@@ -67,7 +67,6 @@ const ScoreUpdates = () => {
                         <Box
                         display="flex"
                         padding="10px"
-                        flexGrow="1"
                         backgroundColor={colors.primary[700]}
                         style={{borderTopLeftRadius:"10px", borderTopRightRadius:"10px"}}
                         alignItems="center"
@@ -86,36 +85,35 @@ const ScoreUpdates = () => {
                         {/* Following Scores */}
                         <div
                         display="flex"
-                        padding="20px"
-                        flexGrow="1"
                         backgroundColor={colors.primary[600]}
                         style={{
                             borderBottomLeftRadius:"10px",
                             backgroundColor:colors.primary[600],
                             borderBottomRightRadius:"10px",
-                            width:"100%",
-                            padding:"20px",
                             backgroundClip:"padding-box"
                         }}
                         alignItems="center"
                         justifyContent="center"
                         >
+                            {loading ? null :
+                                <ScoreGraph
+                                graphData={graphData}
+                                />
+                            }
                         </div>
                     </Box>
                 </Box>
-                {/* Title: Daily Activity */}
-                <Box display="flex" justifyContent="center" flexGrow="0.75">
+                {/* Daily Activity */}
+                <Box display="flex" justifyContent="center" flexGrow={0.7}>
                     <Box display="flex"
                     justifyContent="center"
                     flexDirection="column"
                     width="100%"
-                    style={{borderRadius:"10px"}}
                     >
                         {/* Title: DAILY ACTIVITY */}
                         <Box
                         display="flex"
                         padding="10px"
-                        flexGrow="1"
                         backgroundColor={colors.primary[700]}
                         style={{borderTopLeftRadius:"10px", borderTopRightRadius:"10px"}}
                         alignItems="center"
@@ -134,15 +132,11 @@ const ScoreUpdates = () => {
                         {/* Graph */}
                         <div
                         display="flex"
-                        padding="20px"
-                        flexGrow="0.75"
                         backgroundColor={colors.primary[600]}
                         style={{
                             borderBottomLeftRadius:"10px",
                             backgroundColor:colors.primary[600],
                             borderBottomRightRadius:"10px",
-                            width:"100%",
-                            padding:"20px",
                             backgroundClip:"padding-box"
                         }}
                         alignItems="center"

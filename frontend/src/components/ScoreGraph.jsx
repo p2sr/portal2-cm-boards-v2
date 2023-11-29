@@ -1,14 +1,16 @@
+import { Box, Tooltip } from "@mui/material"
 import {BarChart} from "@mui/x-charts"
 
 const ScoreGraph = props => {
     var columns = []
     var data = []
     console.log(props)
-    for(let i = 1; i < 6; i++){
-        columns.push(props.graphData[i].date)
-        data.push(props.graphData[i].count)
+    var days = 7
+    for(let i = 1; i < days + 1; i++){
+        columns.push(props.graphData[days + 1 - i].date)
+        data.push(props.graphData[days + 1 - i].count)
     }
-    return <div flexDirection="column" justifyContent="flex-start">
+    return <div flexDirection="column" justifyContent="center">
         <BarChart
             xAxis={[
                 {
@@ -17,13 +19,14 @@ const ScoreGraph = props => {
                 scaleType: 'band',
                 },
             ]}
-            series={[
+            series={[   
                 {
                 data: data
                 },
             ]}
-            height={300}
-        />
+            height={250}
+        >
+        </BarChart>
     </div>
 }
 
