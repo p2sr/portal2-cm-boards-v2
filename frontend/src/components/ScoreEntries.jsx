@@ -157,6 +157,7 @@ const ScoreEntries = props => {
                                 color={colors.gray[100]}
                                 fontWeight="regular"
                                 textAlign="right"
+                                marginRight="5px"
                                 >
                                 {timeSince(submission.timestamp)}
                             </Typography>
@@ -169,20 +170,24 @@ const ScoreEntries = props => {
                                 {JSON.stringify(submission.timestamp).slice(1,11)}
                             </Typography> */}
                         </Grid>
-                        <Grid item xs={0.25} display="flex" alignItems="center" justifyContent="center">
-                            {submission.demo_id !== null &&
-                            <DownloadIcon/>
-                            }
-                        </Grid>
-                        <Grid item xs={0.25} display="flex" alignItems="center" justifyContent="center">
-                            {submission.youtube_id !== null &&
-                            <YouTubeIcon/>
-                            }
-                        </Grid>
-                        <Grid item xs={0.25} display="flex" alignItems="center" justifyContent="center">
-                            {submission.note !== null &&
-                             <ChatBubbleIcon/>
-                            }
+                        <Grid item xs={0.75} display="flex">
+                            <Grid container spacing={0}>
+                                <Grid item xs={4} display="flex" alignItems="center" justifyContent="center">
+                                {submission.demo_id !== null &&
+                                <DownloadIcon/>
+                                }
+                                </Grid>
+                                <Grid item xs={4} display="flex" alignItems="center" justifyContent="center">
+                                    {submission.youtube_id !== null &&
+                                    <YouTubeIcon/>
+                                    }
+                                </Grid>
+                                <Grid item xs={4} display="flex" alignItems="center" justifyContent="center">
+                                    {submission.note !== null &&
+                                    <ChatBubbleIcon/>
+                                    }
+                                </Grid>
+                            </Grid>
                         </Grid>
                     </Grid>
                 </Box>
