@@ -4,7 +4,6 @@ import {BarChart} from "@mui/x-charts"
 const ScoreGraph = props => {
     var columns = []
     var data = []
-    console.log(props)
     var days = 7
     for(let i = 1; i < days + 1; i++){
         columns.push(props.graphData[days + 1 - i].date)

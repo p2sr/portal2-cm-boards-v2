@@ -1,24 +1,30 @@
 import { ColorModeContext, useMode } from "./theme";
 import { CssBaseline, ThemeProvider} from "@mui/material";
 import ScoreUpdates from "./scenes/ScoreUpdates";
-import { BrowserRouter } from 'react-router-dom'
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+} from "react-router-dom";
 
 function App() {
   const [theme, colorMode] = useMode();
 
   return (
-    <BrowserRouter>
+    <Router>
       <ColorModeContext.Provider value={colorMode}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <div className="app">
             <main className="content">
-              <ScoreUpdates />
+              <Routes>
+                <Route exact path="/" element={<ScoreUpdates />} />
+              </Routes>
             </main>
           </div>
         </ThemeProvider>
       </ColorModeContext.Provider>
-    </BrowserRouter>
+    </Router>
   );
 }
 

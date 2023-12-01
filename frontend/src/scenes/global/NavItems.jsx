@@ -68,7 +68,7 @@ export const topbarItems = [
     {
         id: 1,
         title: "SCORE UPDATES",
-        path: "./scoreupdates",
+        path: "./",
         icon: <HistoryIcon/>,
         dropdown: null
     },
