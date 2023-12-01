@@ -2,15 +2,15 @@ import React from 'react'
 
 const YoutubeEmbed = ({embedId}) => {
   return (
-    <div style={{padding:"15px"}}>
+    <div style={{width:"100%", height:"100%"}}>
         <iframe
-        width="534"
-        height="300"
+        width="100%"
+        height="250px"
         src={`https://www.youtube.com/embed/${embedId}`}
         allowFullScreen
         frameBorder="none"
         title='YouTube embed'
-        style={{border:'2px solid #3F414580', borderRadius:"10px"}}
+        style={{border:'2px solid #3F4145', borderRadius:"10px"}}
         />
     </div>
   )

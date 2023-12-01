@@ -4,8 +4,6 @@ import { Box, useTheme, Typography } from "@mui/material";
 import { tokens } from "../../theme";
 import { useEffect, useState } from "react";
 import './index.css';
-import PersonIcon from '@mui/icons-material/Person';
-import TimelineIcon from '@mui/icons-material/Timeline';
 import HistoryIcon from '@mui/icons-material/History';
 import ScoreEntries from '../../components/ScoreEntries'
 import ScoreGraph from '../../components/ScoreGraph'

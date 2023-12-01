@@ -1,15 +1,13 @@
-import { React, useState } from 'react'
+import { React } from 'react'
 import { Link } from 'react-router-dom'
 import "./Dropdown.css";
 import { Typography, useTheme} from "@mui/material";
-import { useContext } from "react";
-import { ColorModeContext, tokens } from "../../theme";
+import { tokens } from "../../theme";
 
 const Dropdown = props => {
 
     const theme = useTheme();
     const colors = tokens(theme.palette.mode);
-    const colorMode = useContext(ColorModeContext);
     if (props.dropdown !== null) {
     return (
         <>

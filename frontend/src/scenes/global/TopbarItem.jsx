@@ -1,15 +1,14 @@
 import React from 'react'
 import { Link } from 'react-router-dom';
-import { Box, IconButton, Typography, useTheme} from "@mui/material";
-import { useContext, useState } from "react";
-import { ColorModeContext, tokens } from "../../theme";
+import { Box, Typography, useTheme} from "@mui/material";
+import { useState } from "react";
+import { tokens } from "../../theme";
 import Dropdown from "./Dropdown";
 import "./TopbarItem.css";
 
 const TopbarItem = props => {
   const theme = useTheme(); 
   const colors = tokens(theme.palette.mode);
-  const colorMode = useContext(ColorModeContext);
 
   const [toggle, setToggle] = useState(false);
 

@@ -157,8 +157,8 @@ const ScoreEntry = props => {
                 </Typography> */}
             </Grid>
             <Grid item xs={0.75} className={classes.customRowEnd}>
-                <IconButton onClick={toggle}>
-                    <ArrowDropDownIcon/>
+                <IconButton onClick={toggle} disableRipple>
+                    <ArrowDropDownIcon sx={{transform: isOpen ? "rotate(90deg)" : "rotate(0deg)"}}/>
                 </IconButton>
             </Grid>
         </Grid>

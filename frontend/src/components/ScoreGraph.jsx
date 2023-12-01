@@ -1,4 +1,3 @@
-import { Box, Tooltip } from "@mui/material"
 import {BarChart} from "@mui/x-charts"
 
 const ScoreGraph = props => {
