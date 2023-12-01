@@ -3,17 +3,16 @@ import { useContext } from "react";
 import { ColorModeContext, tokens } from "../../theme";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import HistoryIcon from '@mui/icons-material/History';
-import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import Logo from './img/portal2logo.png';
 import PFP from './img/pfp.png';
+import { leaderboardDropdown, topbarItems } from "./NavItems";
+import TopbarItem from "./TopbarItem";
 
 const Topbar = () => {
     const theme = useTheme();
     const colors = tokens(theme.palette.mode);
     const colorMode = useContext(ColorModeContext);
+    console.log(leaderboardDropdown)
     return (
     <Box display="flex" justifyContent="center" p={2} gap="100px">
 
@@ -41,50 +40,9 @@ const Topbar = () => {
             alignItems="center"
             gap="20px"
             >
-                <IconButton disableRipple>
-                    <HistoryIcon />
-                    <Typography
-                    variant="h4"
-                    color={colors.gray[100]}
-                    fontWeight="medium"
-                    sx={{m : "0 0 0 10px" }}
-                    >
-                    SCORE UPDATES
-                    </Typography>
-                </IconButton>
-                <IconButton disableRipple>
-                    <LocationOnIcon/>
-                    <Typography
-                    variant="h4"
-                    color={colors.gray[100]}
-                    fontWeight="medium"
-                    sx={{m : "0 0 0 10px" }}
-                    >
-                    MAP LIST
-                    </Typography>
-                </IconButton>
-                <IconButton disableRipple>
-                    <LeaderboardIcon/>
-                    <Typography
-                    variant="h4"
-                    color={colors.gray[100]}
-                    fontWeight="medium"
-                    sx={{m : "0 0 0 10px" }}
-                    >
-                    LEADERBOARD
-                    </Typography>
-                </IconButton>
-                <IconButton disableRipple>
-                    <MoreHorizIcon/>
-                    <Typography
-                    variant="h4"
-                    color={colors.gray[100]}
-                    fontWeight="medium"
-                    sx={{m : "0 0 0 10px" }}
-                    >
-                    MORE
-                    </Typography>
-                </IconButton>
+                {topbarItems.map(item => {
+                    return <TopbarItem path={item.path} title={item.title} icon={item.icon} dropdown={item.dropdown}/>
+                })}
             </Box>
         </Box>
 
