@@ -94,3 +94,18 @@ export const topbarItems = [
         dropdown: moreDropdown
     },
 ]
+
+export const leaderboardCategories = [
+    {
+        id: 0,
+        title: "Portal 2 Challenge Mode",
+    },
+    {
+        id: 1,
+        title: "Mel Challenge Mode",
+    },
+    {
+        id: 2,
+        title: "Legacy Challenge Mode",
+    }
+]
