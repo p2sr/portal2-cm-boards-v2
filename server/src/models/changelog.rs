@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use chrono::NaiveDate;
 use sqlx::FromRow;
 
 use super::users::UsersDisplayCount;
@@ -85,6 +86,17 @@ pub struct ChangelogPage {
     pub map_name: String,
     pub user_name: String,
     pub avatar: String,
+    pub blue_name: Option<String>,
+    pub orange_name: Option<String>,
+    pub blue_avatar: Option<String>,
+    pub orange_avatar: Option<String>,
+}
+
+/// Indlues additional information from joins that includes details like map name, username and profile image.
+#[derive(Serialize, FromRow, Debug)]
+pub struct Graph {
+    pub date: Option<NaiveDate>,
+    pub count: i64,
 }
 
 // Helpers

@@ -145,6 +145,15 @@ pub async fn changelog_new(
     Ok(web::Json(id))
 }
 
+#[get("/graph")]
+async fn graph(
+    pool: web::Data<PgPool>
+) -> Result<impl Responder> {
+    Ok(web::Json(
+        Graph::get_graph_data(pool.get_ref()).await?,
+    ))
+}
+
 /// **GET** method for getting a hashmap of all default categories.
 ///
 /// ## Example Endpoint:       

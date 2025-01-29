@@ -1,0 +1,24 @@
+.services-submenu {
+    width: 10rem;
+    position: absolute;
+    top: 65px;
+    list-style: none;
+    text-align: start;
+}
+
+.services-submenu li {
+    cursor: pointer;
+}
+
+.services-submenu.clicked {
+    display: none;
+}
+
+.submenu-item {
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    padding: 2px;
+    z-index: 1;
+}

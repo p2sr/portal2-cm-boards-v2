@@ -190,6 +190,26 @@ impl ChangelogPage {
     }
 }
 
+impl Graph {
+    /// Return all [Maps] on a given `game_id`.
+    pub async fn get_graph_data(
+        pool: &PgPool
+    ) -> Result<Vec<Graph>, sqlx::Error> {
+        let res = sqlx::query_as::<_, Graph>(
+            r#"
+            SELECT DATE(timestamp) AS date, COUNT(*) AS count
+            FROM changelog
+            GROUP BY DATE(timestamp)
+            ORDER BY DATE(timestamp) 
+            DESC
+            "#
+        )
+            .fetch_all(pool)
+            .await?;
+        Ok(res)
+    }
+}
+
 /// Build a query String based off a pre-defined string. You pass in a [crate::models::changelog::ChangelogQueryParams], and an optional vector of additional filers.
 /// 
 /// Each element of the vector of additional filters will be assigned the correct "WHERE" or "AND", as appropriate.
@@ -209,14 +229,20 @@ impl ChangelogPage {
 pub async fn build_filtered_changelog(pool: &PgPool, params: ChangelogQueryParams, additional_filters: Option<&mut Vec<String>>) -> Result<String, sqlx::Error> {
     let mut query_string: String = String::from(
         r#" 
-        SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned, 
+        SELECT cl.id, cl.timestamp, cl.profile_number, cl.score, cl.map_id, cl.demo_id, cl.banned,
             cl.youtube_id, cl.previous_id, cl.coop_id, cl.post_rank, cl.pre_rank, cl.submission, cl.note,
-            cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name AS map_name,  
-            COALESCE(u.board_name, u.steam_name) AS user_name, u.avatar
+            cl.category_id, cl.score_delta, cl.verified, cl.admin_note, map.name AS map_name,
+            COALESCE(u.board_name, u.steam_name) AS user_name, u.avatar,
+            COALESCE(p1.board_name, p1.steam_name) AS blue_name,
+            COALESCE(p2.board_name, p2.steam_name) AS orange_name,
+            p1.avatar AS blue_avatar, p2.avatar AS orange_avatar
                 FROM changelog AS cl
                     INNER JOIN users AS u ON (u.profile_number = cl.profile_number)
                     INNER JOIN maps AS map ON (map.steam_id = cl.map_id)
                     INNER JOIN chapters AS chapter on (map.chapter_id = chapter.id)
+                    LEFT JOIN coop_bundled AS coop on (cl.coop_id = coop.id)
+                    LEFT JOIN users AS p1 ON coop.p_id1 = p1.profile_number
+                    LEFT JOIN users AS p2 ON coop.p_id2 = p2.profile_number
     "#,
     );
     let mut filters: Vec<String> = Vec::new();
