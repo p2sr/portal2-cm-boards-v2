@@ -2,6 +2,7 @@ import { Typography, useTheme, Grid } from "@mui/material"
 import { tokens } from "../theme"
 import { makeStyles } from '@material-ui/styles';
 import { scoreToText } from "../helpers/time";
+import emptyFlag from "../scenes/global/img/emptyflag.png";
 const flagLink = "https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Flag_of_Sweden.svg/800px-Flag_of_Sweden.svg.png"
 
 const useStyles = makeStyles((theme) => ({
@@ -54,7 +55,7 @@ const LeaderboardEntry = props => {
                     </Typography>
                 </Grid>
                 <Grid item xs={4.75} className={classes.customRow}>
-                    <img src={flag} height="50%" alt="P2CM" style={{borderRadius: 3}}/>
+                    <img src={emptyFlag} height="50%" alt="P2CM" style={{borderRadius: 3}}/>
                     <Typography
                         variant="h5"
                         color={colors.gray[100]}
