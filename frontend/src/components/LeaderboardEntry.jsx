@@ -1,6 +1,8 @@
 import { Typography, useTheme, Grid } from "@mui/material"
 import { tokens } from "../theme"
 import { makeStyles } from '@material-ui/styles';
+import { scoreToText } from "../helpers/time";
+const flagLink = "https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Flag_of_Sweden.svg/800px-Flag_of_Sweden.svg.png"
 
 const useStyles = makeStyles((theme) => ({
     customRow: {
@@ -28,7 +30,10 @@ const LeaderboardEntry = props => {
     const colors = tokens(theme.palette.mode);
     const classes = useStyles();
 
-    const entry = props.entry
+    const entry = props.entry[1]
+    console.log(props)
+    const score = props.type == 1 ? Math.round(entry.points) : scoreToText(entry.score)
+    const flag = entry.nationality == null ? flagLink : entry.nationality;
     return (
         <div>
             {/* Data points */}
@@ -45,18 +50,18 @@ const LeaderboardEntry = props => {
                         width="100%"
                         align="center"
                         >
-                        {entry.id}
+                        {props.index} {/* Rank */}
                     </Typography>
                 </Grid>
                 <Grid item xs={4.75} className={classes.customRow}>
-                    <img src={entry.nationality} height="50%" alt="P2CM" style={{borderRadius: 3}}/>
+                    <img src={flag} height="50%" alt="P2CM" style={{borderRadius: 3}}/>
                     <Typography
                         variant="h5"
                         color={colors.gray[100]}
                         fontWeight="medium"
                         sx={{m : "0 0 0 12px" }}
                         >
-                        {entry.playerName}
+                        {entry.user_name}
                     </Typography>
                 </Grid>
                 <Grid item xs={5} className={classes.customRowEnd}>
@@ -66,7 +71,7 @@ const LeaderboardEntry = props => {
                         fontWeight="medium"
                         sx={{m : "0 10px 0 0" }}
                         >
-                        {entry.aggPoints}
+                        {score}
                     </Typography>
                 </Grid>
             </Grid>

@@ -10,7 +10,20 @@ const LeaderboardEntries = props => {
 
     var index = 0;
 
-    const leaderboard = props.data.map (entry => {
+    var list = props.data;
+    var type = props.type;
+    console.log(props)
+
+    if (type == 2) {
+        list = list.filter((player) => player[1].num_scores === 108)
+        list.sort((a,b) => a[1].score - b[1].score)
+    }
+
+    const limitList = list.slice(0, 40);
+
+    console.log(limitList);
+
+    const leaderboard = limitList.map(entry => {
         index++
         return <Box
         display="flex"
@@ -22,7 +35,7 @@ const LeaderboardEntries = props => {
                 : colors.gray[600]
             }}
         >
-            <LeaderboardEntry entry={entry}/>
+            <LeaderboardEntry entry={entry} index={index} type={type}/>
         </Box>
     })
 

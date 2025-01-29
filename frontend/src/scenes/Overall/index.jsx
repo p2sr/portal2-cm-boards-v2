@@ -3,8 +3,11 @@ import Topbar from "../global/Topbar";
 import { Box, useTheme, Typography, MenuItem, FormControl, Select } from "@mui/material";
 import { tokens } from "../../theme";
 import { leaderboardCategories } from "../global/NavItems";
+import { useEffect, useState } from "react";
 import LeaderboardEntries from '../../components/LeaderboardEntries';
 import { aggTimeLeaderboard, aggPointsLeaderboard } from './DummyDataLB';
+
+const OVERALL_POINTS_ENDPOINT = "http://localhost:8080/api/v1/points/overall"
 
 const Overall = () => {
     const theme = useTheme();
@@ -17,6 +20,31 @@ const Overall = () => {
             {category.title}
         </MenuItem>
     })
+
+    const [overallPointsData, setoverallPointsData] = useState([]);
+    const [loading, setLoading] = useState(true)
+    
+    //fetching changelog data on first component load
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const overallPointsResponse = await Promise.all([
+                    fetch(OVERALL_POINTS_ENDPOINT).then(response => {
+                        if (!response.ok) {
+                            throw new Error('Changelog response not OK');
+                        }
+                        return response.json();
+                    })
+                ]);
+    
+                setoverallPointsData(overallPointsResponse);
+                setLoading(false)
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+        fetchData();
+    }, []);
 
     const handleChange = (event) => {
         setCategory(event.target.value);
@@ -54,9 +82,20 @@ const Overall = () => {
                 </FormControl>
             </Box>
         </Box>
-        <Box display="flex" flexDirection="row" justifyContent="center" alignItems="center">
-            <LeaderboardEntries data={aggPointsLeaderboard}/>
-            <LeaderboardEntries data={aggTimeLeaderboard}/>
+        <Box display="flex" flexDirection="row" justifyContent="center" alignItems="flex-start">
+
+            {loading ? null :
+                <LeaderboardEntries
+                data={overallPointsData[0].points}
+                type={1}
+                />
+            }
+            {loading ? null :
+                <LeaderboardEntries
+                data={overallPointsData[0].points}
+                type={2}
+                />
+            }
         </Box>
     </div>
 }

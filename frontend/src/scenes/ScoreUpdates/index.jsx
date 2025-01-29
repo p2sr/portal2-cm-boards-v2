@@ -45,6 +45,8 @@ const ScoreUpdates = () => {
         };
         fetchData();
     }, []);
+
+    console.log(changelogData);
     
 
     const theme = useTheme();

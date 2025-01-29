@@ -5,6 +5,8 @@ import { makeStyles } from '@material-ui/styles';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import DropdownHandler from "../scenes/global/DropdownHandler";
 import ScoreEntryDropdown from "./ScoreEntryDropdown";
+import { timeToText } from "../helpers/time";
+import { timeSince } from "../helpers/time";
 
 const useStyles = makeStyles((theme) => ({
     customRow: {
@@ -26,9 +28,7 @@ const ScoreEntry = props => {
     const classes = useStyles();
     const colors = tokens(theme.palette.mode);
     const { isOpen, toggle } = DropdownHandler(false);
-    console.log(isOpen)
-
-    console.log(props.submission)
+    
     var submission = props.submission
 
     var mapID = JSON.parse(submission.map_id)
@@ -165,46 +165,6 @@ const ScoreEntry = props => {
         {isOpen && <ScoreEntryDropdown submission={submission}/>}
     </div>
   )
-}
-
-function timeSince (timestamp) {
-    let current_date = new Date()
-    let previous_date = new Date(timestamp)
-    let second_diff = ((current_date.getTime() - previous_date.getTime()) / 1000)
-    let message = "a"
-
-    if (second_diff < 60) {
-        message = second_diff + " seconds ago";
-    } else if (second_diff < 3600) {
-        message = Math.round(second_diff / 60) + " minutes ago";
-    } else if (second_diff < 86400) {
-        message = Math.round(second_diff / 3600) + " hours ago";
-    } else if (second_diff < 2620800) {
-        message = Math.round(second_diff / 86400) + " days ago";
-    } else if (second_diff < 31449600) {
-        message = Math.round(second_diff / 2620800) + " months ago";
-    } else {
-        message = Math.round(second_diff / 31449600) + " years ago";
-    }
-    return message
-}
-
-function timeToText (timeBefore) {
-    if (timeBefore != null) {
-        var time = JSON.stringify(timeBefore)
-        time = time.replace("-","")
-
-        if (time.length > 4) {
-            time = time.slice(0, time.length - 4) + ":" + time.slice(time.length - 4, time.length - 2) + "." + time.slice(time.length - 2)
-        } else if (time.length > 2){
-            time = time.slice(0, time.length - 2) + "." + time.slice(time.length - 2)
-        } else if (time.length === 2){
-            time = "0." + time
-        } else {
-            time = "0.0" + time
-        }
-    }
-    return time
 }
 
 export default ScoreEntry
