@@ -7,7 +7,7 @@ pub mod chapters;
 /// Cooperative-specific endpoints.
 pub mod coop;
 /// Demo endpoints
-pub mod demos;
+///pub mod demos;
 /// Mounting of the endpoints.
 pub mod init;
 /// Maps-based endpoints.

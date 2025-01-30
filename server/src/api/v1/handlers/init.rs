@@ -1,7 +1,7 @@
 use actix_web::web;
 
 use crate::api::v1::handlers::{
-    admin::*, changelog::*, chapters::*, coop::*, demos::*, maps::*, points::*, sp::*, stats::*,
+    admin::*, changelog::*, chapters::*, coop::*, maps::*, points::*, sp::*, stats::*,
     users::*,
 };
 
@@ -51,10 +51,6 @@ pub fn init(cfg: &mut web::ServiceConfig) {
             .service(points_chapter_add)
             .service(points_overall)
             .service(points_overall_add)
-            .service(demos)
-            .service(demos_changelog)
-            .service(demos_delete)
-            .service(demos_add)
             .service(admin_changelog)
             .service(admin_banned_stats)
             .service(admins_list)
