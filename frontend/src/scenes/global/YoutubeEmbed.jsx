@@ -1,6 +1,7 @@
 import React from 'react'
 
 const YoutubeEmbed = ({embedId}) => {
+  console.log("YT embed with link: " + `https://www.youtube.com/embed/${embedId}`)
   return (
     <div style={{width:"100%", height:"100%"}}>
         <iframe

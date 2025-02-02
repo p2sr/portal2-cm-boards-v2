@@ -12,7 +12,6 @@ const Topbar = () => {
     const theme = useTheme();
     const colors = tokens(theme.palette.mode);
     const colorMode = useContext(ColorModeContext);
-    console.log(leaderboardDropdown)
     return (
     <Box display="flex" justifyContent="center" p={2} gap="100px">
 

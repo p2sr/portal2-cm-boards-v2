@@ -1,5 +1,6 @@
 import * as React from 'react';
 import Topbar from "../global/Topbar";
+import YoutubeEmbed from '../global/YoutubeEmbed'
 import { Box, useTheme, Typography, MenuItem } from "@mui/material";
 import { tokens } from "../../theme";
 import { leaderboardCategories } from "../global/NavItems";
@@ -9,6 +10,7 @@ import SPMapScoreEntries from '../../components/SPMapScoreEntries';
 import mapInfo from '../../components/MapInfo';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import chamberImages from '../global/ChamberImages'
+import WRHistory from '../../components/WRHistory';
 
 const SPMap = () => {
 
@@ -22,9 +24,6 @@ const SPMap = () => {
     const colors = tokens(theme.palette.mode);
 
     const { levelId } = useParams(); // Get the level ID from URL
-
-    console.log(chamberImages.levelId);
-    setBackground(levelId);
 
     const [category, setCategory] = React.useState(0);
     
@@ -58,6 +57,11 @@ const SPMap = () => {
         fetchData();
     }, []);
 
+    var wrVid = "";
+
+    if (!loading) {
+        wrVid = mapData[0].find(point => point.map_data.youtube_id !== undefined);
+    }
     
     const handleChange = (event) => {
         setCategory(event.target.value);
@@ -100,11 +104,12 @@ const SPMap = () => {
                 flexDirection="row"
                 flexGrow="1"
                 backgroundColor={colors.primary[700]}
-                alignContent="space-between"
+                alignContent="flex-end"
                 >
                     <Box
                     display="flex"
                     flexDirection="column"
+                    marginTop={4}
                     >
                         <Typography
                             variant="h1"
@@ -122,6 +127,27 @@ const SPMap = () => {
                             >
                             {mapInfo[levelId].chapter_name.toUpperCase()}
                         </Typography>
+                        {/* WRHistory */}
+                        <div
+                            display="flex"
+                            flexGrow="1"
+                            backgroundColor={colors.primary[700]}
+                            style={{
+                                backgroundColor:colors.primary[700],
+                                width:"100%",
+                                backgroundClip:"padding-box",
+                                height: "250px",
+                            }}
+                            alignItems="center"
+                            justifyContent="center"
+                            >
+                            <WRHistory levelId={levelId}/>
+                        </div>
+                    </Box>
+                    <Box>
+                        {loading ? null :
+                            <YoutubeEmbed embedId={wrVid.map_data.youtube_id}/>
+                        }
                     </Box>
                 </Box>
 
