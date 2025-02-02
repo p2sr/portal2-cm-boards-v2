@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD024 -->
+
 # Portal 2 Leaderboards Revision (board.portal2.sr)
 
 A re-write of the original Portal 2 Challenge Mode Leaderboards designed to take advantage of modern web technology and allow for the community to take a more active role in developing the leaderboards.
@@ -79,7 +81,7 @@ The front-end build can be done with `npm install` in the `/board-portal-2` fold
 
 #### Features
 
-* Supports querying a running webserver on it's given endpoints for changelog, preview pages, sp maps and coop maps.
+* Supports querying a running webserver on its given endpoints for changelog, preview pages, sp maps and coop maps.
 * Light and dark theme support.
 * Prototyped page designs for many auxiliary pages.
 
