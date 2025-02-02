@@ -1,0 +1,8 @@
+#main {
+    background-image:
+    linear-gradient(to top, var(--bgcolor), rgba(255, 0, 0, 0)),
+    url('../global/img/BackgroundOpaque.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    height: 851px;
+}
