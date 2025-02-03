@@ -424,7 +424,7 @@ def maps(mysql_cursor, pg_cursor, no_insert):
             temp = MySQLMap(*map)
             # Add map_id & name to dictionary for later use
             map_name[temp.steam_id] = temp.name
-# Create both the category, and it's rule-set for all 108 base p2 maps.
+# Create both the category, and its rule-set for all 108 base p2 maps.
 def categories(pg_cursor, no_insert):
     if not no_insert: 
         id_ = 1

@@ -23,7 +23,7 @@
 			</index>
 		</table>
 		<table name="changelog" prior="tbl" >
-			<comment><![CDATA[The table to hold an individual score update and all it's details]]></comment>
+			<comment><![CDATA[The table to hold an individual score update and all its details]]></comment>
 			<column name="id" type="bigserial" jt="-5" mandatory="y" >
 				<comment><![CDATA[The auto-generated ID for the changelog table]]></comment>
 			</column>

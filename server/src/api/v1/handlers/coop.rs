@@ -309,7 +309,7 @@ async fn coop_add(
 ///
 /// Makes a call to the underlying [CoopBundled::insert_coop_bundled]
 ///
-/// ## Example JSON output: Returns the changelog in it's updated state.
+/// ## Example JSON output: Returns the changelog in its updated state.
 /// ```json
 /// {
 ///     "id": 185404,
