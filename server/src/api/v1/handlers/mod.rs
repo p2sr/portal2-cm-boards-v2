@@ -16,7 +16,7 @@ pub mod maps;
 pub mod points;
 /// Singleplayer-specific endpoints.
 pub mod sp;
-/// Endpoints for usefull statistics
+/// Endpoints for useful statistics
 pub mod stats;
 /// User-related endpoints.
 pub mod users;

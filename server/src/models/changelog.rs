@@ -62,7 +62,7 @@ pub struct ChangelogInsert {
     pub admin_note: Option<String>,
 }
 
-/// Indlues additional information from joins that includes details like map name, username and profile image.
+/// Includes additional information from joins that includes details like map name, username and profile image.
 #[derive(Serialize, FromRow, Debug)]
 pub struct ChangelogPage {
     pub id: i64,
@@ -92,7 +92,7 @@ pub struct ChangelogPage {
     pub orange_avatar: Option<String>,
 }
 
-/// Indlues additional information from joins that includes details like map name, username and profile image.
+/// Includes additional information from joins that includes details like map name, username and profile image.
 #[derive(Serialize, FromRow, Debug)]
 pub struct Graph {
     pub date: Option<NaiveDate>,

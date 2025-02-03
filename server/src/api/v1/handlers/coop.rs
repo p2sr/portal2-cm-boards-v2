@@ -17,8 +17,8 @@ use sqlx::PgPool;
 // TODO: Should use default cat_id
 /// **GET** Returns top 7 information for each map, used to generate the previews page for Coop.
 ///
-/// Inital load tends to be relatively slow, but the information cached, and
-/// remains in chache until a new singleplayer score is submitted
+/// Initial load tends to be relatively slow, but the information cached, and
+/// remains in cache until a new singleplayer score is submitted
 ///
 /// ## Example Endpoints:
 /// - **Default**
@@ -262,13 +262,13 @@ async fn coop_temp(pool: web::Data<PgPool>, map_id: web::Path<String>) -> impl R
 /// - `p_id1`
 ///     - **Required** - `String` : The required profile_number for one of the users in a coop time.
 /// - `p_id2`
-///     - **Optional** - `String` : This is optional for backwards compatability, but for new times this should **not** be optional.
+///     - **Optional** - `String` : This is optional for backwards compatibility, but for new times this should **not** be optional.
 /// - `p1_is_host`
 ///     - **Optional** - `bool` : If `p_id1` was the host for the run.
 /// - `cl_id1`
 ///     - **Required** - `i64` : The `changelog_id` for player 1's run.
 /// - `cl_id2`
-///     - **Optional** - `i64` : Same as `p_id2`, this should only be optional for backwards compatability, required for new scores.
+///     - **Optional** - `i64` : Same as `p_id2`, this should only be optional for backwards compatibility, required for new scores.
 ///
 /// ## Example Endpoints
 /// - `/api/v1/coop/post_score`

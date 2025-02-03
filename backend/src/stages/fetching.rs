@@ -31,7 +31,7 @@ pub fn fetch_entries(data: FetchingData) -> Result<Leaderboards> {
     Ok(leaderboard)
 }
 
-/// Breaking apart the modules that filted out the list to times that aren't banned/cheated.
+/// Breaking apart the modules that filtered out the list to times that aren't banned/cheated.
 pub fn validate_entries(
     data: &XmlTag<Vec<Entry>>,
     existing_hash: HashMap<&str, (i32, i32)>,

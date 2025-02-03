@@ -433,7 +433,7 @@ const chapters = {
   },
   47844: {
     id: 47844,
-    title: "Fling Crusers",
+    title: "Fling Crushers",
     chapter_name: "Mass and Velocity"
     //image: imagePaths[47844],
   },

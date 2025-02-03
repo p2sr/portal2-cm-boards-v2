@@ -22,7 +22,7 @@ pub struct GameID {
     pub game_id: Option<i32>,
 }
 
-// Currently a dumbass work around to issues with deserializing an option natively theough the Query
+// Currently a dumbass work around to issues with deserializing an option natively through the Query
 /// Generic wrapper around an Option i32 for [actix_web::web::Query]
 #[derive(Debug, Deserialize)]
 pub struct OptIDs {

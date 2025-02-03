@@ -45,14 +45,14 @@ pub struct ProfileData {
     pub newest_coop: MapScoreDate,
 }
 
-/// Wrapper for a profile page, includes the ID associated with the points and the poits themselves.
+/// Wrapper for a profile page, includes the ID associated with the points and the points themselves.
 #[derive(Debug, Clone, Serialize)]
 pub struct PointsProfileWrapper {
     pub id: i32,
     pub points: Points,
 }
 
-/// Profile Page that includes a Vec of PointsProfileWrappers, ProfileData and a hasmap of map_ids to current ranks.
+/// Profile Page that includes a Vec of PointsProfileWrappers, ProfileData and a hashmap of map_ids to current ranks.
 #[derive(Debug, Clone, Serialize)]
 pub struct ProfilePage {
     pub points: Vec<PointsProfileWrapper>,

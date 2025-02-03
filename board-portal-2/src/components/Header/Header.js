@@ -1,6 +1,6 @@
 import scoreUpdates from "./img/ScoreUpdates.png"
 import steamIcon from "./img/steamicon.png"
-import singlplayerIcon from "./img/Singleplayer.png"
+import singleplayerIcon from "./img/Singleplayer.png"
 import fullGameRunsIcon from "./img/running_large.png"
 import aggregatedIcon from "./img/aggregated.png"
 import coopIcon from "./img/Co-op.png"
@@ -54,7 +54,7 @@ const Header = ({ handleChange, themeStatus }) => {
                 Score Updates
               </CustomButton>
               <CustomButton variant='text' href='/sp'>
-                <img src={singlplayerIcon} className={classes.icon} />
+                <img src={singleplayerIcon} className={classes.icon} />
                 Single Player
               </CustomButton>
               <CustomButton variant='text' href='/coop'>

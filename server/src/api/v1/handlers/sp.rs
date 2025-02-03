@@ -21,8 +21,8 @@ use sqlx::PgPool;
 // TODO: Invalidate cache when a time is banned/verified/when a player is banned.
 /// **GET** method to handle the preview page showing all singleplayer maps.
 ///
-/// Inital load tends to be relatively slow, but the information cached, and
-/// remains in chache until a new singleplayer score is submitted
+/// Initial load tends to be relatively slow, but the information cached, and
+/// remains in cache until a new singleplayer score is submitted
 ///
 /// ## Example endpoints:
 ///  - **Default**           
@@ -137,7 +137,7 @@ pub async fn sp_map(
 }
 /// **GET** method to return the profile number and score for all banned times on a given singleplayer map.
 ///
-/// ## Example Endpoins
+/// ## Example Endpoints
 /// - **Default**
 ///     - `/api/v1/sp/all_banned/47458`
 ///
@@ -177,7 +177,7 @@ async fn sp_all_banned(map_id: web::Path<u64>, pool: web::Data<PgPool>) -> Resul
 /// - `game_id`
 ///     - **Optional** - `i32` : ID for the game, defaults to base game, or 1.
 ///
-/// ## Example Endpoins
+/// ## Example Endpoints
 /// - **With Parameters**
 ///     - `/api/v1/sp/banned/47458?profile_number=76561198823602829&score=2445`
 /// - **With Optional**
@@ -232,7 +232,7 @@ async fn sp_banned(
 ///     - **Optional**  `i32` : ID for the game. Defaults to the base game, or ID = 1.
 ///
 /// ## Example Endpoints:
-/// - **With Parametes**
+/// - **With Parameters**
 ///     - `/api/v1/sp/history?map_id=47458&profile_number=76561198795823814
 /// - **With cat_id**
 ///     - `/api/v1/sp/history?map_id=47458&profile_number=76561198795823814&cat_id=49
@@ -326,7 +326,7 @@ async fn sp_history(
     }
 }
 
-// TODO: Potentially depricate this funciton.
+// TODO: Potentially deprecate this function.
 /// **GET** method for validating an SP Score. Mainly used by our backend that pulls times from the Steam leaderboards.
 ///
 /// Query parameters represented as [ScoreLookup]
@@ -339,7 +339,7 @@ async fn sp_history(
 ///    - `map_id`           
 ///         - **Required**: `String`, ID for the map.
 ///    - `cat_id`           
-///         - **Optional**: `i32`, ID for the cateogry. If left blank, will use the default for the map.
+///         - **Optional**: `i32`, ID for the category. If left blank, will use the default for the map.
 ///
 /// ## Example endpoints:
 ///  - **With Required**           
@@ -393,7 +393,7 @@ pub async fn sp_validate(
     Ok(web::Json(details))
 }
 
-// TODO: Depricate this for changelog uploads.
+// TODO: Deprecate this for changelog uploads.
 /// Receives a new score to add to the DB.
 #[post("/sp/post_score")]
 async fn sp_post_score(

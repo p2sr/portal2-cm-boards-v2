@@ -160,7 +160,7 @@ const About = () => {
         This site is currently hosted on FastComet. Demos are stored using
       </div>
       <div className={classes.aboutText}>
-        Google Drive. The folder containg all demos can be found here.
+        Google Drive. The folder containing all demos can be found here.
       </div>
       <h1 className={classes.aboutSubHeader}>Feature Suggestions</h1>
       <div className={classes.aboutText}>

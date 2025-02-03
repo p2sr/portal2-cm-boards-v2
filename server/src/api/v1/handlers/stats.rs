@@ -10,7 +10,7 @@ use sqlx::PgPool;
 ///  - **Default**           
 ///     - `/api/v1/stats/count_scores`
 ///
-/// Makes a call to the underlying [NumScores::most_cl_enries_overall]
+/// Makes a call to the underlying [NumScores::most_cl_entries_overall]
 ///
 /// ## Example JSON output
 ///
@@ -32,7 +32,7 @@ use sqlx::PgPool;
 #[get("/stats/count_scores")]
 pub async fn count_scores(pool: web::Data<PgPool>) -> Result<impl Responder> {
     Ok(web::Json(
-        NumScores::most_cl_enries_overall(pool.get_ref()).await?,
+        NumScores::most_cl_entries_overall(pool.get_ref()).await?,
     ))
 }
 
@@ -158,7 +158,7 @@ pub async fn recap(
 
 #[get("/stats/badges")]
 pub async fn badges(pool: web::Data<PgPool>) -> Result<impl Responder> {
-    Ok(web::Json(Badges::get_bages(pool.get_ref()).await?))
+    Ok(web::Json(Badges::get_badges(pool.get_ref()).await?))
 }
 
 #[get("/stats/badges/{profile_number}")]

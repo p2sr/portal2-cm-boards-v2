@@ -174,7 +174,7 @@ impl CoopPreview {
 }
 
 impl CoopBanned {
-    /// Currently returns two profile_numbers and a score associated with a coop_bundle where one or both times are either banned or unverifed.
+    /// Currently returns two profile_numbers and a score associated with a coop_bundle where one or both times are either banned or unverified.
     pub async fn get_coop_banned(
         pool: &PgPool,
         map_id: &str,

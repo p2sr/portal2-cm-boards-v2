@@ -23,7 +23,7 @@
 			</index>
 		</table>
 		<table name="changelog" prior="tbl" >
-			<comment><![CDATA[The table to hold an indidual score update and all it's details]]></comment>
+			<comment><![CDATA[The table to hold an individual score update and all it's details]]></comment>
 			<column name="id" type="bigserial" jt="-5" mandatory="y" >
 				<comment><![CDATA[The auto-generated ID for the changelog table]]></comment>
 			</column>
@@ -169,7 +169,7 @@ Can be NULL because of times added after initial creation of DB.]]></comment>
 			</column>
 			<column name="parsed_successfully" type="boolean" jt="-7" mandatory="y" >
 				<defo><![CDATA[false]]></defo>
-				<comment><![CDATA[Boolean for if the demo was able to parse succesfully.]]></comment>
+				<comment><![CDATA[Boolean for if the demo was able to parse successfully.]]></comment>
 			</column>
 			<column name="sar_version" type="varchar" length="50" jt="12" >
 				<comment><![CDATA[Holds the version of SAR used]]></comment>
@@ -418,7 +418,7 @@ CREATE  TABLE "db remake".changelog (
 	CONSTRAINT pk_changelog_id PRIMARY KEY ( id )
  );
 
-COMMENT ON TABLE "db remake".changelog IS 'The table to hold an indidual score update and all it''s details';
+COMMENT ON TABLE "db remake".changelog IS 'The table to hold an individual score update and all it''s details';
 
 COMMENT ON COLUMN "db remake".changelog.id IS 'The auto-generated ID for the changelog table';
 
@@ -494,7 +494,7 @@ COMMENT ON COLUMN "db remake".demos.drive_url IS 'The URL to the corresponding D
 
 COMMENT ON COLUMN "db remake".demos.partner_name IS 'NULL if coop';
 
-COMMENT ON COLUMN "db remake".demos.parsed_successfully IS 'Boolean for if the demo was able to parse succesfully.';
+COMMENT ON COLUMN "db remake".demos.parsed_successfully IS 'Boolean for if the demo was able to parse successfully.';
 
 COMMENT ON COLUMN "db remake".demos.sar_version IS 'Holds the version of SAR used';
 

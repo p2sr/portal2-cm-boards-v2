@@ -14,7 +14,7 @@ use super::config::Config;
 
 pub type Transaction<'a> = sqlx::Transaction<'a, sqlx::Postgres>;
 
-/// Calcultes the score using the pre-existing iVerb point formula.
+/// Calculates the score using the pre-existing iVerb point formula.
 #[inline(always)]
 pub fn score(i: i32) -> f32 {
     if i > 200 {
@@ -119,7 +119,7 @@ pub async fn check_for_valid_score(
         }
         Err(e) => {
             eprintln!("Error with sp pb history -> {:?}", e);
-            eprintln!("Assume there is not sp_pb_histroy for the player.");
+            eprintln!("Assume there is not sp_pb_history for the player.");
             return Ok(values);
         }
     };

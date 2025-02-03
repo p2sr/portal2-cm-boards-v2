@@ -13,7 +13,7 @@ pub fn cache_leaderboard(id: i32, text: String) -> bool {
         // Cache does not exist, create it.
         let mut ofp = File::create(path).expect("File opening error for editing the cache file");
         ofp.write_all(text.as_bytes())
-            .expect("Cache Writting Error");
+            .expect("Cache Writing Error");
         return true;
     }
 

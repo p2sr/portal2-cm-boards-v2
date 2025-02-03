@@ -1,5 +1,5 @@
 //! # Overview
-//! The main web-server compontent of the boards. Written in Rust, this is the primary
+//! The main web-server component of the boards. Written in Rust, this is the primary
 //! REST API that the boards uses to interact with the database
 //!
 //! ## Navigation
@@ -13,9 +13,9 @@
 //! if you're looking to use the API's endpoints for your application.**
 //!  
 //! ### Controllers
-//! The [controllers] source code contains the code for Database Interactions. The documentation here is virtually non-existant however, as
+//! The [controllers] source code contains the code for Database Interactions. The documentation here is virtually non-existent however, as
 //! the code is written as methods implemented on models. So view individual modules in [models], or check
-//! the API documention to see what underlying calls the API endpoints make.
+//! the API documentation to see what underlying calls the API endpoints make.
 //!
 //! ### Models
 //! The [models] that represent the data we extract from the database, and most modules used internally in the code. These have good information
@@ -56,10 +56,10 @@ mod models;
 /// Module for testing
 #[cfg(test)]
 mod tests;
-/// Helpter functions used for the boards
+/// Helper functions used for the boards
 mod tools;
 
-/// Driver code to start and mount all compontents to the webserver we create.
+/// Driver code to start and mount all components to the webserver we create.
 #[actix_web::main]
 async fn main() -> Result<(), Error> {
     dotenv().ok();

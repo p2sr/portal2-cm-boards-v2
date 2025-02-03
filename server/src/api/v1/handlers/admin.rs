@@ -5,7 +5,7 @@ use crate::{
 use actix_web::{get, web, Responder};
 use sqlx::PgPool;
 
-/// **GET** method for admin-relevant entiries. Utilizes [ChangelogQueryParams] as an optional addition to the query
+/// **GET** method for admin-relevant entries. Utilizes [ChangelogQueryParams] as an optional addition to the query
 ///
 /// ## Parameters:
 ///    - `limit`           
@@ -15,7 +15,7 @@ use sqlx::PgPool;
 ///    - `profile_number`  
 ///         - **Optional** - `String` : Returns scores only from a specific profile (steam) id.
 ///    - `chamber`         
-///         - **Optional** - `i32` : Filters for only a specfic `map_id`.
+///         - **Optional** - `i32` : Filters for only a specific `map_id`.
 ///    - `sp`              
 ///         - **Optional** - `bool` : Determines if sp maps should be returned.
 ///    - `coop`            
@@ -25,7 +25,7 @@ use sqlx::PgPool;
 ///    - `has_demo`        
 ///         - **Optional** - `bool` : Filter for only scores with demos
 ///    - `yt`              
-///         - **Optional** - `bool` : Filter for onlny scores with youtube links
+///         - **Optional** - `bool` : Filter for only scores with youtube links
 ///    - `first`           
 ///         - **Optional** - `i64` : Will only return scores with an ID higher than the given amount
 ///    - `last`            
@@ -122,7 +122,7 @@ pub async fn admin_banned_stats(pool: web::Data<PgPool>) -> Result<impl Responde
 /// - `admin_level` = 2
 ///     - Shadow admin - Has admin permissions, is not publically listed (Typically reserved for former admins, trusted players).
 /// - `admin_level` = 3
-///     - Developer admin - Has admin permissions as an activen developer only
+///     - Developer admin - Has admin permissions as an active developer only
 ///
 /// ## Example endpoints:
 ///  - **Default**           

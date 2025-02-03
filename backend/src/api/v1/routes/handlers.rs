@@ -81,7 +81,7 @@ pub async fn fetch_all(
 }
 
 // TODO: It looks like currently, there is a conflict between the async thread pool, and the threadpool for rayon, as this is now VERY slow.
-// TODO: Seems to currenty upload without caring about new user? Post new user information to `/user`.
+// TODO: Seems to currently upload without caring about new user? Post new user information to `/user`.
 #[get("/fetch_sp/{map_id}")]
 pub async fn fetch_sp(
     map_id: web::Path<i32>,

@@ -137,7 +137,7 @@ impl Users {
     ///             (Has admin permissions, is not publically listed)
     ///             (Typically reserved for former admins, trusted players)
     ///         admin_value = 3     -> Developer admin
-    ///             (Has admin permissions as an activen developer only)
+    ///             (Has admin permissions as an active developer only)
     pub async fn get_all_admins(
         pool: &PgPool,
         admin_value: i32,
@@ -217,7 +217,7 @@ impl Users {
         })
     }
     // TODO: Consider using profanity filter (only for really bad names): https://docs.rs/censor/latest/censor/
-    /// Inserts a new user into the databse from a given [Users]. Returns the [Users] object.
+    /// Inserts a new user into the database from a given [Users]. Returns the [Users] object.
     pub async fn insert_new_users(pool: &PgPool, new_user: Users) -> Result<Users, sqlx::Error> {
         // let mut res = String::new();
         // We do not care about the returning profile_number. As it is not generated and we already have it

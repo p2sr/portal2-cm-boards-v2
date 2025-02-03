@@ -41,7 +41,7 @@ pub fn test_validate_entries() {
     assert_eq!(not_cheated[1].score, 2100);
 }
 
-/// Deserializses a generic T into a vec of entries that implement Deserialize.
+/// Deserializes a generic T into a vec of entries that implement Deserialize.
 /// Used for parsing mock JSON data located in the path referenced below.
 pub fn example<T: for<'de> serde::Deserialize<'de>>(id: &str) -> Vec<T> {
     let path_str = format!("./src/tests/examples/{}_example.json", id);

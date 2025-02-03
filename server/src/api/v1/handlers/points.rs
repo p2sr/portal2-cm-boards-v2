@@ -13,7 +13,7 @@ use std::path::Path;
 /// Expects JSON string that deserializes into [PointsReceiveWrapper].
 ///
 /// Uses the `hm_points` to store a hashmap of points for lookup in the cache, and the
-/// vector `ordered_points` as a pre-orded (by points, not score/time) to save to a file.
+/// vector `ordered_points` as a pre-ordered (by points, not score/time) to save to a file.
 ///
 /// `id` is `null` for any non-chapter points results when written to a file.
 ///
@@ -77,11 +77,11 @@ async fn points_sp_add(
             // println!("Updated cache.");
             HttpResponse::Ok().body("Success")
         }
-        _ => HttpResponse::NotFound().body("Error updaing score entries for sp"),
+        _ => HttpResponse::NotFound().body("Error updating score entries for sp"),
     }
 }
 
-/// Gget single player points data.
+/// Get single player points data.
 #[get("points/sp")]
 async fn points_sp() -> impl Responder {
     let res = read_points_from_file("sp").await;
@@ -110,7 +110,7 @@ async fn points_coop_add(
             // println!("Updated cache.");
             HttpResponse::Ok().body("Success")
         }
-        _ => HttpResponse::NotFound().body("Error updaing score entries for coop"),
+        _ => HttpResponse::NotFound().body("Error updating score entries for coop"),
     }
 }
 
@@ -143,7 +143,7 @@ async fn points_chapter_add(
             // println!("Updated cache.");
             HttpResponse::Ok().body("Success")
         }
-        _ => HttpResponse::NotFound().body("Error updaing score entries for chapter"),
+        _ => HttpResponse::NotFound().body("Error updating score entries for chapter"),
     }
 }
 
@@ -175,7 +175,7 @@ async fn points_overall_add(
             // println!("{:#?}", points_cache);
             HttpResponse::Ok().body("Success")
         }
-        _ => HttpResponse::NotFound().body("Error updaing score entries for overall"),
+        _ => HttpResponse::NotFound().body("Error updating score entries for overall"),
     }
 }
 

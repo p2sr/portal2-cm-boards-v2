@@ -52,7 +52,7 @@ pub fn filter_entries_coop(data: FetchingData, lb: &XmlTag<Vec<Entry>>) -> Resul
     // If the times are matching, all old times are filtered, and no banned times are taken into consideration,
     // it's fair to assume the times were gotten together between two people
     let mut already_bundled: HashMap<String, i32> = HashMap::new();
-    // Contains the bundled entries (if profile_number2 is None, there is no mathcing time)
+    // Contains the bundled entries (if profile_number2 is None, there is no matching time)
     // TODO: Can we hold references here? Or do lifetimes bite us too hard.
     let mut bundled_entries = Vec::new();
     for entry in not_cheated.iter().flatten().flatten() {

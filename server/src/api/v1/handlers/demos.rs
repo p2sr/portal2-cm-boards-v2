@@ -24,7 +24,7 @@ use std::str;
 /// ## Parameters:
 ///
 /// - **cl_id**    
-///     - `i64`: ID for a changelog entry, will grab the most updated demo assocaited with that changelog entry.
+///     - `i64`: ID for a changelog entry, will grab the most updated demo associated with that changelog entry.
 /// - **demo_id**
 ///     - `i64`: ID for a specific demo (less likely to be what you want).
 ///
@@ -180,8 +180,8 @@ use std::str;
 ///}
 ///
 ///// Different demo entries can have the same changelog ID, but a changelog entry should only have the most recent, valid demo_id.
-////// DELETE endpoint to remove a demo from both backbalze and the database.
-////// ## Expects **one** of the two parametes
+////// DELETE endpoint to remove a demo from both backblaze and the database.
+////// ## Expects **one** of the two parameters
 //////
 ////// ***Note***: If both, or neither parameter is provided you will encounter errors.
 ////// If you want to delete the demo associated with a changelog entry, use the changelog entry.
@@ -191,7 +191,7 @@ use std::str;
 ////// ## Parameters:
 //////
 ////// - **demo_id**    
-//////     - `i64`: ID for a demo entry in the db, use this if you want to delete a specifc demo.
+//////     - `i64`: ID for a demo entry in the db, use this if you want to delete a specific demo.
 ////// - **cl_id**
 //////     - `i64`: ID for a changelog entry, use this if you want to delete the demo associated with a changelog entry.
 //////
@@ -215,7 +215,7 @@ use std::str;
 ///    };
 ///    match delete_demo_file(pool.get_ref(), &config.into_inner(), cl, demo_id).await {
 ///        Ok(_) => match delete_demo_db(pool.get_ref(), demo_id).await {
-///            Ok(_) => HttpResponse::Ok().body("Demo file and entry succesfully removed."),
+///            Ok(_) => HttpResponse::Ok().body("Demo file and entry successfully removed."),
 ///            Err(e) => {
 ///                eprintln!("{}", e);
 ///                HttpResponse::InternalServerError().body("Error deleting demo entry from database")
@@ -339,7 +339,7 @@ use std::str;
 ///    Ok(resp1.file_id)
 ///}
 ///
-////// Takes in either a demo_id or a changelog_id, and returns a changelog entry and a demno_id.
+////// Takes in either a demo_id or a changelog_id, and returns a changelog entry and a demo_id.
 //////
 ////// We return a demo_id because there is a chance that there are multiple demos uploaded for the same changelog entry,
 ////// and we might want to delete an older demo.

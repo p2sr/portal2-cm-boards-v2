@@ -48,11 +48,11 @@ async fn maps(pool: web::Data<PgPool>, query: web::Query<GameID>) -> Result<impl
 ///
 /// ## Example endpoints:
 ///  - **Default**
-///     - `/api/v1/default_cateogry/47458`
+///     - `/api/v1/default_category/47458`
 ///
 /// Makes a call to the underlying [Maps::get_maps]
 ///
-/// ## Example JSON ouput
+/// ## Example JSON output
 ///
 /// ```json
 /// 49
@@ -78,7 +78,7 @@ async fn default_category(
 ///
 /// Makes a call to the underlying [Maps::get_steam_ids]
 ///
-/// ## Example JSON ouput
+/// ## Example JSON output
 ///
 /// ```json
 // [

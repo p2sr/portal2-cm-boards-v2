@@ -10,7 +10,7 @@ use crate::{
 use actix_web::{get, post, put, web, Responder};
 use sqlx::PgPool;
 
-/// **GET** method for changelog entiries. Utilizes [ChangelogQueryParams] as an optional addition to the query
+/// **GET** method for changelog entries. Utilizes [ChangelogQueryParams] as an optional addition to the query
 ///
 /// ## Parameters:
 ///    - `limit`           
@@ -20,17 +20,17 @@ use sqlx::PgPool;
 ///    - `profile_number`  
 ///         - **Optional** - `String` : Returns scores only from a specific profile (steam) id.
 ///    - `chamber`         
-///         - **Optional** - `String` : Filters for only a specfic map by id.
+///         - **Optional** - `String` : Filters for only a specific map by id.
 ///    - `sp`              
 ///         - **Optional** - `bool` : Determines if sp maps should be returned
 ///    - `coop`            
-///         - **Optional** - `bool` : Ddetermines if coop maps should be returned
+///         - **Optional** - `bool` : Determines if coop maps should be returned
 ///    - `wr_gain`         
 ///         - **Optional** - `bool` : If true, will only return scores that were originally World Records
 ///    - `has_demo`        
 ///         - **Optional** - `bool` : Filters for only scores with demos
 ///    - `yt`              
-///         - **Optional** - `bool` : Filters for onlny scores with youtube links
+///         - **Optional** - `bool` : Filters for only scores with youtube links
 ///    - `first`           
 ///         - **Optional** - `i64` : Will only return scores with an ID higher than the given amount
 ///    - `last`            
@@ -177,7 +177,7 @@ pub async fn default_categories_all(pool: web::Data<PgPool>) -> impl Responder {
 ///
 /// **Note** - [DemoOptions] was designed to be used to handle a choice between a demo/changelog ID.
 /// It is reused here for the sake of reducing the number of redundant structs.
-/// Both are optional in Rust, but required in this specific funciton.
+/// Both are optional in Rust, but required in this specific function.
 ///
 /// ## Parameters (expects valid JSON Object):
 /// - `demo_id`    

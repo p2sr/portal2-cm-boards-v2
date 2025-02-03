@@ -6,7 +6,7 @@
 //! Admin controllers are implemented on [crate::models::admin::Admin].
 //! 
 //! ## Changelog
-//! Changelog controllers are implmented on the following:
+//! Changelog controllers are implemented on the following:
 //! 
 //! - [crate::models::changelog::Changelog]
 //!     - For primarily database interactions for the changelog entries.

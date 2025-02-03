@@ -407,8 +407,8 @@ pub fn calc_chapter(map_ids: Vec<String>, chapter_id: i32) -> PointsWrapper {
 //  Scores: Pull all top 200 score data for current maps, break into different threads by chapter.
 //  Chapter:
 //  Create a hashmap, with key profile_number, value is a struct that contains data for all chapters (each chapter has a score and time).
-//  NOTE: For concurrency, we might need to unsafe wrap, or do other shit to ensure that we can mutate the same struct instance accross multiple threads.
-//  In theory, this should be okay, because each thread will only have mutable access to specific compontents of the struct.
+//  NOTE: For concurrency, we might need to unsafe wrap, or do other shit to ensure that we can mutate the same struct instance across multiple threads.
+//  In theory, this should be okay, because each thread will only have mutable access to specific components of the struct.
 //      Overall:
 //      SP
 //          Sum all sp chapters.

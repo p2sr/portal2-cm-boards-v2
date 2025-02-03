@@ -23,7 +23,7 @@ pub struct CoopBundledInsert {
     pub cl_id2: Option<i64>,
 }
 
-/// The minimal data we want for Coop map pages to lower bandwitch usage.
+/// The minimal data we want for Coop map pages to lower bandwidth usage.
 #[derive(Serialize, FromRow, Clone)]
 pub struct CoopMap {
     pub timestamp: Option<NaiveDateTime>,

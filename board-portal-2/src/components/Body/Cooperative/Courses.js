@@ -66,7 +66,7 @@ const courses = {
     },
     {
       id: 47844,
-      title: "Fling Crusers",
+      title: "Fling Crushers",
       image: imagePaths[47844],
     },
     {

@@ -1,5 +1,5 @@
 # TODO: Is there any reason why we need more than 1 generic filler score? 
-# We accidentally used the same one for all, regaurdless of the map and it seems to be completely unnecessary.
+# We accidentally used the same one for all, regardless of the map and it seems to be completely unnecessary.
 from re import L
 import mysql.connector #https://github.com/mysql/mysql-connector-python
 import psycopg2

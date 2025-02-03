@@ -3,7 +3,7 @@ use sqlx::PgPool;
 
 impl NumScores {
     /// Returns a Vec of [NumScores] for total number of valid changelog entries across the entire boards.
-    pub async fn most_cl_enries_overall(pool: &PgPool) -> Result<Vec<NumScores>, sqlx::Error> {
+    pub async fn most_cl_entries_overall(pool: &PgPool) -> Result<Vec<NumScores>, sqlx::Error> {
         sqlx::query_as::<_, NumScores>(r#"SELECT COUNT(*), changelog.profile_number, COALESCE(board_name, steam_name) AS user_name, avatar
             FROM changelog INNER JOIN users ON (users.profile_number = changelog.profile_number)
             WHERE users.banned = false AND changelog.banned = false AND changelog.verified = true
@@ -64,7 +64,7 @@ impl Recap {
         .fetch_all(pool)
         .await
     }
-    // Note: This is left to treat SP/Coop as the same because nothing gaurentees that the score delta
+    // Note: This is left to treat SP/Coop as the same because nothing guarantees that the score delta
     // for both players on a coop time will be the same, so we treat these like single entries, even if coop
     // entries share a score delta.
     /// Returns a Vec of [ScoreDeltaComparison] to display the users who have the largest score deltas in a given time period.
@@ -150,7 +150,7 @@ impl Recap {
 
 impl Badges {
     /// Returns a vec of all [Badges] on the boards.
-    pub async fn get_bages(pool: &PgPool) -> Result<Vec<Badges>, sqlx::Error> {
+    pub async fn get_badges(pool: &PgPool) -> Result<Vec<Badges>, sqlx::Error> {
         sqlx::query_as::<_, Badges>(r#"SELECT * FROM badges;"#)
             .fetch_all(pool)
             .await

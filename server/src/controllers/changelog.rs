@@ -135,7 +135,7 @@ impl ChangelogPage {
     ///
     /// Takes a list of parameters, returns a filtered list of changelog entries.
     ///
-    /// Returns a [ChangelogPage], which contains information specifc for displaying on the web.
+    /// Returns a [ChangelogPage], which contains information specific for displaying on the web.
     pub async fn get_changelog_page(
         pool: &PgPool,
         params: ChangelogQueryParams,
@@ -172,7 +172,7 @@ impl Graph {
 /// 
 /// Each element of the vector of additional filters will be assigned the correct "WHERE" or "AND", as appropriate.
 /// 
-/// ## Exanple use
+/// ## Example use
 /// ```rust
 /// use crate::controllers::changelog::build_filtered_changelog;
 /// 
